@@ -13,6 +13,15 @@
 #include "boost/shared_ptr.hpp"
 #include "FWCore/Utilities/interface/GCC11Compatibility.h"
 
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__REFLEX__)
+#define USE_ATOMIC
+#warning using atomic
+#endif
+
+#ifdef  USE_ATOMIC
+#include <atomic>
+#include <thread>
+#endif
 
 #include<vector>
 #include <cassert>
@@ -33,12 +42,20 @@ namespace edmNew {
   namespace dstvdetails {
     struct DetSetVectorTrans {
       DetSetVectorTrans(): filling(false){}
+#ifndef USE_ATOMIC
       bool filling;
+#else
+      DetSetVectorTrans& operator=(const DetSetVectorTrans&) = delete;
+      DetSetVectorTrans(const DetSetVectorTrans&) = delete;
+      DetSetVectorTrans(DetSetVectorTrans&&) = default;
+      std::atomic<bool> filling;
+#endif
       boost::any getter;
 
 
       void swap(DetSetVectorTrans& rh) {
-	std::swap(filling,rh.filling);
+	// better no one is filling...
+	//	std::swap(filling,rh.filling);
 	std::swap(getter,rh.getter);
       }
 
@@ -126,22 +143,32 @@ namespace edmNew {
       typedef typename DetSetVector<T>::id_type id_type;
       typedef typename DetSetVector<T>::size_type size_type;
 
+#ifdef USE_ATOMIC
+      static bool ready(DetSetVector<T> & iv) {
+	bool expected=false;
+	if (!iv.filling.compare_exchange_strong(expected,true))  dstvdetails::errorFilling();
+	return true;
+      }
+      static DetSetVector<T>::Item & dummy() {
+	static  DetSetVector<T>::Item d; return d;
+      }
       FastFiller(DetSetVector<T> & iv, id_type id, bool isaveEmpty=false) : 
-	v(iv), item(v.push_back(id)), saveEmpty(isaveEmpty) {
-	if (v.filling) dstvdetails::errorFilling();
-	v.filling=true;
+	v(iv), item(ready(v)? v.push_back(id): dummy()),saveEmpty(isaveEmpty) {
+	
       }
       FastFiller(DetSetVector<T> & iv, typename DetSetVector<T>::Item & it, bool isaveEmpty=false) : 
 	v(iv), item(it), saveEmpty(isaveEmpty) {
-	if (v.filling) dstvdetails::errorFilling();
-	v.filling=true;
+	bool expected=false;
+	if (!v.filling.compare_exchange_strong(expected,true))  dstvdetails::errorFilling();
       }
       ~FastFiller() {
 	if (!saveEmpty && item.size==0) {
 	  v.pop_back(item.id);
 	}
-	v.filling=false;
+	bool expected=true;
+	if (!v.filling.compare_exchange_strong(expected,false))  dstvdetails::errorFilling();
       }
+#endif
       
       void abort() {
 	v.pop_back(item.id);
@@ -206,7 +233,12 @@ namespace edmNew {
     ~DetSetVector() {
       // delete content if T is pointer...
     }
-    
+
+#ifdef USE_ATOMIC
+    DetSetVector& operator=(const DetSetVector&) = delete;
+    DetSetVector(const DetSetVector&) = delete;
+    DetSetVector(DetSetVector&&) = default;
+#endif
 
     bool onDemand() const { return !getter.empty();}
 
@@ -514,6 +546,11 @@ namespace edm {
         }
    };
 }
+
+
+#ifdef  USE_ATOMIC
+#undef  USE_ATOMIC
+#endif
 
 #endif
   
