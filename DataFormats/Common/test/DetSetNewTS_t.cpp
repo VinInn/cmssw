@@ -57,8 +57,8 @@ struct B{
 };
 
 struct T : public B {
-  T(float iv=0) : v(iv){}
-  float v;
+  T(int iv=0) : v(iv){}
+  int v;
   bool operator==(T t) const { return v==t.v;}
 
   virtual T * clone() const { return new T(*this); }
@@ -83,7 +83,7 @@ class TestDetSet: public CppUnit::TestFixture
 {
   CPPUNIT_TEST_SUITE(TestDetSet);
   CPPUNIT_TEST(infrastructure);
-  CPPUNIT_TEST(fill);
+  CPPUNIT_TEST(fillSeq);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -94,7 +94,7 @@ public:
   void tearDown() {}
 
   void infrastructure();
-  void fill();
+  void fillSeq();
 
 public:
   std::vector<DSTV::data_type> sv;
@@ -104,9 +104,24 @@ public:
 CPPUNIT_TEST_SUITE_REGISTRATION(TestDetSet);
 
 TestDetSet::TestDetSet() : sv(10){
-  DSTV::data_type v[10] = {0.,1.,2.,3.,4.,5.,6.,7.,8.,9.};
+  DSTV::data_type v[10] = {0,1,2,3,4,5,6,7,8,9};
   std::copy(v,v+10,sv.begin());
 }
+
+void read(DSTV const & detsets, bool all=false) {
+  int i=0;
+  for (auto di = detsets.begin(false); di!=detsets.end(false); ++di) {
+    auto ds = *di;
+    auto id = ds.id();
+    std::cout << id <<' ';
+    // if (all) CPPUNIT_ASSERT(int(id)==20+i);
+    CPPUNIT_ASSERT(ds[0]==100*(id-20)+3);
+    CPPUNIT_ASSERT(ds[1]==-(100*(id-20)+3));    
+    ++i;
+  }
+  std::cout << std::endl;
+}
+
 
 void TestDetSet::infrastructure() {
   std::cout << std::endl;
@@ -137,7 +152,7 @@ void TestDetSet::infrastructure() {
 
 }
 
-void TestDetSet::fill() {
+void TestDetSet::fillSeq() {
   std::cout << std::endl;
 
   DSTV detsets(2);
@@ -151,20 +166,32 @@ void TestDetSet::fill() {
   {
     sync(lock);
     while(true) {
-      int ldet = idet.fetch_add(1,std::memory_order_acq_rel);;
+      int ldet = idet.load(std::memory_order_acquire);
+      if (!(ldet<maxDet)) break;
+      while(!idet.compare_exchange_weak(ldet,ldet+1,std::memory_order_acq_rel));
       if (ldet>maxDet) break;
       unsigned int id=20+ldet;
-      try {
-	FF ff(detsets, id);
-	ff.push_back(ldet+3.14);
-	CPPUNIT_ASSERT(detsets.m_data.back().v==ldet+3.14f);
-	ff.push_back(-(ldet+3.14));
-	CPPUNIT_ASSERT(detsets.m_data.back().v==-(ldet+3.14f));
-      } catch (edm::Exception const&) {
-	trial.fetch_add(1,std::memory_order_acq_rel);
+      bool done=false;
+      while(!done) {
+	try {
+	  FF ff(detsets, id);
+	  ff.push_back(100*ldet+3);
+	  CPPUNIT_ASSERT(detsets.m_data.back().v==(100*ldet+3));
+	  ff.push_back(-(100*ldet+3));
+	  CPPUNIT_ASSERT(detsets.m_data.back().v==-(100*ldet+3));
+	  read(detsets);
+	done=true;
+	} catch (edm::Exception const&) {
+	  trial.fetch_add(1,std::memory_order_acq_rel);
+	  // read(detsets);
+	}
       }
-
     }
+    // read(detsets);
   }
+
+  std::cout << idet << ' ' << detsets.size() << std::endl;
+  read(detsets,true);
+  CPPUNIT_ASSERT(int(detsets.size())==maxDet);
   std::cout << trial << std::endl;
 }
