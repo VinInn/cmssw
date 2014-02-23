@@ -182,17 +182,17 @@ void TestDetSet::fillSeq() {
       while(!done) {
 	try {
 	  {
-	    FF ff(detsets, id);
+	    FF ff(detsets, id); // serialize
 	    ff.push_back(100*ldet+3);
 	    CPPUNIT_ASSERT(detsets.m_data.back().v==(100*ldet+3));
 	    ff.push_back(-(100*ldet+3));
 	    CPPUNIT_ASSERT(detsets.m_data.back().v==-(100*ldet+3));
 	  }
-	  //read(detsets);
+	  // read(detsets);  // cannot read in parallel while filling in this case
 	  done=true;
 	} catch (edm::Exception const&) {
 	  trial.fetch_add(1,std::memory_order_acq_rel);
-	  // read(detsets);
+	  //read(detsets);
 	}
       }
     }
@@ -245,6 +245,11 @@ void TestDetSet::fillPar() {
 #pragma omp parallel 
   {
     sync(lock);
+    if (omp_get_thread_num()%2==0) {
+      DST df = detsets[25]; // everybody!
+      CPPUNIT_ASSERT(df.id()==25);
+      CPPUNIT_ASSERT(df.size()==2);
+    }
     while(true) {
       if (omp_get_thread_num()==0) read(detsets);
       int ldet = idet.load(std::memory_order_acquire);
@@ -255,7 +260,7 @@ void TestDetSet::fillPar() {
       DST df = *detsets.find(id);
       CPPUNIT_ASSERT(df.id()==id);
       CPPUNIT_ASSERT(df.size()==2);
-      if (omp_get_thread_num()==0) read(detsets);
+      if (omp_get_thread_num()==1) read(detsets);
     }
   }
   std::cout << idet << ' ' << detsets.size() << ' ' << g.ntot << std::endl;

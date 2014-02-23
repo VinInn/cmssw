@@ -35,12 +35,13 @@ namespace edmNew {
   namespace dslv {
     template< typename T> class LazyGetter;
 
+#ifdef USE_ATOMIC
     struct ReadLock {
       ReadLock(std::atomic<int> & r) : reading(&r){}
       ~ReadLock() { (*reading).fetch_sub(1,std::memory_order_acq_rel);}
       std::atomic<int> * reading;
     };
-
+#endif
   }
 
   /* transient component of DetSetVector
@@ -178,6 +179,7 @@ namespace edmNew {
       static bool ready(DetSetVector<T> & iv) {
 	bool expected=false;
 	if (!iv.filling.compare_exchange_strong(expected,true))  dstvdetails::errorFilling();
+	while (iv.reading.load(std::memory_order_acquire)!=0) nanosleep(0,0);
 	return true;
       }
       static DetSetVector<T>::Item & dummy() {
