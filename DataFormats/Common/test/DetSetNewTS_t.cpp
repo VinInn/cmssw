@@ -77,6 +77,7 @@ typedef edmNew::DetSetVector<T> DSTV;
 typedef edmNew::DetSet<T> DST;
 typedef edmNew::det_id_type det_id_type;
 typedef DSTV::FastFiller FF;
+typedef DSTV::TSFastFiller TSFF;
 
 
 class TestDetSet: public CppUnit::TestFixture
@@ -84,6 +85,7 @@ class TestDetSet: public CppUnit::TestFixture
   CPPUNIT_TEST_SUITE(TestDetSet);
   CPPUNIT_TEST(infrastructure);
   CPPUNIT_TEST(fillSeq);
+  CPPUNIT_TEST(fillPar);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -95,6 +97,7 @@ public:
 
   void infrastructure();
   void fillSeq();
+  void fillPar();
 
 public:
   std::vector<DSTV::data_type> sv;
@@ -115,8 +118,12 @@ void read(DSTV const & detsets, bool all=false) {
     auto id = ds.id();
     std::cout << id <<' ';
     // if (all) CPPUNIT_ASSERT(int(id)==20+i);
-    CPPUNIT_ASSERT(ds[0]==100*(id-20)+3);
-    CPPUNIT_ASSERT(ds[1]==-(100*(id-20)+3));    
+    if (ds.isValid())
+    {
+      auto rlock = detsets.readlock();
+      CPPUNIT_ASSERT(ds[0]==100*(id-20)+3);
+      CPPUNIT_ASSERT(ds[1]==-(100*(id-20)+3));
+    }    
     ++i;
   }
   std::cout << std::endl;
@@ -174,13 +181,15 @@ void TestDetSet::fillSeq() {
       bool done=false;
       while(!done) {
 	try {
-	  FF ff(detsets, id);
-	  ff.push_back(100*ldet+3);
-	  CPPUNIT_ASSERT(detsets.m_data.back().v==(100*ldet+3));
-	  ff.push_back(-(100*ldet+3));
-	  CPPUNIT_ASSERT(detsets.m_data.back().v==-(100*ldet+3));
-	  read(detsets);
-	done=true;
+	  {
+	    FF ff(detsets, id);
+	    ff.push_back(100*ldet+3);
+	    CPPUNIT_ASSERT(detsets.m_data.back().v==(100*ldet+3));
+	    ff.push_back(-(100*ldet+3));
+	    CPPUNIT_ASSERT(detsets.m_data.back().v==-(100*ldet+3));
+	  }
+	  //read(detsets);
+	  done=true;
 	} catch (edm::Exception const&) {
 	  trial.fetch_add(1,std::memory_order_acq_rel);
 	  // read(detsets);
@@ -194,4 +203,63 @@ void TestDetSet::fillSeq() {
   read(detsets,true);
   CPPUNIT_ASSERT(int(detsets.size())==maxDet);
   std::cout << trial << std::endl;
+}
+
+
+  struct Getter final : public DSTV::Getter {
+    Getter(TestDetSet * itest):ntot(0), test(*itest){}
+
+    void fill(TSFF& ff) override {
+      int n=ff.id()-20;
+      CPPUNIT_ASSERT(n>=0);
+      CPPUNIT_ASSERT(ff.size()==0);
+      ff.push_back((100*n+3));
+      CPPUNIT_ASSERT(ff.size()==1);
+      CPPUNIT_ASSERT(ff[0]==100*n+3);
+      ff.push_back(-(100*n+3));
+      CPPUNIT_ASSERT(ff.size()==2);
+      CPPUNIT_ASSERT(ff[1]==-(100*n+3));
+      ++ntot;
+    }
+
+    std::atomic<unsigned int> ntot;
+    TestDetSet & test;
+  };
+
+void TestDetSet::fillPar() {
+  std::cout << std::endl;
+  boost::shared_ptr<Getter> pg(new Getter(this));
+  Getter & g = *pg;
+  int maxDet=20;
+  std::vector<unsigned int> v(20); int k=20;for (auto &i:v) i=k++;
+  DSTV detsets(pg,v,2);
+  CPPUNIT_ASSERT(g.ntot==0);
+  CPPUNIT_ASSERT(detsets.onDemand());
+  CPPUNIT_ASSERT(20==detsets.size());
+
+  
+  std::atomic<int> lock(0);
+  std::atomic<int> idet(0);
+  std::atomic<int> trial(0);
+  
+#pragma omp parallel 
+  {
+    sync(lock);
+    while(true) {
+      if (omp_get_thread_num()==0) read(detsets);
+      int ldet = idet.load(std::memory_order_acquire);
+      if (!(ldet<maxDet)) break;
+      while(!idet.compare_exchange_weak(ldet,ldet+1,std::memory_order_acq_rel));
+      if (ldet>maxDet) break;
+      unsigned int id=20+ldet;
+      DST df = *detsets.find(id);
+      CPPUNIT_ASSERT(df.id()==id);
+      CPPUNIT_ASSERT(df.size()==2);
+      if (omp_get_thread_num()==0) read(detsets);
+    }
+  }
+  std::cout << idet << ' ' << detsets.size() << ' ' << g.ntot << std::endl;
+  read(detsets,true);
+  CPPUNIT_ASSERT(int(g.ntot)==maxDet);
+  CPPUNIT_ASSERT(int(detsets.size())==maxDet);
 }

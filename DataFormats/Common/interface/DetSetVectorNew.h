@@ -34,6 +34,13 @@ namespace edmNew {
 
   namespace dslv {
     template< typename T> class LazyGetter;
+
+    struct ReadLock {
+      ReadLock(std::atomic<int> & r) : reading(&r){}
+      ~ReadLock() { (*reading).fetch_sub(1,std::memory_order_acq_rel);}
+      std::atomic<int> * reading;
+    };
+
   }
 
   /* transient component of DetSetVector
@@ -41,14 +48,26 @@ namespace edmNew {
    */
   namespace dstvdetails {
     struct DetSetVectorTrans {
-      DetSetVectorTrans(): filling(false){}
+      DetSetVectorTrans(): filling(false), reading(0){}
 #ifndef USE_ATOMIC
       bool filling;
+      int reading;
 #else
       DetSetVectorTrans& operator=(const DetSetVectorTrans&) = delete;
       DetSetVectorTrans(const DetSetVectorTrans&) = delete;
       DetSetVectorTrans(DetSetVectorTrans&&) = default;
-      std::atomic<bool> filling;
+      DetSetVectorTrans& operator=(DetSetVectorTrans&&) = default;
+      mutable std::atomic<bool> filling;
+      mutable std::atomic<int> reading;
+
+      dslv::ReadLock readlock() const {
+	bool expected=false;
+	while (!filling.compare_exchange_weak(expected,true,std::memory_order_acq_rel))  { expected=false; nanosleep(0,0);}
+	reading.fetch_add(1,std::memory_order_acq_rel);
+	filling.store(false,std::memory_order_release);
+	return dslv::ReadLock(reading);
+      }
+
 #endif
       boost::any getter;
 
@@ -64,10 +83,22 @@ namespace edmNew {
 
       struct Item {
 	Item(id_type i=0, int io=-1, size_type is=0) : id(i), offset(io), size(is){}
-	bool isValid() const { return offset>=0;}
 	id_type id;
+#ifdef USE_ATOMIC
+	//	Item(Item&&)=default;	Item & operator=(Item&& rh)=default;
+	Item(Item&& rh)  noexcept :
+	id(std::move(rh.id)),offset(rh.offset.load(std::memory_order_acquire)),size(std::move(rh.size)) {
+	}
+	Item & operator=(Item&& rh) noexcept {
+	  id=std::move(rh.id);offset=rh.offset.load(std::memory_order_acquire);size=std::move(rh.size); return *this;
+	}
+	std::atomic<int> offset;
+#else
 	int offset;
+#endif
 	size_type size;
+
+	bool isValid() const { return offset>=0;}
 	bool operator<(Item const &rh) const { return id<rh.id;}
 	operator id_type() const { return id;}
       };
@@ -160,14 +191,18 @@ namespace edmNew {
 	v(iv), item(it), saveEmpty(isaveEmpty) {
 	bool expected=false;
 	if (!v.filling.compare_exchange_strong(expected,true))  dstvdetails::errorFilling();
+	item.offset = int(v.m_data.size());
+
       }
       ~FastFiller() {
 	if (!saveEmpty && item.size==0) {
 	  v.pop_back(item.id);
 	}
-	bool expected=true;
-	if (!v.filling.compare_exchange_strong(expected,false))  dstvdetails::errorFilling();
+	assert(v.filling==true);
+	v.filling.store(false,std::memory_order_release);
+
       }
+      
 #endif
       
       void abort() {
@@ -192,7 +227,7 @@ namespace edmNew {
 	return 	v.m_data[item.offset+i];
       }
       DataIter begin() { return v.m_data.begin()+ item.offset;}
-      DataIter end() { return v.m_data.end();}
+      DataIter end() { return begin()+size();}
 
       void push_back(data_type const & d) {
 	v.m_data.push_back(d);
@@ -212,7 +247,83 @@ namespace edmNew {
       typename DetSetVector<T>::Item & item;
       bool saveEmpty;
     };
+
+    /* fill on demand a given  DetSet
+     */
+    class TSFastFiller {
+    public:
+      typedef typename DetSetVector<T>::data_type value_type;
+      typedef typename DetSetVector<T>::id_type key_type;
+      typedef typename DetSetVector<T>::id_type id_type;
+      typedef typename DetSetVector<T>::size_type size_type;
+
+#ifdef USE_ATOMIC
+
+      TSFastFiller(DetSetVector<T> & iv, typename DetSetVector<T>::Item & it) : 
+	v(iv), item(it) {
+
+      }
+      ~TSFastFiller() {
+	bool expected=false;
+	while (!v.filling.compare_exchange_weak(expected,true,std::memory_order_acq_rel))  { expected=false; nanosleep(0,0);}
+	int offset = v.m_data.size();
+	if (v.m_data.capacity()<offset+lv.size()) {
+	  // read lock;
+	  while (v.reading.load(std::memory_order_acquire)!=0) nanosleep(0,0);
+	  v.m_data.reserve(offset+lv.size()); // ????
+	}
+	std::move(lv.begin(), lv.end(), std::back_inserter(v.m_data));
+	item.size=lv.size();
+	item.offset = offset; 
+
+	assert(v.filling==true);
+	v.filling=false;
+      }
+      
+#endif
+      
+      void abort() {
+      }
+
+      void reserve(size_type s) {
+	lv.reserve(s);
+      }
+
+      void resize(size_type s) {
+	lv.resize(s);
+      }
+
+      id_type id() const { return item.id;}
+      size_type size() const { return lv.size();}
+      bool empty() const { return lv.empty();}
+
+      data_type & operator[](size_type i) {
+	return 	lv[i];
+      }
+      DataIter begin() { return lv.begin();}
+      DataIter end() { return lv.end();}
+
+      void push_back(data_type const & d) {
+	lv.push_back(d);
+      }
+#ifndef CMS_NOCXX11
+      void push_back(data_type && d) {
+        lv.push_back(std::move(d));
+      }
+#endif
+
+      data_type & back() { return v.m_data.back();}
+      
+    private:
+      std::vector<T> lv;
+      DetSetVector<T> & v;
+      typename DetSetVector<T>::Item & item;
+    };
+
+
+
     friend class FastFiller;
+    friend class TSFastFiller;
 
     class FindForDetSetVector : public std::binary_function<const edmNew::DetSetVector<T>&, unsigned int, const T*> {
     public:
@@ -238,6 +349,7 @@ namespace edmNew {
     DetSetVector& operator=(const DetSetVector&) = delete;
     DetSetVector(const DetSetVector&) = delete;
     DetSetVector(DetSetVector&&) = default;
+    DetSetVector& operator=(DetSetVector&&) = default;
 #endif
 
     bool onDemand() const { return !getter.empty();}
@@ -302,7 +414,11 @@ namespace edmNew {
 				  m_ids.end(),
 				  it);
       if (p!=m_ids.end() && !(it<*p)) dstvdetails::errorIdExists(iid);
+#ifndef CMS_NOCXX11
+      return *m_ids.insert(p,std::move(it));
+#else
       return *m_ids.insert(p,it);
+#endif
     }
 
 
@@ -433,7 +549,7 @@ namespace edmNew {
     class LazyGetter {
     public:
       virtual ~LazyGetter() {}
-      virtual void fill(typename DetSetVector<T>::FastFiller&) = 0;
+      virtual void fill(typename DetSetVector<T>::TSFastFiller&) = 0;
     };
   }
   
@@ -458,25 +574,33 @@ namespace edmNew {
   }
 
   template<typename T>
-  inline void DetSetVector<T>::updateImpl(Item & item)  {
+  inline void DetSetVector<T>::updateImpl(Item & item) {
     // no getter or already updated
-    if (getter.empty()) assert(item.offset>=0);
-    if (item.offset!=-1 || getter.empty() ) return;
-    item.offset = int(m_data.size());
-    FastFiller ff(*this,item,true);
-    (*boost::any_cast<boost::shared_ptr<Getter> >(&getter))->fill(ff);
+    if (getter.empty()) { assert(item.offset>=0); return;}
+#ifdef USE_ATOMIC
+    int expected = -1;
+    if (item.offset.compare_exchange_strong(expected,-2,std::memory_order_acq_rel)) {
+      assert(item.offset==-2); 
+      {
+	TSFastFiller ff(*this,item);
+	(*boost::any_cast<boost::shared_ptr<Getter> >(&getter))->fill(ff);
+      }
+      assert(item.offset>=0);
+    }
+#endif
   }
-
-
  
   
   template<typename T>
   inline void DetSet<T>::set(DetSetVector<T> const & icont,
 			     typename Container::Item const & item, bool update) {
+#ifdef USE_ATOMIC
+    // if an item is being updated we wait (better than ROU)
     if (update) {
       icont.update(item);
-      assert(item.offset>=0);
     }
+    while(item.offset.load(std::memory_order_acquire)<-1) nanosleep(0,0);
+#endif
     m_id=item.id; 
     m_data=&icont.data();
     m_offset = item.offset; 
