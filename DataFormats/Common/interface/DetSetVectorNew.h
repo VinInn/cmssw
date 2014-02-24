@@ -15,7 +15,7 @@
 
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__REFLEX__)
 #define USE_ATOMIC
-#warning using atomic
+// #warning using atomic
 #endif
 
 #ifdef  USE_ATOMIC
@@ -51,8 +51,12 @@ namespace edmNew {
     struct DetSetVectorTrans {
       DetSetVectorTrans(): filling(false), reading(0){}
 #ifndef USE_ATOMIC
-      bool filling;
-      int reading;
+      mutable bool filling;
+      mutable int reading;
+  private:
+      DetSetVectorTrans& operator=(const DetSetVectorTrans&){return *this;}
+      DetSetVectorTrans(const DetSetVectorTrans&){}
+  public:
 #else
       DetSetVectorTrans& operator=(const DetSetVectorTrans&) = delete;
       DetSetVectorTrans(const DetSetVectorTrans&) = delete;
@@ -87,6 +91,12 @@ namespace edmNew {
 	id_type id;
 #ifdef USE_ATOMIC
 	//	Item(Item&&)=default;	Item & operator=(Item&& rh)=default;
+	Item(Item const & rh)  noexcept :
+	id(rh.id),offset(rh.offset.load(std::memory_order_acquire)),size(rh.size) {
+	}
+	Item & operator=(Item const & rh) noexcept {
+	  id=rh.id;offset=rh.offset.load(std::memory_order_acquire);size=rh.size; return *this;
+	}
 	Item(Item&& rh)  noexcept :
 	id(std::move(rh.id)),offset(rh.offset.load(std::memory_order_acquire)),size(std::move(rh.size)) {
 	}
@@ -348,10 +358,16 @@ namespace edmNew {
     }
 
 #ifdef USE_ATOMIC
+    // default or delete is the same...
     DetSetVector& operator=(const DetSetVector&) = delete;
     DetSetVector(const DetSetVector&) = delete;
     DetSetVector(DetSetVector&&) = default;
     DetSetVector& operator=(DetSetVector&&) = default;
+#else
+  private:
+    DetSetVector& operator=(const DetSetVector&){return *this;}
+    DetSetVector(const DetSetVector&){}
+  public:
 #endif
 
     bool onDemand() const { return !getter.empty();}

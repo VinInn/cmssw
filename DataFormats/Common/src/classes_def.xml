@@ -69,6 +69,7 @@
    <!-- -->
 <class name="edmNew::dstvdetails::DetSetVectorTrans" ClassVersion="10">
  <version ClassVersion="10" checksum="1132971359"/>
+   <field name="reading" transient="true"/>
    <field name="filling" transient="true"/>
    <field name="getter" transient="true"/>
 </class>
