@@ -39,6 +39,7 @@ typedef edmNew::DetSetVector<T> DSTV;
 typedef edmNew::DetSet<T> DST;
 typedef edmNew::det_id_type det_id_type;
 typedef DSTV::FastFiller FF;
+typedef DSTV::TSFastFiller TSFF;
 
 
 class TestDetSet: public CppUnit::TestFixture
@@ -262,7 +263,7 @@ namespace {
   struct Getter final : public DSTV::Getter {
     Getter(TestDetSet * itest):ntot(0), test(*itest){}
 
-    void fill(FF& ff) override {
+    void fill(TSFF& ff) override {
       int n=ff.id()-20;
       CPPUNIT_ASSERT(n>0);
       ff.resize(n);
