@@ -21,6 +21,7 @@
 #ifdef  USE_ATOMIC
 #include <atomic>
 #include <thread>
+#include <memory>
 #endif
 
 #include<vector>
@@ -189,7 +190,6 @@ namespace edmNew {
       static bool ready(DetSetVector<T> & iv) {
 	bool expected=false;
 	if (!iv.filling.compare_exchange_strong(expected,true))  dstvdetails::errorFilling();
-	while (iv.reading.load(std::memory_order_acquire)!=0) nanosleep(0,0);
 	return true;
       }
       static DetSetVector<T>::Item & dummy() {
@@ -280,9 +280,18 @@ namespace edmNew {
 	while (!v.filling.compare_exchange_weak(expected,true,std::memory_order_acq_rel))  { expected=false; nanosleep(0,0);}
 	int offset = v.m_data.size();
 	if (v.m_data.capacity()<offset+lv.size()) {
-	  // read lock;
-	  while (v.reading.load(std::memory_order_acquire)!=0) nanosleep(0,0);
-	  v.m_data.reserve(offset+lv.size()); // ????
+	  auto newcap = 2*v.m_data.capacity()+lv.size();
+	  // chek if there are readers..
+	  if (v.onDemand() && (!v.rcu().unique())) { //there is at least a reader around do rcu
+	    auto & old = v.rcu();
+	    (*old).swap(v.m_data);
+	    v.m_data.clear(); v.m_data.reserve(newcap);
+	    std::copy((*old).begin(),(*old).end(),std::back_inserter(v.m_data));
+	    assert(offset=v.m_data.size());
+	    old.reset(new typename DetSetVector<T>::DataContainer());  // old data will be deleted when reader "release" lock
+	  }else {
+	    v.m_data.reserve(newcap);
+	  }
 	}
 	std::move(lv.begin(), lv.end(), std::back_inserter(v.m_data));
 	item.size=lv.size();
@@ -371,6 +380,16 @@ namespace edmNew {
 #endif
 
     bool onDemand() const { return !getter.empty();}
+
+
+#ifdef USE_ATOMIC
+    using RCU = std::shared_ptr<DataContainer>;
+    // return the RCU in the Getter (shall be protected by onDemand) 
+    RCU  & rcu();
+#endif
+
+
+
 
     void swap(DetSetVector & rh) {
       DetSetVectorTrans::swap(rh);
@@ -568,9 +587,21 @@ namespace edmNew {
     public:
       virtual ~LazyGetter() {}
       virtual void fill(typename DetSetVector<T>::TSFastFiller&) = 0;
+
+#ifdef USE_ATOMIC
+      LazyGetter() : rcu(new typename DetSetVector<T>::DataContainer()){}
+      std::shared_ptr<typename DetSetVector<T>::DataContainer> rcu;
+#endif
     };
   }
   
+
+#ifdef USE_ATOMIC
+  template<typename T>
+  inline typename DetSetVector<T>::RCU  & DetSetVector<T>::rcu() {
+    return (*boost::any_cast<boost::shared_ptr<Getter> >(&getter))->rcu;
+  }
+#endif
     
 
   template<typename T>
