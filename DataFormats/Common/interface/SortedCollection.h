@@ -33,8 +33,6 @@ unreliable if such duplicate entries are made.
 #include "DataFormats/Provenance/interface/ProductID.h"
 #include "FWCore/Utilities/interface/EDMException.h"
 
-#include "FWCore/Utilities/interface/GCC11Compatibility.h"
-
 #include <algorithm>
 #include <typeinfo>
 #include <vector>
@@ -101,13 +99,6 @@ namespace edm {
     //SortedCollection(InputIterator b, InputIterator e);
 
     void push_back(T const& t);
-#if defined(__GXX_EXPERIMENTAL_CXX0X__)
-    void push_back(T && t) { obj.push_back(t);}
-
-    template<typename... Args >
-    void emplace_back( Args&&... args ) { obj.emplace_back(args...);}
-#endif
-    void pop_back() { obj.pop_back(); }
 
     void swap(SortedCollection& other);
 
