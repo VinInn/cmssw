@@ -115,7 +115,7 @@ void read(DSTV const & detsets, bool all=false) {
   int i=0;
   for (auto di = detsets.begin(false); di!=detsets.end(false); ++di) {
     auto ds = *di;
-    if (detsets.onDemand()) CPPUNIT_ASSERT(!detsets.rcu().unique());
+    // if (detsets.onDemand()) CPPUNIT_ASSERT(!detsets.rcu().unique()); can be unique if ROU in action...
     auto id = ds.id();
     std::cout << id <<' ';
     // if (all) CPPUNIT_ASSERT(int(id)==20+i);

@@ -633,9 +633,7 @@ namespace edmNew {
 			     typename Container::Item const & item, bool update) {
 #ifdef USE_ATOMIC
     // if an item is being updated we wait (cannot do RCU at this very moment)
-    if (update) {
-      icont.update(item);
-    }
+    if (update)icont.update(item);
     while(item.offset.load(std::memory_order_acquire)<-1) nanosleep(0,0);
     
     bool expected=false;
