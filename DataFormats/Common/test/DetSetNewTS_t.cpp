@@ -115,12 +115,12 @@ void read(DSTV const & detsets, bool all=false) {
   int i=0;
   for (auto di = detsets.begin(false); di!=detsets.end(false); ++di) {
     auto ds = *di;
+    if (detsets.onDemand()) CPPUNIT_ASSERT(!detsets.rcu().unique());
     auto id = ds.id();
     std::cout << id <<' ';
     // if (all) CPPUNIT_ASSERT(int(id)==20+i);
     if (ds.isValid())
     {
-      auto rlock = detsets.readlock();
       CPPUNIT_ASSERT(ds[0]==100*(id-20)+3);
       CPPUNIT_ASSERT(ds[1]==-(100*(id-20)+3));
     }    
@@ -156,6 +156,9 @@ void TestDetSet::infrastructure() {
     }
     if (i==5) std::cout << lock << " " << a << ' ' << b << std::endl;
   }
+
+
+
 
 }
 
@@ -235,12 +238,15 @@ void TestDetSet::fillPar() {
   DSTV detsets(pg,v,2);
   CPPUNIT_ASSERT(g.ntot==0);
   CPPUNIT_ASSERT(detsets.onDemand());
+  CPPUNIT_ASSERT(detsets.rcu().unique());
   CPPUNIT_ASSERT(20==detsets.size());
 
   
   std::atomic<int> lock(0);
   std::atomic<int> idet(0);
   std::atomic<int> trial(0);
+
+  std::atomic<int> count(0);
   
 #pragma omp parallel 
   {
@@ -249,6 +255,7 @@ void TestDetSet::fillPar() {
       DST df = detsets[25]; // everybody!
       CPPUNIT_ASSERT(df.id()==25);
       CPPUNIT_ASSERT(df.size()==2);
+      count = std::max(int(detsets.rcu().use_count()),int(count.load(std::memory_order_acquire))); 
     }
     while(true) {
       if (omp_get_thread_num()==0) read(detsets);
@@ -257,14 +264,18 @@ void TestDetSet::fillPar() {
       while(!idet.compare_exchange_weak(ldet,ldet+1,std::memory_order_acq_rel));
       if (ldet>maxDet) break;
       unsigned int id=20+ldet;
-      DST df = *detsets.find(id);
-      CPPUNIT_ASSERT(df.id()==id);
-      CPPUNIT_ASSERT(df.size()==2);
+      {
+	DST df = *detsets.find(id);
+	CPPUNIT_ASSERT(df.id()==id);
+	CPPUNIT_ASSERT(df.size()==2);
+      }
       if (omp_get_thread_num()==1) read(detsets);
     }
   }
-  std::cout << idet << ' ' << detsets.size() << ' ' << g.ntot << std::endl;
+  CPPUNIT_ASSERT(detsets.rcu().unique());
+  std::cout << "summary " << idet << ' ' << detsets.size() << ' ' << g.ntot  << ' ' << count << std::endl;
   read(detsets,true);
   CPPUNIT_ASSERT(int(g.ntot)==maxDet);
   CPPUNIT_ASSERT(int(detsets.size())==maxDet);
+  CPPUNIT_ASSERT(detsets.rcu().unique());
 }

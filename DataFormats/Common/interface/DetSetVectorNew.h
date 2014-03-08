@@ -36,13 +36,6 @@ namespace edmNew {
   namespace dslv {
     template< typename T> class LazyGetter;
 
-#ifdef USE_ATOMIC
-    struct ReadLock {
-      ReadLock(std::atomic<int> & r) : reading(&r){}
-      ~ReadLock() { (*reading).fetch_sub(1,std::memory_order_acq_rel);}
-      std::atomic<int> * reading;
-    };
-#endif
   }
 
   /* transient component of DetSetVector
@@ -50,10 +43,9 @@ namespace edmNew {
    */
   namespace dstvdetails {
     struct DetSetVectorTrans {
-      DetSetVectorTrans(): filling(false), reading(0){}
+      DetSetVectorTrans(): filling(false){}
 #ifndef USE_ATOMIC
       mutable bool filling;
-      mutable int reading;
   private:
       DetSetVectorTrans& operator=(const DetSetVectorTrans&){return *this;}
       DetSetVectorTrans(const DetSetVectorTrans&){}
@@ -64,16 +56,6 @@ namespace edmNew {
       DetSetVectorTrans(DetSetVectorTrans&&) = default;
       DetSetVectorTrans& operator=(DetSetVectorTrans&&) = default;
       mutable std::atomic<bool> filling;
-      mutable std::atomic<int> reading;
-
-      dslv::ReadLock readlock() const {
-	bool expected=false;
-	while (!filling.compare_exchange_weak(expected,true,std::memory_order_acq_rel))  { expected=false; nanosleep(0,0);}
-	reading.fetch_add(1,std::memory_order_acq_rel);
-	filling.store(false,std::memory_order_release);
-	return dslv::ReadLock(reading);
-      }
-
 #endif
       boost::any getter;
 
@@ -298,7 +280,7 @@ namespace edmNew {
 	item.offset = offset; 
 
 	assert(v.filling==true);
-	v.filling=false;
+	v.filling.store(false,std::memory_order_release);
       }
       
 #endif
@@ -345,6 +327,7 @@ namespace edmNew {
 
     friend class FastFiller;
     friend class TSFastFiller;
+    friend class edmNew::DetSet<T>;
 
     class FindForDetSetVector : public std::binary_function<const edmNew::DetSetVector<T>&, unsigned int, const T*> {
     public:
@@ -386,6 +369,7 @@ namespace edmNew {
     using RCU = std::shared_ptr<DataContainer>;
     // return the RCU in the Getter (shall be protected by onDemand) 
     RCU  & rcu();
+    RCU const & rcu() const;
 #endif
 
 
@@ -601,6 +585,10 @@ namespace edmNew {
   inline typename DetSetVector<T>::RCU  & DetSetVector<T>::rcu() {
     return (*boost::any_cast<boost::shared_ptr<Getter> >(&getter))->rcu;
   }
+  template<typename T>
+  inline typename DetSetVector<T>::RCU  const & DetSetVector<T>::rcu() const {
+    return (*boost::any_cast<boost::shared_ptr<Getter> >(&getter))->rcu;
+  }
 #endif
     
 
@@ -644,14 +632,21 @@ namespace edmNew {
   inline void DetSet<T>::set(DetSetVector<T> const & icont,
 			     typename Container::Item const & item, bool update) {
 #ifdef USE_ATOMIC
-    // if an item is being updated we wait (better than ROU)
+    // if an item is being updated we wait (cannot do RCU at this very moment)
     if (update) {
       icont.update(item);
     }
     while(item.offset.load(std::memory_order_acquire)<-1) nanosleep(0,0);
+    
+    bool expected=false;
+    while (!icont.filling.compare_exchange_weak(expected,true,std::memory_order_acq_rel))  { expected=false; nanosleep(0,0);}
+    if(icont.onDemand()) m_rcu = icont.rcu();
+#endif
+    m_data=&icont.data().front();
+#ifdef USE_ATOMIC
+    icont.filling.store(false,std::memory_order_release);
 #endif
     m_id=item.id; 
-    m_data=&icont.data();
     m_offset = item.offset; 
     m_size=item.size;
   }
