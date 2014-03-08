@@ -45,7 +45,7 @@ namespace edmNew {
 #ifdef USE_ATOMIC
     using RCU = std::shared_ptr<DataContainer>;
     // return the RCU in the Getter (shall be protected by onDemand) 
-    RCU  & rcu();
+    //RCU  & rcu();
 #endif
 
     

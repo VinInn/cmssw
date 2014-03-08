@@ -645,6 +645,7 @@ namespace edmNew {
     m_data=&icont.data().front();
 #ifdef USE_ATOMIC
     icont.filling.store(false,std::memory_order_release);
+    //  if(icont.onDemand()) assert(&(*m_rcu).front() == m_data); // only if not empty which is rare here
 #endif
     m_id=item.id; 
     m_offset = item.offset; 

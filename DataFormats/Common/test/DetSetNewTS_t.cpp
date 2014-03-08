@@ -222,7 +222,7 @@ void TestDetSet::fillSeq() {
       ff.push_back(-(100*n+3));
       CPPUNIT_ASSERT(ff.size()==2);
       CPPUNIT_ASSERT(ff[1]==-(100*n+3));
-      ++ntot;
+      ntot.fetch_add(1,std::memory_order_acq_rel);
     }
 
     std::atomic<unsigned int> ntot;
@@ -248,6 +248,9 @@ void TestDetSet::fillPar() {
 
   std::atomic<int> count(0);
   
+
+  DST df31 = detsets[31];
+
 #pragma omp parallel 
   {
     sync(lock);
@@ -255,6 +258,10 @@ void TestDetSet::fillPar() {
       DST df = detsets[25]; // everybody!
       CPPUNIT_ASSERT(df.id()==25);
       CPPUNIT_ASSERT(df.size()==2);
+      CPPUNIT_ASSERT(df[0]==100*(25-20)+3);
+      CPPUNIT_ASSERT(df[1]==-(100*(25-20)+3));
+      if(!(*df.m_rcu).empty()) CPPUNIT_ASSERT(&(*df.m_rcu).front() == df.m_data);
+
       count = std::max(int(detsets.rcu().use_count()),int(count.load(std::memory_order_acquire))); 
     }
     while(true) {
@@ -268,11 +275,25 @@ void TestDetSet::fillPar() {
 	DST df = *detsets.find(id);
 	CPPUNIT_ASSERT(df.id()==id);
 	CPPUNIT_ASSERT(df.size()==2);
+	CPPUNIT_ASSERT(df[0]==100*(id-20)+3);
+	CPPUNIT_ASSERT(df[1]==-(100*(id-20)+3));
+	if(!(*df.m_rcu).empty()) CPPUNIT_ASSERT(&(*df.m_rcu).front() == df.m_data);
+
       }
       if (omp_get_thread_num()==1) read(detsets);
     }
   }
-  CPPUNIT_ASSERT(detsets.rcu().unique());
+
+  CPPUNIT_ASSERT(df31.id()==31);
+  CPPUNIT_ASSERT(df31.size()==2);
+  CPPUNIT_ASSERT(df31[0]==100*(31-20)+3);
+  CPPUNIT_ASSERT(df31[1]==-(100*(31-20)+3));
+  if(!(*df31.m_rcu).empty()) { 
+    std::cout << "RCU in action" << std::endl;
+    CPPUNIT_ASSERT(&(*df31.m_rcu).front() == df31.m_data);
+  }
+
+  CPPUNIT_ASSERT(detsets.rcu().unique()); // not necessarely true due to df31...
   std::cout << "summary " << idet << ' ' << detsets.size() << ' ' << g.ntot  << ' ' << count << std::endl;
   read(detsets,true);
   CPPUNIT_ASSERT(int(g.ntot)==maxDet);
