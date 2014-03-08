@@ -171,7 +171,7 @@ void TestDetSet::fillSeq() {
   std::atomic<int> lock(0);
   std::atomic<int> idet(0);
   std::atomic<int> trial(0);
-  int maxDet=20;
+  int maxDet=100;
 #pragma omp parallel 
   {
     sync(lock);
@@ -179,7 +179,7 @@ void TestDetSet::fillSeq() {
       int ldet = idet.load(std::memory_order_acquire);
       if (!(ldet<maxDet)) break;
       while(!idet.compare_exchange_weak(ldet,ldet+1,std::memory_order_acq_rel));
-      if (ldet>maxDet) break;
+      if (ldet>=maxDet) break;
       unsigned int id=20+ldet;
       bool done=false;
       while(!done) {
@@ -233,13 +233,13 @@ void TestDetSet::fillPar() {
   std::cout << std::endl;
   boost::shared_ptr<Getter> pg(new Getter(this));
   Getter & g = *pg;
-  int maxDet=20;
-  std::vector<unsigned int> v(20); int k=20;for (auto &i:v) i=k++;
+  int maxDet=100;
+  std::vector<unsigned int> v(maxDet); int k=20;for (auto &i:v) i=k++;
   DSTV detsets(pg,v,2);
   CPPUNIT_ASSERT(g.ntot==0);
   CPPUNIT_ASSERT(detsets.onDemand());
   CPPUNIT_ASSERT(detsets.rcu().unique());
-  CPPUNIT_ASSERT(20==detsets.size());
+  CPPUNIT_ASSERT(maxDet==int(detsets.size()));
 
   
   std::atomic<int> lock(0);
@@ -269,7 +269,7 @@ void TestDetSet::fillPar() {
       int ldet = idet.load(std::memory_order_acquire);
       if (!(ldet<maxDet)) break;
       while(!idet.compare_exchange_weak(ldet,ldet+1,std::memory_order_acq_rel));
-      if (ldet>maxDet) break;
+      if (ldet>=maxDet) break;
       unsigned int id=20+ldet;
       {
 	DST df = *detsets.find(id);
