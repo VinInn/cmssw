@@ -1,9 +1,19 @@
 #ifndef DataFormats_Common_DetSetNew_h
 #define DataFormats_Common_DetSetNew_h
 
+
+
 #include "FWCore/Utilities/interface/GCC11Compatibility.h"
+
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__REFLEX__)
+#define USE_ATOMIC
+// #warning using atomic
+#endif
+
 #include <vector>
+#include <memory>
 #include <cassert>
+
 
 namespace edmNew {
   //  FIXME move it elsewhere....
@@ -31,18 +41,24 @@ namespace edmNew {
 
     typedef data_type value_type;
     typedef id_type key_type;
-    
+
+#ifdef USE_ATOMIC
+    using RCU = std::shared_ptr<DataContainer>;
+    // return the RCU in the Getter (shall be protected by onDemand) 
+    //RCU  & rcu();
+#endif
+
     
     inline
-    DetSet() : m_id(0), m_data(0), m_offset(-1), m_size(0){}
+    DetSet() : m_id(0), m_data(nullptr), m_offset(-1), m_size(0){}
     inline
     DetSet(id_type i, DataContainer const & idata, size_type ioffset, size_type isize) :
-      m_id(i), m_data(&idata), m_offset(ioffset), m_size(isize) {}
+      m_id(i), m_data(&idata.front()), m_offset(ioffset), m_size(isize) {}
     
     inline
     DetSet(Container const & icont,
 	   typename Container::Item const & item, bool update) :
-      m_id(0), m_data(0), m_offset(-1), m_size(0){
+      m_id(0), m_data(nullptr), m_offset(-1), m_size(0){
       set(icont,item, update);
     }
 
@@ -91,18 +107,24 @@ namespace edmNew {
   private:
     data_type const * data() const {
       if(m_offset|m_size) assert(m_data);
-      return m_data ? (&((*m_data)[m_offset])) : 0;
+      // return m_data ? (&((*m_data)[m_offset])) : 0;
+      return m_data ? m_data + m_offset : nullptr;
     }
 
    data_type * data() {
      assert(m_data);
-     return const_cast<data_type *>(&((*m_data)[m_offset]));
+     return const_cast<data_type *>(m_data + m_offset);
+     //     return const_cast<data_type *>(&((*m_data)[m_offset]));
     }
     
     id_type m_id;
-    DataContainer const * m_data;
+    //DataContainer const * m_data;
+    data_type const * m_data;
     int m_offset;
     size_type m_size;
+#ifdef USE_ATOMIC
+    RCU m_rcu;
+#endif
   };
 }
 
