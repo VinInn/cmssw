@@ -44,6 +44,11 @@ namespace edmNew {
    * for pure conviniency of dictioanary declaration
    */
   namespace dstvdetails {
+
+    void errorFilling();
+    void errorIdExists(det_id_type iid);
+    void throw_range(det_id_type iid);
+
     struct DetSetVectorTrans {
       DetSetVectorTrans(): filling(false){}
 #ifndef USE_ATOMIC
@@ -64,6 +69,7 @@ namespace edmNew {
 
       void swap(DetSetVectorTrans& rh) {
 	// better no one is filling...
+        assert(filling==false); assert(rh.filling==false);	
 	//	std::swap(filling,rh.filling);
 	std::swap(getter,rh.getter);
       }
@@ -99,11 +105,17 @@ namespace edmNew {
 	operator id_type() const { return id;}
       };
 
+#ifdef USE_ATOMIC
+      bool ready() {
+        bool expected=false;
+        if (!filling.compare_exchange_strong(expected,true))  errorFilling();
+        return true;
+      }
+#else
+      bool ready() {return true;}
+#endif
     };
 
-    void errorFilling();
-    void errorIdExists(det_id_type iid);
-    void throw_range(det_id_type iid);
    }
 
   /** an optitimized container that linearized a "map of vector".
@@ -172,23 +184,15 @@ namespace edmNew {
       typedef typename DetSetVector<T>::size_type size_type;
 
 #ifdef USE_ATOMIC
-      static bool ready(DetSetVector<T> & iv) {
-	bool expected=false;
-	if (!iv.filling.compare_exchange_strong(expected,true))  dstvdetails::errorFilling();
-	return true;
-      }
       static DetSetVector<T>::Item & dummy() {
 	static  DetSetVector<T>::Item d; return d;
       }
       FastFiller(DetSetVector<T> & iv, id_type id, bool isaveEmpty=false) : 
-	v(iv), item(ready(v)? v.push_back(id): dummy()),saveEmpty(isaveEmpty) {
-	
-      }
+	v(iv), item(v.ready()? v.push_back(id): dummy()),saveEmpty(isaveEmpty) {}
+
       FastFiller(DetSetVector<T> & iv, typename DetSetVector<T>::Item & it, bool isaveEmpty=false) : 
 	v(iv), item(it), saveEmpty(isaveEmpty) {
-	bool expected=false;
-	if (!v.filling.compare_exchange_strong(expected,true))  dstvdetails::errorFilling();
-	item.offset = int(v.m_data.size());
+	if(v.ready()) item.offset = int(v.m_data.size());
 
       }
       ~FastFiller() {
@@ -256,6 +260,11 @@ namespace edmNew {
       typedef typename DetSetVector<T>::size_type size_type;
 
 #ifdef USE_ATOMIC
+      static DetSetVector<T>::Item & dummy() {
+        static  DetSetVector<T>::Item d; return d;
+      }
+      TSFastFiller(DetSetVector<T> & iv, id_type id, bool isaveEmpty=false) :
+        v(iv), item(v.ready()? v.push_back(id): dummy()) { assert(v.filling==true); v.filling = false;}
 
       TSFastFiller(DetSetVector<T> & iv, typename DetSetVector<T>::Item & it) : 
 	v(iv), item(it) {
