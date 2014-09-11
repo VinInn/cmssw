@@ -679,13 +679,13 @@ myFilter::filter(edm::Event& evt, edm::EventSetup const& es) {
 
   edm::Handle< edmNew::DetSetVector<SiPixelCluster> > hClusterColl;
   evt.getByLabel("siPixelClusters", hClusterColl);
-  const edmNew::DetSetVector<SiPixelCluster> clustColl = *(hClusterColl.product());
+  const auto  & clustColl = *(hClusterColl.product());
   //  nCl = clustColl.size();
 
   /***
   int nCl = 0;
   if (hClusterColl.isValid()) {
-    const edmNew::DetSetVector<SiPixelCluster> clustColl = *(hClusterColl.product());
+    const edmNew::DetSetVector<SiPixelCluster> & clustColl = *(hClusterColl.product());
     nCl = clustColl.size();
   }
   ***/
