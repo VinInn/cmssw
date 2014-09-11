@@ -273,7 +273,8 @@ void TestDetSet::fillPar() {
       if (ldet>=maxDet) break;
       unsigned int id=20+ldet;
       {
-	DST df = *detsets.find(id);
+	DST df = *detsets.find(id, true);
+	CPPUNIT_ASSERT(int(g.ntot)>0);
 	assert(df.id()==id);
 	assert(df.size()==2);
 	assert(df[0]==100*(id-20)+3);
