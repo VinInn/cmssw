@@ -425,7 +425,7 @@ namespace edmNew {
 
     void clean() {
 #ifndef CMS_NOCXX11
-       m_ids.erase(std::remove_if(m_ids.begin(),m_ids.end(),[](Item const& m){ return 0==m.size;}));
+      m_ids.erase(std::remove_if(m_ids.begin(),m_ids.end(),[](Item const& m){ return 0==m.size;}),m_ids.end());
 #endif
     }
     

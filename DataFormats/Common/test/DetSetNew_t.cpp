@@ -84,6 +84,10 @@ TestDetSet::TestDetSet() : sv(10){
 }
 
 void TestDetSet::default_ctor() {
+#ifdef CMS_NOCXX11
+  CPPUNIT_ASSERT(false && "CMS_NOCXX11");
+#endif
+
 
   DSTV detsets(2);
   CPPUNIT_ASSERT(!detsets.onDemand());
@@ -224,6 +228,7 @@ void TestDetSet::filling() {
  CPPUNIT_ASSERT(detsets.size()==5);
  CPPUNIT_ASSERT(!detsets.exists(31));
  { FF ff1(detsets, 32,true); }
+ CPPUNIT_ASSERT(detsets.size()==6);
  detsets.clean();
  CPPUNIT_ASSERT(detsets.size()==4);
  CPPUNIT_ASSERT(!detsets.exists(30));
@@ -256,7 +261,7 @@ void TestDetSet::fillingTS() {
     unsigned int id=20+n;
     {
       TSFF ff(detsets, id);
-      CPPUNIT_ASSERT(detsets.size()==n-1);
+      CPPUNIT_ASSERT(detsets.size()==n);
       CPPUNIT_ASSERT(detsets.dataSize()==ntot);
       CPPUNIT_ASSERT(ff.item.size==0);
       CPPUNIT_ASSERT(ff.id()==id);
@@ -268,9 +273,9 @@ void TestDetSet::fillingTS() {
       ntot+=n-1;
       ff.resize(n);
       CPPUNIT_ASSERT(ff.size()==n);
-    std::copy(sv.begin(),sv.begin()+n,ff.begin());
+      std::copy(sv.begin(),sv.begin()+n,ff.begin());
     }
-    CPPUNIT_ASSERT(detsets.size()==n-1);
+    CPPUNIT_ASSERT(detsets.size()==n);
     CPPUNIT_ASSERT(detsets.dataSize()==ntot);
 
     std::vector<DST::data_type> v1(n);
@@ -281,7 +286,7 @@ void TestDetSet::fillingTS() {
   }
 
   // test abort and empty
-  { TSFF ff1(detsets, 30); CPPUNIT_ASSERT(!detsets.exists(30));}
+  { TSFF ff1(detsets, 30); CPPUNIT_ASSERT(detsets.exists(30));}
   CPPUNIT_ASSERT(detsets.size()==5);
   CPPUNIT_ASSERT(detsets.exists(30));
   detsets.clean();
