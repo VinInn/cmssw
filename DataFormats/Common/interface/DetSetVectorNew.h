@@ -41,11 +41,12 @@ namespace edmNew {
   }
 
   /* transient component of DetSetVector
-   * for pure conviniency of dictioanary declaration
+   * for pure conviniency of dictionary declaration
    */
   namespace dstvdetails {
 
     void errorFilling();
+    void notSafe();
     void errorIdExists(det_id_type iid);
     void throw_range(det_id_type iid);
 
@@ -114,6 +115,7 @@ namespace edmNew {
 #else
       bool ready() {return true;}
 #endif
+
     };
 
    }
@@ -188,10 +190,13 @@ namespace edmNew {
 	static  DetSetVector<T>::Item d; return d;
       }
       FastFiller(DetSetVector<T> & iv, id_type id, bool isaveEmpty=false) : 
-	v(iv), item(v.ready()? v.push_back(id): dummy()),saveEmpty(isaveEmpty) {}
+	v(iv), item(v.ready()? v.push_back(id): dummy()),saveEmpty(isaveEmpty) {
+        if (v.onDemand()) dstvdetails::notSafe();
+      }
 
       FastFiller(DetSetVector<T> & iv, typename DetSetVector<T>::Item & it, bool isaveEmpty=false) : 
 	v(iv), item(it), saveEmpty(isaveEmpty) {
+	if (v.onDemand()) dstvdetails::notSafe();
 	if(v.ready()) item.offset = int(v.m_data.size());
 
       }
@@ -263,7 +268,7 @@ namespace edmNew {
       static DetSetVector<T>::Item & dummy() {
         static  DetSetVector<T>::Item d; return d;
       }
-      TSFastFiller(DetSetVector<T> & iv, id_type id, bool isaveEmpty=false) :
+      TSFastFiller(DetSetVector<T> & iv, id_type id) :
         v(iv), item(v.ready()? v.push_back(id): dummy()) { assert(v.filling==true); v.filling = false;}
 
       TSFastFiller(DetSetVector<T> & iv, typename DetSetVector<T>::Item & it) : 
@@ -299,6 +304,7 @@ namespace edmNew {
 #endif
       
       void abort() {
+	lv.clear();
       }
 
       void reserve(size_type s) {
@@ -415,6 +421,12 @@ namespace edmNew {
     void resize(size_t isize, size_t dsize) {
       m_ids.resize(isize);
       m_data.resize(dsize);
+    }
+
+    void clean() {
+#ifndef CMS_NOCXX11
+       m_ids.erase(std::remove_if(m_ids.begin(),m_ids.end(),[](Item const& m){ return 0==m.size;}));
+#endif
     }
     
     // FIXME not sure what the best way to add one cell to cont
@@ -582,7 +594,6 @@ namespace edmNew {
   private:
     // subdetector id (as returned by  DetId::subdetId())
     int m_subdetId;
-    
     
     IdContainer m_ids;
     DataContainer m_data;
