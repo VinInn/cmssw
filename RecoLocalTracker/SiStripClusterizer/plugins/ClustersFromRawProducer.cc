@@ -29,6 +29,7 @@
 #include <sstream>
 #include <memory>
 #include <atomic>
+#include <mutex>
 
 #include "FWCore/Utilities/interface/GCC11Compatibility.h"
 
@@ -43,8 +44,8 @@
 
 
 namespace {
-  sistrip::FEDBuffer*fillBuffer(int fedId, const FEDRawDataCollection& rawColl) {
-    sistrip::FEDBuffer* buffer=nullptr;
+  std::unique_ptr<sistrip::FEDBuffer> fillBuffer(int fedId, const FEDRawDataCollection& rawColl) {
+    std::unique_ptr<sistrip::FEDBuffer> buffer;
     
     // Retrieve FED raw data for given FED
     const FEDRawData& rawData = rawColl.FEDData(fedId);
@@ -76,7 +77,7 @@ namespace {
     
     // construct FEDBuffer
     try {
-      buffer = new sistrip::FEDBuffer(rawData.data(),rawData.size());
+      buffer.reset(new sistrip::FEDBuffer(rawData.data(),rawData.size()));
       if unlikely(!buffer->doChecks(false)) throw cms::Exception("FEDBuffer") << "FED Buffer check fails for FED ID" << fedId << ".";
     }
     catch (const cms::Exception& e) { 
@@ -84,7 +85,7 @@ namespace {
 	edm::LogWarning(sistrip::mlRawToCluster_) 
 	  << "Exception caught when creating FEDBuffer object for FED " << fedId << ": " << e.what();
       }
-      delete buffer; buffer=nullptr;
+      return std::unique_ptr<sistrip::FEDBuffer>();
     }
     
     /*
@@ -113,6 +114,7 @@ namespace {
       rawAlgos(irawAlgos),
       doAPVEmulatorCheck(idoAPVEmulatorCheck){
 	incTot(clusterizer.allDetIds().size());
+	for (auto & d : done) d=nullptr;
       }
     
     
@@ -124,7 +126,7 @@ namespace {
     
     
     std::unique_ptr<sistrip::FEDBuffer> buffers[1024];
-    bool done[1024] = {};  // false is default
+    std::atomic<sistrip::FEDBuffer*> done[1024];
     
     
     const FEDRawDataCollection& rawColl;
@@ -310,10 +312,16 @@ void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller & rec
     
 
     // If Fed hasnt already been initialised, extract data and initialise
-    if (!done[fedId]) { buffers[fedId].reset(fillBuffer(fedId, rawColl)); done[fedId]=true;}
-    auto buffer = buffers[fedId].get();
-    if unlikely(!buffer) continue;
-    
+    sistrip::FEDBuffer * buffer = done[fedId];
+    if (!buffer) { 
+      buffer = fillBuffer(fedId, rawColl).release();
+      if (!buffer) { continue;}
+      sistrip::FEDBuffer * exp = nullptr;
+      if (done[fedId].compare_exchange_strong(exp, buffer)) buffers[fedId].reset(buffer);
+      else { delete buffer; buffer = buffers[fedId].get(); }
+    }
+    assert(buffer);
+
     // check channel
     const uint8_t fedCh = conn->fedCh();
     
