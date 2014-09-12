@@ -413,6 +413,7 @@ namespace edmNew {
     
     void shrink_to_fit() {
 #ifndef CMS_NOCXX11
+      clean();   
       m_ids.shrink_to_fit();
       m_data.shrink_to_fit();
 #endif
