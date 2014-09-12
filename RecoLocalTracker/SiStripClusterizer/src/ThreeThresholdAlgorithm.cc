@@ -17,9 +17,11 @@ ThreeThresholdAlgorithm(float chan, float seed, float cluster, unsigned holes, u
 template<class digiDetSet>
 inline
 void ThreeThresholdAlgorithm::
-clusterizeDetUnit_(const digiDetSet& digis, output_t::TSFastFiller& output) {
+clusterizeDetUnit_(const digiDetSet& digis, output_t::TSFastFiller& output) const {
   if(isModuleBad(digis.detId())) return;
-  if (!setDetId( digis.detId() )) return;
+
+  auto const & det = setDetId( digis.detId());
+  if (!det.valid()) return;
 
 #ifdef EDM_ML_DEBUG
   if(!isModuleUsable(digis.detId() )) 
@@ -31,11 +33,12 @@ clusterizeDetUnit_(const digiDetSet& digis, output_t::TSFastFiller& output) {
     scan( digis.begin() ), 
     end(  digis.end() );
 
+  SiStripApvShotCleaner ApvCleaner;
   if(RemoveApvShots){
     ApvCleaner.clean(digis,scan,end);
   }
 
-  State state;
+  State state(det);
   while( scan != end ) {
     while( scan != end  && !candidateEnded(state, scan->strip() ) ) 
       addToCandidate( state, *scan++);
@@ -51,7 +54,7 @@ candidateEnded(State const & state, const uint16_t& testStrip) const {
 	     (holes > MaxSequentialHoles )       // too many holes if not all are bad strips, and
 	     ) && 
 	   ( holes > MaxSequentialBad ||       // (too many bad strips anyway, or 
-	     !allBadBetween( state.lastStrip, testStrip ) // not all holes are bad strips)
+	     !state.det().allBadBetween( state.lastStrip, testStrip ) // not all holes are bad strips)
 	     )
 	   );
 }
@@ -59,8 +62,8 @@ candidateEnded(State const & state, const uint16_t& testStrip) const {
 inline 
 void ThreeThresholdAlgorithm::
 addToCandidate(State & state, uint16_t strip, uint8_t adc) const { 
-  float Noise = noise( strip );
-  if(  adc < static_cast<uint8_t>( Noise * ChannelThreshold) || bad(strip) )
+  float Noise = state.det().noise( strip );
+  if(  adc < static_cast<uint8_t>( Noise * ChannelThreshold) || state.det().bad(strip) )
     return;
 
   if(state.candidateLacksSeed) state.candidateLacksSeed  =  adc < static_cast<uint8_t>( Noise * SeedThreshold);
@@ -100,7 +103,7 @@ applyGains(State & state) const {
     if(adc > 255) throw InvalidChargeException( SiStripDigi(strip,adc) );
 #endif
     // if(adc > 253) continue; //saturated, do not scale
-    auto charge = int( float(adc)/gain(strip++) + 0.5f ); //adding 0.5 turns truncation into rounding
+    auto charge = int( float(adc)/state.det().gain(strip++) + 0.5f ); //adding 0.5 turns truncation into rounding
     if(adc < 254) adc = ( charge > 1022 ? 255 : 
 			  ( charge >  253 ? 254 : charge ));
   }
@@ -111,23 +114,19 @@ void ThreeThresholdAlgorithm::
 appendBadNeighbors(State & state) const {
   uint8_t max = MaxAdjacentBad;
   while(0 < max--) {
-    if( bad( firstStrip(state)-1) ) { state.ADCs.insert( state.ADCs.begin(), 0);  }
-    if( bad(  state.lastStrip + 1) ) { state.ADCs.push_back(0); state.lastStrip++; }
+    if( state.det().bad( firstStrip(state)-1) ) { state.ADCs.insert( state.ADCs.begin(), 0);  }
+    if( state.det().bad(  state.lastStrip + 1) ) { state.ADCs.push_back(0); state.lastStrip++; }
   }
 }
 
 
-void ThreeThresholdAlgorithm::clusterizeDetUnit(const    edm::DetSet<SiStripDigi>& digis, output_t::TSFastFiller& output) {clusterizeDetUnit_(digis,output);}
-void ThreeThresholdAlgorithm::clusterizeDetUnit(const edmNew::DetSet<SiStripDigi>& digis, output_t::TSFastFiller& output) {clusterizeDetUnit_(digis,output);}
+void ThreeThresholdAlgorithm::clusterizeDetUnit(const    edm::DetSet<SiStripDigi>& digis, output_t::TSFastFiller& output) const {clusterizeDetUnit_(digis,output);}
+void ThreeThresholdAlgorithm::clusterizeDetUnit(const edmNew::DetSet<SiStripDigi>& digis, output_t::TSFastFiller& output) const {clusterizeDetUnit_(digis,output);}
 
-
-bool ThreeThresholdAlgorithm::
-stripByStripBegin(uint32_t id) {
-  if (!setDetId( id )) return false;
-#ifdef EDM_ML_DEBUG
-  assert(isModuleUsable( id ));
-#endif
-  return true;
+StripClusterizerAlgorithm::Det
+ThreeThresholdAlgorithm::
+stripByStripBegin(uint32_t id) const {
+  return setDetId( id );
 }
 
 

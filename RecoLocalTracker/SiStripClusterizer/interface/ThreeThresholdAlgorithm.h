@@ -10,18 +10,19 @@ class ThreeThresholdAlgorithm final : public StripClusterizerAlgorithm {
  public:
 
   using State = StripClusterizerAlgorithm::State;
+  using Det = StripClusterizerAlgorithm::Det;
 
-  void clusterizeDetUnit(const    edm::DetSet<SiStripDigi> &, output_t::TSFastFiller &);
-  void clusterizeDetUnit(const edmNew::DetSet<SiStripDigi> &, output_t::TSFastFiller &);
+  void clusterizeDetUnit(const    edm::DetSet<SiStripDigi> &, output_t::TSFastFiller &) const;
+  void clusterizeDetUnit(const edmNew::DetSet<SiStripDigi> &, output_t::TSFastFiller &) const;
 
-  bool stripByStripBegin(uint32_t id);
+  Det stripByStripBegin(uint32_t id) const;
 
   // LazyGetter interface
   void stripByStripAdd(State & state, uint16_t strip, uint8_t adc, std::vector<SiStripCluster>& out) const;
   void stripByStripEnd(State & state, std::vector<SiStripCluster>& out) const;
 
-  void addFed(sistrip::FEDZSChannelUnpacker & unpacker, uint16_t ipair, std::vector<SiStripCluster>& out) const {
-    State state;
+  void addFed(Det const & det, sistrip::FEDZSChannelUnpacker & unpacker, uint16_t ipair, std::vector<SiStripCluster>& out) const {
+    State state(det);
     while (unpacker.hasData()) {
       stripByStripAdd(state,unpacker.sampleNumber()+ipair*256,unpacker.adc(),out);
       unpacker++;
@@ -30,8 +31,8 @@ class ThreeThresholdAlgorithm final : public StripClusterizerAlgorithm {
   }
 
   // detset interface
-  void addFed(sistrip::FEDZSChannelUnpacker & unpacker, uint16_t ipair, output_t::TSFastFiller & out) const override {
-    State state;
+  void addFed(Det const & det, sistrip::FEDZSChannelUnpacker & unpacker, uint16_t ipair, output_t::TSFastFiller & out) const override {
+    State state(det);
     while (unpacker.hasData()) {
       stripByStripAdd(state, unpacker.sampleNumber()+ipair*256,unpacker.adc(),out);
       unpacker++;
@@ -50,7 +51,7 @@ class ThreeThresholdAlgorithm final : public StripClusterizerAlgorithm {
 
  private:
 
-  template<class T> void clusterizeDetUnit_(const T&, output_t::TSFastFiller&);
+  template<class T> void clusterizeDetUnit_(const T&, output_t::TSFastFiller&) const;
   ThreeThresholdAlgorithm(float, float, float, unsigned, unsigned, unsigned, std::string qualityLabel,
 			  bool setDetId, bool removeApvShots=false);
 
@@ -72,7 +73,6 @@ class ThreeThresholdAlgorithm final : public StripClusterizerAlgorithm {
   uint8_t MaxSequentialHoles, MaxSequentialBad, MaxAdjacentBad;
   bool RemoveApvShots;
 
-  SiStripApvShotCleaner ApvCleaner;
 };
 
 #endif

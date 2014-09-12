@@ -297,12 +297,13 @@ void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller & rec
 
   // COUT << "filling " << idet << std::endl;
 
-  if (!clusterizer.stripByStripBegin(idet)) { return; }
+  auto const & det = clusterizer.stripByStripBegin(idet);
+  if (!det.valid()) return; 
  
   incSet();
 
   // Loop over apv-pairs of det
-  for (auto const conn : clusterizer.currentConnection()) {
+  for (auto const conn : clusterizer.currentConnection(det)) {
     if unlikely(!conn) continue;
     
     const uint16_t fedId = conn->fedId();
@@ -348,7 +349,7 @@ void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller & rec
 	  sistrip::FEDZSChannelUnpacker unpacker = sistrip::FEDZSChannelUnpacker::zeroSuppressedLiteModeUnpacker(buffer->channel(fedCh));
 	  
 	  // unpack
-	  clusterizer.addFed(unpacker,ipair,record);
+	  clusterizer.addFed(det,unpacker,ipair,record);
 	  /*
             while (unpacker.hasData()) {
 	    clusterizer.stripByStripAdd(unpacker.sampleNumber()+ipair*256,unpacker.adc(),record);
@@ -371,7 +372,7 @@ void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller & rec
 	  sistrip::FEDZSChannelUnpacker unpacker = sistrip::FEDZSChannelUnpacker::zeroSuppressedModeUnpacker(buffer->channel(fedCh));
 	  
 	  // unpack
-	  clusterizer.addFed(unpacker,ipair,record);
+	  clusterizer.addFed(det,unpacker,ipair,record);
 	  /*
 	    while (unpacker.hasData()) {
 	    clusterizer.stripByStripAdd(unpacker.sampleNumber()+ipair*256,unpacker.adc(),record);
@@ -406,7 +407,7 @@ void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller & rec
 	//rawAlgos_->suppressor->suppress( digis, zsdigis);
 	uint16_t firstAPV = ipair*2;
 	rawAlgos.SuppressVirginRawData(id, firstAPV,digis, zsdigis);
-	StripClusterizerAlgorithm::State state;
+	StripClusterizerAlgorithm::State state(det);
  	for( edm::DetSet<SiStripDigi>::const_iterator it = zsdigis.begin(); it!=zsdigis.end(); it++) {
 	  clusterizer.stripByStripAdd(state, it->strip(), it->adc(), record);
 	}
@@ -432,7 +433,7 @@ void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller & rec
 	//rawAlgos_->suppressor->suppress( digis, zsdigis);
 	uint16_t firstAPV = ipair*2;
 	rawAlgos.SuppressProcessedRawData(id, firstAPV,digis, zsdigis);
-	StripClusterizerAlgorithm::State state;
+	StripClusterizerAlgorithm::State state(det);
 	for( edm::DetSet<SiStripDigi>::const_iterator it = zsdigis.begin(); it!=zsdigis.end(); it++) {
 	  clusterizer.stripByStripAdd(state, it->strip(), it->adc(), record);
 	}

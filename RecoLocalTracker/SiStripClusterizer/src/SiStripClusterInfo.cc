@@ -161,8 +161,9 @@ reclusterize(const edm::ParameterSet& conf) const {
   std::auto_ptr<StripClusterizerAlgorithm> 
     algorithm = StripClusterizerAlgorithmFactory::create(conf);
   algorithm->initialize(es);
-  StripClusterizerAlgorithm::State state;
-  if( algorithm->stripByStripBegin( detId_ )) {
+  auto const & det = algorithm->stripByStripBegin( detId_ );
+  if(det.valid()) {
+    StripClusterizerAlgorithm::State state(det);
     for(unsigned i = 0; i<width(); i++)
       algorithm->stripByStripAdd(state, firstStrip()+i, charges[i], clusters );
     algorithm->stripByStripEnd(state, clusters );
