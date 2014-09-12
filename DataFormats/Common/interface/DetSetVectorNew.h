@@ -735,12 +735,25 @@ namespace edmNew {
   makeRefTo(const HandleT& iHandle,
              typename HandleT::element_type::value_type::const_iterator itIter) {
     BOOST_MPL_ASSERT((boost::is_same<typename HandleT::element_type, DetSetVector<typename HandleT::element_type::value_type::value_type> >));
-    typename HandleT::element_type::size_type index = (itIter - &*iHandle->data().begin()); 
+    typename HandleT::element_type::size_type index = (itIter - &iHandle->data().front());
+    assert(index>=0); assert(index<iHandle->data().size());
+    return edm::Ref<typename HandleT::element_type,
+	       typename HandleT::element_type::value_type::value_type>
+	      (iHandle,index);
+  }
+
+  template<class HandleT, typename DS>
+  edm::Ref<typename HandleT::element_type, typename HandleT::element_type::value_type::value_type>
+  makeRefTo(const HandleT& iHandle, DS const & ds,
+             typename HandleT::element_type::value_type::const_iterator itIter) {
+    BOOST_MPL_ASSERT((boost::is_same<typename HandleT::element_type, DetSetVector<typename HandleT::element_type::value_type::value_type> >));
+    typename HandleT::element_type::size_type index = ds.index(itIter); 
     return edm::Ref<typename HandleT::element_type,
 	       typename HandleT::element_type::value_type::value_type>
 	      (iHandle,index);
   }
 }
+
 
 #include "DataFormats/Common/interface/ContainerMaskTraits.h"
 
@@ -752,7 +765,9 @@ namespace edm {
 
         static size_t size(const edmNew::DetSetVector<T>* iContainer) { return iContainer->dataSize();}
         static unsigned int indexFor(const value_type* iElement, const edmNew::DetSetVector<T>* iContainer) {
-           return iElement-&(iContainer->data().front());
+           unsigned int index = iElement-&(iContainer->data().front());
+	   assert(index>=0); assert(index<iContainer->data().size());
+	   return index;
         }
    };
 }

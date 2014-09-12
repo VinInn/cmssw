@@ -104,6 +104,11 @@ namespace edmNew {
     inline
     bool empty() const { return m_size==0;}
     
+    // index of element in original collection (for Ref...)
+    inline size_type index(data_type const * t) const {
+      return t- m_data;
+    }
+
   private:
     data_type const * data() const {
       if(m_offset|m_size) assert(m_data);
