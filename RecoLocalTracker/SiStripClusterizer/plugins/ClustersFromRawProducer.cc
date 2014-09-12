@@ -319,7 +319,7 @@ void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller & rec
       if (!buffer) { continue;}
       sistrip::FEDBuffer * exp = nullptr;
       if (done[fedId].compare_exchange_strong(exp, buffer)) buffers[fedId].reset(buffer);
-      else { delete buffer; buffer = buffers[fedId].get(); }
+      else { delete buffer; buffer = done[fedId]; }
     }
     assert(buffer);
 

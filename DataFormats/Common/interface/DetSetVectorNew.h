@@ -352,7 +352,16 @@ namespace edmNew {
     public:
         typedef FindForDetSetVector self;
         typename self::result_type operator()(typename self::first_argument_type iContainer, typename self::second_argument_type iIndex) {
-            return &(iContainer.m_data[iIndex]);
+#ifdef USE_ATOMIC
+	  bool expected=false;
+	  while (!iContainer.filling.compare_exchange_weak(expected,true,std::memory_order_acq_rel))  { expected=false; nanosleep(0,0);}
+#else
+	  iContainer.filling = true;
+#endif
+	  typename self::result_type item =  &(iContainer.m_data[iIndex]);
+	  assert(iContainer.filling==true);
+	  iContainer.filling = false;
+	  return item;
         }
     };
     friend class FindForDetSetVector;

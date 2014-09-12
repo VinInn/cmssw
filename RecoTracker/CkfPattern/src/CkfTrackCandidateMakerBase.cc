@@ -41,6 +41,8 @@
 #include<algorithm>
 #include<functional>
 
+#define VI_TBB
+
 #include <thread>
 #ifdef VI_TBB
 #include "tbb/parallel_for.h"
