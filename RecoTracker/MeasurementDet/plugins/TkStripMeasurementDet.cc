@@ -143,13 +143,13 @@ TkStripMeasurementDet::recHits( const TrajectoryStateOnSurface& stateOnThisDet, 
       // there are hits on the left of the utraj
       auto leftCluster = rightCluster;
       while ( --leftCluster >=  detSet.begin()) {
-	SiStripClusterRef clusterref = edmNew::makeRefTo( data.stripData().handle(), leftCluster ); 
+	SiStripClusterRef clusterref = edmNew::makeRefTo( data.stripData().handle(), detSet, leftCluster ); 
 	bool isCompatible = filteredRecHits(clusterref, stateOnThisDet, est, data.stripClustersToSkip(), result, diffs);
 	if(!isCompatible) break; // exit loop on first incompatible hit
       }
     }
     for ( ; rightCluster != detSet.end(); rightCluster++) {
-      SiStripClusterRef clusterref = edmNew::makeRefTo( data.stripData().handle(), rightCluster ); 
+      SiStripClusterRef clusterref = edmNew::makeRefTo( data.stripData().handle(), detSet, rightCluster ); 
       bool isCompatible = filteredRecHits(clusterref, stateOnThisDet, est, data.stripClustersToSkip(), result,diffs);
       if(!isCompatible) break; // exit loop on first incompatible hit
     }
@@ -212,7 +212,7 @@ TkStripMeasurementDet::simpleRecHits( const TrajectoryStateOnSurface& ts, const 
     for ( new_const_iterator ci = detSet.begin(); ci != detSet.end(); ++ ci ) {
       if (isMasked(*ci)) continue;
       // for ( ClusterIterator ci=theClusterRange.first; ci != theClusterRange.second; ci++) {
-      SiStripClusterRef  cluster = edmNew::makeRefTo( data.stripData().handle(), ci ); 
+      SiStripClusterRef  cluster = edmNew::makeRefTo( data.stripData().handle(), detSet, ci ); 
       if (accept(cluster, data.stripClustersToSkip()))
 	buildSimpleRecHit( cluster, ts,result);
       else LogDebug("TkStripMeasurementDet")<<"skipping this str from last iteration on"<<rawId()<<" key: "<<cluster.key();
