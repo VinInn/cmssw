@@ -20,6 +20,16 @@ class StripClusterizerAlgorithm {
   
  public:
 
+  //state of the candidate cluster
+  struct State {
+    State() { ADCs.reserve(128);}
+    std::vector<uint8_t> ADCs;  
+    uint16_t lastStrip=0;
+    float noiseSquared=0;
+    bool candidateLacksSeed=true;
+  };
+
+
   virtual ~StripClusterizerAlgorithm() {}
   virtual void initialize(const edm::EventSetup&);
 
@@ -33,13 +43,13 @@ class StripClusterizerAlgorithm {
   //HLT stripByStrip interface
   virtual bool stripByStripBegin(uint32_t id) = 0;
 
-  virtual void addFed(sistrip::FEDZSChannelUnpacker & unpacker, uint16_t ipair, std::vector<SiStripCluster>& out) {}
-  virtual void stripByStripAdd(uint16_t strip, uint8_t adc, std::vector<SiStripCluster>& out) {}
-  virtual void stripByStripEnd(std::vector<SiStripCluster>& out) {}
+  virtual void addFed(sistrip::FEDZSChannelUnpacker & unpacker, uint16_t ipair, std::vector<SiStripCluster>& out)  const {}
+  virtual void stripByStripAdd(State & state, uint16_t strip, uint8_t adc, std::vector<SiStripCluster>& out)  const{}
+  virtual void stripByStripEnd(State & state, std::vector<SiStripCluster>& out)  const {}
 
-  virtual void addFed(sistrip::FEDZSChannelUnpacker & unpacker, uint16_t ipair, output_t::TSFastFiller & out) {}
-  virtual void stripByStripAdd(uint16_t strip, uint8_t adc, output_t::TSFastFiller & out) {}
-  virtual void stripByStripEnd(output_t::TSFastFiller & out) {}
+  virtual void addFed(sistrip::FEDZSChannelUnpacker & unpacker, uint16_t ipair, output_t::TSFastFiller & out)  const {}
+  virtual void stripByStripAdd(State & state, uint16_t strip, uint8_t adc, output_t::TSFastFiller & out)  const {}
+  virtual void stripByStripEnd(State & state, output_t::TSFastFiller & out)  const {}
 
 
   struct InvalidChargeException : public cms::Exception { public: InvalidChargeException(const SiStripDigi&); };
@@ -53,7 +63,7 @@ class StripClusterizerAlgorithm {
 
   StripClusterizerAlgorithm() : qualityLabel(""), noise_cache_id(0), gain_cache_id(0), quality_cache_id(0) {}
 
-  uint32_t currentId() {return detId;}
+  uint32_t currentId() const {return detId;}
   bool setDetId(const uint32_t);
   float noise(const uint16_t& strip) const { return SiStripNoises::getNoise( strip, noiseRange ); }
   float gain(const uint16_t& strip)  const { return SiStripGain::getStripGain( strip, gainRange ); }

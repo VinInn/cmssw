@@ -33,6 +33,8 @@ produce(edm::Event& event, const edm::EventSetup& es) {
   if(hlt);// hltFactory->eventSetup(es);  
   else    algorithm->initialize(es);
 
+  StripClusterizerAlgorithm::State state;
+
   for(edm::DetSetVector<SiStripDigi>::const_iterator 
 	inputDetSet = input->begin(); inputDetSet != input->end(); inputDetSet++) {
 
@@ -41,10 +43,10 @@ produce(edm::Event& event, const edm::EventSetup& es) {
       for( edm::DetSet<SiStripDigi>::const_iterator
 	     digi = inputDetSet->begin(); digi != inputDetSet->end(); digi++ ) {
 	if(hlt);// hltFactory->algorithm()->add(clusters, inputDetSet->detId(), digi->strip(), digi->adc());
-	else    algorithm->stripByStripAdd(digi->strip(), digi->adc(), clusters);
+	else    algorithm->stripByStripAdd(state, digi->strip(), digi->adc(), clusters);
       }
       if(hlt);// hltFactory->algorithm()->endDet(clusters, inputDetSet->detId());
-      else    algorithm->stripByStripEnd(clusters);
+      else    algorithm->stripByStripEnd(state, clusters);
     }
 
     if(!clusters.empty()) {

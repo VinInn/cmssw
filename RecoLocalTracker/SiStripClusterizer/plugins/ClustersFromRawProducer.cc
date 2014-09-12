@@ -28,6 +28,7 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include <sstream>
 #include <memory>
+#include <atomic>
 
 #include "FWCore/Utilities/interface/GCC11Compatibility.h"
 
@@ -138,11 +139,11 @@ namespace {
     
 #ifdef VIDEBUG
     struct Stat {
-      int totDet=0; // all dets
-      int detReady=0; // dets "updated"
-      int detSet=0;  // det actually set not empty
-      int detAct=0;  // det actually set with content
-      int detNoZ=0;  // det actually set with content
+      std::atomic<int> totDet=0; // all dets
+      std::atomic<int> detReady=0; // dets "updated"
+      std::atomic<int> detSet=0;  // det actually set not empty
+      std::atomic<int> detAct=0;  // det actually set with content
+      std::atomic<int> detNoZ=0;  // det actually set with content
     };
     
     mutable Stat stat;
@@ -396,10 +397,12 @@ void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller & rec
 	//rawAlgos_->subtractorCMN->subtract( id, digis);
 	//rawAlgos_->suppressor->suppress( digis, zsdigis);
 	uint16_t firstAPV = ipair*2;
-	rawAlgos.SuppressVirginRawData(id, firstAPV,digis, zsdigis);  
-	for( edm::DetSet<SiStripDigi>::const_iterator it = zsdigis.begin(); it!=zsdigis.end(); it++) {
-	  clusterizer.stripByStripAdd( it->strip(), it->adc(), record);
+	rawAlgos.SuppressVirginRawData(id, firstAPV,digis, zsdigis);
+	StripClusterizerAlgorithm::State state;
+ 	for( edm::DetSet<SiStripDigi>::const_iterator it = zsdigis.begin(); it!=zsdigis.end(); it++) {
+	  clusterizer.stripByStripAdd(state, it->strip(), it->adc(), record);
 	}
+	clusterizer.stripByStripEnd(state,record);
       }
       
       else if (mode == sistrip::READOUT_MODE_PROC_RAW ) {
@@ -420,10 +423,12 @@ void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller & rec
 	//rawAlgos_->subtractorCMN->subtract( id, digis);
 	//rawAlgos_->suppressor->suppress( digis, zsdigis);
 	uint16_t firstAPV = ipair*2;
-	rawAlgos.SuppressProcessedRawData(id, firstAPV,digis, zsdigis); 
+	rawAlgos.SuppressProcessedRawData(id, firstAPV,digis, zsdigis);
+	StripClusterizerAlgorithm::State state;
 	for( edm::DetSet<SiStripDigi>::const_iterator it = zsdigis.begin(); it!=zsdigis.end(); it++) {
-	  clusterizer.stripByStripAdd( it->strip(), it->adc(), record);
+	  clusterizer.stripByStripAdd(state, it->strip(), it->adc(), record);
 	}
+	clusterizer.stripByStripEnd(state,record);
       } else {
 	edm::LogWarning(sistrip::mlRawToCluster_)
 	  << "[ClustersFromRawProducer::" 
@@ -439,7 +444,6 @@ void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller & rec
     
   } // end loop over conn
   
-  clusterizer.stripByStripEnd(record);
   incAct();
   if(!record.empty()) incNoZ();
 
