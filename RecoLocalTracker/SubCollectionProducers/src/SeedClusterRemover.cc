@@ -386,6 +386,7 @@ SeedClusterRemover::produce(Event& iEvent, const EventSetup& iSetup)
       LogDebug("SeedClusterRemover")<<"to merge in, "<<oldStrMask->size()<<" strp and "<<oldPxlMask->size()<<" pxl";
       oldStrMask->copyMaskTo(collectedStrips_);
       oldPxlMask->copyMaskTo(collectedPixels_);
+      collectedStrips_.resize(stripClusters->dataSize());
     }else {
       collectedStrips_.resize(stripClusters->dataSize()); fill(collectedStrips_.begin(), collectedStrips_.end(), false);
       collectedPixels_.resize(pixelClusters->dataSize()); fill(collectedPixels_.begin(), collectedPixels_.end(), false);
