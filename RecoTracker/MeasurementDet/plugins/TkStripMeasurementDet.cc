@@ -74,17 +74,19 @@ bool TkStripMeasurementDet::recHits(SimpleHitContainer & result,
   if ( rightCluster != detSet.begin()) {
     // there are hits on the left of the utraj
     auto leftCluster = rightCluster;
+    bool first=true;
     while ( --leftCluster >=  detSet.begin()) {
       SiStripClusterRef clusterref = edmNew::makeRefTo( data.stripData().handle(), leftCluster ); 
       bool isCompatible = filteredRecHits(clusterref, stateOnThisDet, est, data.stripClustersToSkip(), tmp);
-      if(!isCompatible) break; // exit loop on first incompatible hit
+      if(!isCompatible) { if(first) { first=false; continue;}  break; }// exit loop on first incompatible hit
       for (auto && h: tmp) result.push_back(new SiStripRecHit2D(std::move(h))); tmp.clear();								
     }
   }
+  bool first=true;
   for ( ; rightCluster != detSet.end(); rightCluster++) {
     SiStripClusterRef clusterref = edmNew::makeRefTo( data.stripData().handle(), rightCluster ); 
     bool isCompatible = filteredRecHits(clusterref, stateOnThisDet, est, data.stripClustersToSkip(), tmp);
-    if(!isCompatible) break; // exit loop on first incompatible hit
+    if(!isCompatible) { if(first) { first=false; continue;}  break; }// exit loop on first incompatible hit
     for (auto && h: tmp) result.push_back(new SiStripRecHit2D(std::move(h))); tmp.clear();
   }
   
@@ -109,16 +111,18 @@ bool TkStripMeasurementDet::simpleRecHits( const TrajectoryStateOnSurface& state
   if ( rightCluster != detSet.begin()) {
     // there are hits on the left of the utraj
     auto leftCluster = rightCluster;
+    bool first=true; 
     while ( --leftCluster >=  detSet.begin()) {
       SiStripClusterRef clusterref = edmNew::makeRefTo( data.stripData().handle(), leftCluster ); 
       bool isCompatible = filteredRecHits(clusterref, stateOnThisDet, est, data.stripClustersToSkip(), result);
-      if(!isCompatible) break; // exit loop on first incompatible hit
+      if(!isCompatible) { if(first) { first=false; continue;}  break; }// exit loop on first incompatible hit
     }
   }
+  bool first=true; 
   for ( ; rightCluster != detSet.end(); rightCluster++) {
     SiStripClusterRef clusterref = edmNew::makeRefTo( data.stripData().handle(), rightCluster ); 
     bool isCompatible = filteredRecHits(clusterref, stateOnThisDet, est, data.stripClustersToSkip(), result);
-    if(!isCompatible) break; // exit loop on first incompatible hit
+    if(!isCompatible) { if(first) { first=false; continue;}  break; }// exit loop on first incompatible hit
   }
   
   return result.size()>oldSize;
@@ -142,16 +146,18 @@ TkStripMeasurementDet::recHits( const TrajectoryStateOnSurface& stateOnThisDet, 
     if ( rightCluster != detSet.begin()) {
       // there are hits on the left of the utraj
       auto leftCluster = rightCluster;
+      bool first=true;
       while ( --leftCluster >=  detSet.begin()) {
 	SiStripClusterRef clusterref = edmNew::makeRefTo( data.stripData().handle(), leftCluster ); 
 	bool isCompatible = filteredRecHits(clusterref, stateOnThisDet, est, data.stripClustersToSkip(), result, diffs);
-	if(!isCompatible) break; // exit loop on first incompatible hit
+       if(!isCompatible) { if(first) { first=false; continue;}  break; }// exit loop on first incompatible hit
       }
     }
+    bool first=true;
     for ( ; rightCluster != detSet.end(); rightCluster++) {
       SiStripClusterRef clusterref = edmNew::makeRefTo( data.stripData().handle(), rightCluster ); 
       bool isCompatible = filteredRecHits(clusterref, stateOnThisDet, est, data.stripClustersToSkip(), result,diffs);
-      if(!isCompatible) break; // exit loop on first incompatible hit
+        if(!isCompatible) { if(first) { first=false; continue;}  break; }// exit loop on first incompatible hit
     }
     
   return result.size()>oldSize;
