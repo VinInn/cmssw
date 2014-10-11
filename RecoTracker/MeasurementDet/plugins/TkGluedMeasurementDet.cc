@@ -449,6 +449,7 @@ TkGluedMeasurementDet::HitCollectorForSimpleHits::add(SiStripMatchedRecHit2D con
 {
   hasNewHits_ = true; //FIXME: see also what happens moving this within testAndPush
   if ( !est_.preFilter(stateOnThisDet_, hit2d) ) return; 
+   hasNewHits_ = true; //FIXME: see also what happens moving this within testAndPush
 
   std::pair<bool,double> diffEst = est_.estimate( stateOnThisDet_, hit2d);
   if (!diffEst.first) return;
@@ -464,7 +465,7 @@ TkGluedMeasurementDet::HitCollectorForSimpleHits::addProjected(const TrackingRec
   // here we're ok with some extra casual new's and delete's
   auto && vl = projectedPos(hit,*geomDet_, gdir,  cpe_);
   std::unique_ptr<ProjectedSiStripRecHit2D> phit(new ProjectedSiStripRecHit2D(vl.first,vl.second,*geomDet_, static_cast<SiStripRecHit2D const &>(hit)));
- if ( !est_.preFilter(stateOnThisDet_, *phit) ) return; 
+  if ( !est_.preFilter(stateOnThisDet_, *phit) ) return; 
   std::pair<bool,double> diffEst = est_.estimate( stateOnThisDet_, *phit);
   if ( diffEst.first) {
     target_.emplace_back(phit.release());
@@ -490,8 +491,9 @@ TkGluedMeasurementDet::HitCollectorForFastMeasurements::HitCollectorForFastMeasu
 void
 TkGluedMeasurementDet::HitCollectorForFastMeasurements::add(SiStripMatchedRecHit2D const& hit2d) 
 {
-  hasNewHits_ = true; //FIXME: see also what happens moving this within testAndPush
-  if ( !est_.preFilter(stateOnThisDet_, hit2d) ) return;
+   hasNewHits_ = true; //FIXME: see also what happens moving this within testAndPush
+   if ( !est_.preFilter(stateOnThisDet_, hit2d) ) return;
+   hasNewHits_ = true; //FIXME: see also what happens moving this within testAndPush
 
   std::pair<bool,double> diffEst = est_.estimate( stateOnThisDet_, hit2d);
   if (diffEst.first)

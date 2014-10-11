@@ -33,7 +33,7 @@ namespace {
       if (m_collector.hasNewMatchedHits()) {
 	m_collector.clearNewMatchedHitsFlag();
       } else {
-	m_collector.addProjected( **monoHit, glbDir );
+//	m_collector.addProjected( **monoHit, glbDir );
       }
     }
 
@@ -41,7 +41,7 @@ namespace {
       if (m_collector.hasNewMatchedHits()) {
 	m_collector.clearNewMatchedHitsFlag();
       } else {
-	m_collector.addProjected( *monoHit, glbDir );
+//	m_collector.addProjected( *monoHit, glbDir );
       }
     }
   
@@ -102,10 +102,11 @@ void TkGluedMeasurementDet::doubleMatch(const TrajectoryStateOnSurface& ts, cons
   }
 
   // stereo requires "projection" for precision and change in coordinates
+  TrajectoryStateOnSurface pts = fastProp(ts,geomDet().surface(),theStereoDet->geomDet().surface());
   if (collector.filter()) {
     emptyStereo = theStereoDet->empty(data);
     if likely(!emptyStereo) {
-	TrajectoryStateOnSurface pts = fastProp(ts,geomDet().surface(),theStereoDet->geomDet().surface());
+//	TrajectoryStateOnSurface pts = fastProp(ts,geomDet().surface(),theStereoDet->geomDet().surface());
 	theStereoDet->simpleRecHits(pts,collector.estimator(),data,stereoHits);
 	// print("stereo", pts,ts);
       }
@@ -154,19 +155,19 @@ void TkGluedMeasurementDet::doubleMatch(const TrajectoryStateOnSurface& ts, cons
 //  if (0==collector.size())
 //    projectOnGluedDet( collector, stereoHits, glbDir);
   
-  /*
+  
   // recover hits outside 
-  if ( collector.filter() && 0==collector.size())  {
+  if ( /* collector.filter() && */ 0==collector.size())  {
     auto inoutM = reinterpret_cast<RectangularPlaneBounds const&>(theMonoDet->surface().bounds()).inout(ts.localPosition(), 
 													ts.localError().positionError() ,3.f);
     auto inoutS = reinterpret_cast<RectangularPlaneBounds const&>(theStereoDet->surface().bounds()).inout(pts.localPosition(), 
-													  pts.localError().positionError() ,3.f);
-    if (inoutM.first&&inoutS.second)
+													  pts.localError().positionError() ,0.f);
+    if (inoutM.first&&(!inoutS.first))
       projectOnGluedDet( collector, monoHits, glbDir);
-    if (inoutM.second&&inoutS.first)
-      projectOnGluedDet( collector, stereoHits, glbDir);
+   // if (inoutM.second&&inoutS.first)
+   //   projectOnGluedDet( collector, stereoHits, glbDir);
   }
-  */
+  
 
   if (collector.filter()) {
     stat.match(collector.size());
