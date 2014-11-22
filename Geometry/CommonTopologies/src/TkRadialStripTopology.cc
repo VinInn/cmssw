@@ -70,10 +70,10 @@ namespace {
 
 }
 
-TkRadialStripTopology::TkRadialStripTopology(int ns, float aw, float dh, float r, int yAx, float yMid) :
+TkRadialStripTopology::TkRadialStripTopology(int ns, float aw, float dh, float r, int yAx) :
   theNumberOfStrips(ns), theAngularWidth(aw), theAWidthInverse(1.f/aw),theTanAW(std::tan(aw)),
   theDetHeight(dh), theCentreToIntersection(r),
-  theYAxisOrientation(yAx), yCentre( yMid),
+  theYAxisOrientation(yAx),
   theRadialSigma(std::pow(dh, 2.f) * (1.f/12.f)) {   
   // Angular offset of extreme edge of detector, so that angle is
   // zero for a strip lying along local y axis = long symmetry axis of plane of strips
@@ -88,15 +88,13 @@ TkRadialStripTopology::TkRadialStripTopology(int ns, float aw, float dh, float r
         << " ctoi = " << r 
         << " phi_edge = " << thePhiOfOneEdge << " rad "
         << " y_ax_ori = " << theYAxisOrientation
-	<< " y_det_centre = " << yCentre 
+	<< " y_det_centre = " << 0
         << "\n";
 }    
 
 int TkRadialStripTopology::channel(const LocalPoint& lp) const { return   std::min( int( strip(lp) ), theNumberOfStrips-1 ) ;}
 
 int TkRadialStripTopology::nearestStrip(const LocalPoint & lp) const {   return std::min( nstrips(), static_cast<int>( std::max(float(0), strip(lp)) ) + 1);}
-
-float TkRadialStripTopology::yDistanceToIntersection( float y ) const { return   yAxisOrientation()*y + originToIntersection() ;}
 
 float TkRadialStripTopology::localStripLength(const LocalPoint& lp) const {  
   return detHeight() * std::sqrt(1.f + std::pow( lp.x()/yDistanceToIntersection(lp.y()), 2.f) );

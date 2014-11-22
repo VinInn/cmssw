@@ -42,7 +42,7 @@ class TkRadialStripTopology GCC11_FINAL : public RadialStripTopology {
    *    \param yMid local y offset if mid-point of detector (strip plane) does not coincide with local origin.
    *    This decouples the extent of strip plane from the boundary of the detector in which the RST is embedded.
    */
-  TkRadialStripTopology( int ns, float aw, float dh, float r, int yAx = 1, float yMid = 0.);
+  TkRadialStripTopology( int ns, float aw, float dh, float r, int yAx);
 
   /** 
    * Destructor
@@ -193,7 +193,7 @@ class TkRadialStripTopology GCC11_FINAL : public RadialStripTopology {
    * to the local coordinate origin. Same as centreToIntersection()
    * if symmetry centre of strip plane coincides with local origin.
    */
-  float originToIntersection() const { return (theCentreToIntersection - yCentre); }
+  float originToIntersection() const { return theCentreToIntersection; }
 
   /**
    * Convenience function to access azimuthal angle of extreme edge of first strip 
@@ -228,12 +228,13 @@ class TkRadialStripTopology GCC11_FINAL : public RadialStripTopology {
   /**
    * Offset in local y between midpoint of detector (strip plane) extent and local origin
    */
-  float yCentreOfStripPlane() const { return yCentre; }
+  float yCentreOfStripPlane() const { return 0; }
 
   /**
    * Distance in local y from a hit to the point of intersection of projected strips
    */
-  float yDistanceToIntersection( float y ) const;
+  float yDistanceToIntersection( float y ) const  { return   yAxisOrientation()*y + originToIntersection() ;}
+
 
  private:
 
@@ -246,7 +247,6 @@ class TkRadialStripTopology GCC11_FINAL : public RadialStripTopology {
   float thePhiOfOneEdge;   // local 'phi' of one edge of plane of strips (I choose it negative!)
   float theTanOfOneEdge;   // the positive tangent of the above...
   float theYAxisOrientation; // 1 means y axis going from smaller to larger side, -1 means opposite direction
-  float yCentre; // Non-zero if offset in local y between midpoint of detector (strip plane) extent and local origin.
   double theRadialSigma;    // radial sigma^2( uniform prob density along strip)
 
 };
