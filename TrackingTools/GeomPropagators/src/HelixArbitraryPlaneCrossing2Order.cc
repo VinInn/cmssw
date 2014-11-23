@@ -2,6 +2,7 @@
 
 #include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "DataFormats/Math/interface/SIMDVec.h"
 
 #include <cmath>
 #include <cfloat>
@@ -56,7 +57,7 @@ HelixArbitraryPlaneCrossing2Order::pathLength(const Plane& plane) {
   // Check for degeneration to linear equation (zero
   //   curvature, forward plane or direction perp. to plane)
   //
-  double dS[2];
+  Vector2D dS;
   if likely( std::abs(ceq1)>FLT_MIN ) {
     double deq1 = ceq2*ceq2;
     double deq2 = ceq1*ceq3;
@@ -66,13 +67,11 @@ HelixArbitraryPlaneCrossing2Order::pathLength(const Plane& plane) {
     auto deq = deq1+2*deq2;
     if unlikely( deq<0. )  return std::pair<bool,double>(false,0);
     auto ceq =  ceq2+std::copysign(std::sqrt(deq),ceq2);
-    dS[0] =     (ceq/ceq1)*theSinThetaI;
-    dS[1] = -2.*(ceq3/ceq)*theSinThetaI;
-    /* does not vectorize anyhow...
-    double c1[2] = {ceq,-2*ceq3};
-    double c2[2] = {ceq1,ceq};
-    for(auto i=0; i<2;++i) dS[i]=(c1[i]/c2[i])*theSinThetaI;
-    */
+    // dS[0] =     (ceq/ceq1)*theSinThetaI;
+    // dS[1] = -2.*(ceq3/ceq)*theSinThetaI;
+    Vector2D c1 = {ceq,-2*ceq3};
+    Vector2D c2 = {ceq1,ceq};
+    dS = (c1/c2)*theSinThetaI;
   }
   else {
     //

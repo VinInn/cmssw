@@ -13,6 +13,7 @@ public:
   //
   typedef Basic3DVector<double>  PositionTypeDouble;
   typedef Basic3DVector<double>  DirectionTypeDouble;
+  typedef Basic2DVector<double>::MathVector  Vector2D;
 
   /** Constructor using point, direction and (transverse!) curvature.
    */
