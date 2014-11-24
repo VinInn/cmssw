@@ -70,16 +70,17 @@ namespace {
 
 }
 
-TkRadialStripTopology::TkRadialStripTopology(int ns, float aw, float dh, float r, int yAx) :
+template<int yAx>
+TkRadialStripTopology<yAx>::TkRadialStripTopology(int ns, float aw, float dh, float r) :
   theNumberOfStrips(ns), theAngularWidth(aw), theAWidthInverse(1.f/aw),theTanAW(std::tan(aw)),
   theDetHeight(dh), theCentreToIntersection(r),
-  theYAxisOrientation(yAx),
   theRadialSigma(std::pow(dh, 2.f) * (1.f/12.f)) {   
   // Angular offset of extreme edge of detector, so that angle is
   // zero for a strip lying along local y axis = long symmetry axis of plane of strips
   thePhiOfOneEdge = -(0.5*theNumberOfStrips) * theAngularWidth; // always negative!
   theTanOfOneEdge = std::tan(std::abs(thePhiOfOneEdge));
   assert(std::abs(thePhiOfOneEdge)<0.15); // 
+  static_assert(std::abs(yAx)==1,"yAx can only be +/-1");
 
   LogTrace("TkRadialStripTopology") << "TkRadialStripTopology: constructed with"
         << " strips = " << ns
@@ -87,32 +88,38 @@ TkRadialStripTopology::TkRadialStripTopology(int ns, float aw, float dh, float r
         << " det_height = " << dh
         << " ctoi = " << r 
         << " phi_edge = " << thePhiOfOneEdge << " rad "
-        << " y_ax_ori = " << theYAxisOrientation
+        << " y_ax_ori = " << yAxisOrientation()
 	<< " y_det_centre = " << 0
         << "\n";
 }    
 
-int TkRadialStripTopology::channel(const LocalPoint& lp) const { return   std::min( int( strip(lp) ), theNumberOfStrips-1 ) ;}
+template<int yAx>
+int TkRadialStripTopology<yAx>::channel(const LocalPoint& lp) const { return   std::min( int( strip(lp) ), theNumberOfStrips-1 ) ;}
 
-int TkRadialStripTopology::nearestStrip(const LocalPoint & lp) const {   return std::min( nstrips(), static_cast<int>( std::max(float(0), strip(lp)) ) + 1);}
+template<int yAx>
+int TkRadialStripTopology<yAx>::nearestStrip(const LocalPoint & lp) const {   return std::min( nstrips(), static_cast<int>( std::max(float(0), strip(lp)) ) + 1);}
 
-float TkRadialStripTopology::localStripLength(const LocalPoint& lp) const {  
+template<int yAx>
+float TkRadialStripTopology<yAx>::localStripLength(const LocalPoint& lp) const {  
   return detHeight() * std::sqrt(1.f + std::pow( lp.x()/yDistanceToIntersection(lp.y()), 2.f) );
 }
 
-float TkRadialStripTopology::xOfStrip(int strip, float y) const { 
+template<int yAx>
+float TkRadialStripTopology<yAx>::xOfStrip(int strip, float y) const { 
   return   
     yAxisOrientation() * yDistanceToIntersection( y ) * std::tan( stripAngle(static_cast<float>(strip) - 0.5f ) );
 }
 
-float TkRadialStripTopology::strip(const LocalPoint& lp) const {
+template<int yAx>
+float TkRadialStripTopology<yAx>::strip(const LocalPoint& lp) const {
      // phi is measured from y axis --> sign of angle is sign of x * yAxisOrientation --> use atan2(x,y), not atan2(y,x)
   const float phi =  atanClip(lp.x()/yDistanceToIntersection(lp.y()));
   const float aStrip = ( phi -  phiOfOneEdge() )*theAWidthInverse;
   return  std::max(float(0), std::min( (float)nstrips(), aStrip ));
 }
 
-float TkRadialStripTopology::coveredStrips(const LocalPoint& lp1, const LocalPoint& lp2)  const {
+template<int yAx>
+float TkRadialStripTopology<yAx>::coveredStrips(const LocalPoint& lp1, const LocalPoint& lp2)  const {
   // http://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities
   // atan(a)-atan(b) = atan( (a-b)/(1+a*b) )  
   // avoid divisions
@@ -138,18 +145,21 @@ float TkRadialStripTopology::coveredStrips(const LocalPoint& lp1, const LocalPoi
   //   return (measurementPosition(lp1)-measurementPosition(lp2)).x();
 }  
 
-LocalPoint TkRadialStripTopology::localPosition(float strip) const {
+template<int yAx>
+LocalPoint TkRadialStripTopology<yAx>::localPosition(float strip) const {
   return LocalPoint( yAxisOrientation() * originToIntersection() * std::tan( stripAngle(strip) ), 0 );
 }
 
-LocalPoint TkRadialStripTopology::localPosition(const MeasurementPoint& mp) const {
+template<int yAx>
+LocalPoint TkRadialStripTopology<yAx>::localPosition(const MeasurementPoint& mp) const {
   const float  // y = (L/cos(phi))*mp.y()*cos(phi) 
     y( mp.y()*detHeight()  +  yCentreOfStripPlane() ),
     x( yAxisOrientation() * yDistanceToIntersection( y ) * std::tan ( stripAngle( mp.x() ) ) );
   return LocalPoint( x, y );
 }
 
-MeasurementPoint TkRadialStripTopology::measurementPosition(const LocalPoint& lp) const {
+template<int yAx>
+MeasurementPoint TkRadialStripTopology<yAx>::measurementPosition(const LocalPoint& lp) const {
   // phi is [pi/2 - conventional local phi], use atan2(x,y) rather than atan2(y,x)
   // clip   ( at pi/8 or detedge+tollerance?)
   float t =  lp.x()/yDistanceToIntersection(lp.y());
@@ -162,7 +172,8 @@ MeasurementPoint TkRadialStripTopology::measurementPosition(const LocalPoint& lp
 }
 
 
-LocalError TkRadialStripTopology::localError(float strip, float stripErr2) const {
+template<int yAx>
+LocalError TkRadialStripTopology<yAx>::localError(float strip, float stripErr2) const {
   double phi = stripAngle(strip);
 
   const double
@@ -181,7 +192,8 @@ LocalError TkRadialStripTopology::localError(float strip, float stripErr2) const
   return LocalError( xx, xy, yy );
 }
 
-LocalError TkRadialStripTopology::localError(const MeasurementPoint& mp, const MeasurementError& me) const {
+template<int yAx>
+LocalError TkRadialStripTopology<yAx>::localError(const MeasurementPoint& mp, const MeasurementError& me) const {
   const double
     phi(stripAngle(mp.x())), s1(std::sin(phi)), c1(std::cos(phi)),
     cs(s1*c1), s2(s1*s1), c2(1-s2), // rotation matrix
@@ -199,7 +211,8 @@ LocalError TkRadialStripTopology::localError(const MeasurementPoint& mp, const M
   return LocalError( xx, xy, yy );
 }
 
-MeasurementError TkRadialStripTopology::measurementError(const LocalPoint& p,  const LocalError& e) const {
+template<int yAx>
+MeasurementError TkRadialStripTopology<yAx>::measurementError(const LocalPoint& p,  const LocalError& e) const {
   const double
     yHitToInter(yDistanceToIntersection(p.y())),
     t(yAxisOrientation() * p.x() / yHitToInter),   // tan(strip angle) 
@@ -217,7 +230,8 @@ MeasurementError TkRadialStripTopology::measurementError(const LocalPoint& p,  c
  
 
  // The local pitch is the local x width of the strip at the local (x,y)
-float TkRadialStripTopology::localPitch(const LocalPoint& lp) const { 
+template<int yAx>
+float TkRadialStripTopology<yAx>::localPitch(const LocalPoint& lp) const { 
   // this should be ~ y*(tan(phi+aw)-tan(phi)) = -x + y*(tan(aw)+tan(phi))/(1.f-tan(aw)*tan(phi)) tan(phi)=x/y
   float y =  yDistanceToIntersection( lp.y() );
   float x = std::abs(lp.x());
@@ -225,7 +239,8 @@ float TkRadialStripTopology::localPitch(const LocalPoint& lp) const {
 }
  
 /* old version
-float TkRadialStripTopology::localPitch(const LocalPoint& lp) const { 
+template<int yAx>
+float TkRadialStripTopology<yAx>::localPitch(const LocalPoint& lp) const { 
   // this should be ~ y*(tan(phi+aw)-tan(phi)) = -tan(phi) + (tan(aw)+tan(phi))/(1.f-tan(aw)*tan(phi)) 
   const int istrip = std::min(nstrips(), static_cast<int>(strip(lp)) + 1); // which strip number
   float fangle = stripAngle(static_cast<float>(istrip) - 0.5); // angle of strip centre
@@ -243,3 +258,8 @@ float TkRadialStripTopology::localPitch(const LocalPoint& lp) const {
 
 }
 */
+
+
+template class TkRadialStripTopology<-1>;
+template class TkRadialStripTopology<1>;
+

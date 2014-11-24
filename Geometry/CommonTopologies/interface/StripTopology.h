@@ -48,6 +48,10 @@ public:
   virtual float localPitch( const LocalPoint& lp, const Topology::LocalTrackAngles &/*ltp*/ ) const {
     return localPitch(lp);
   }
+
+  /// relative pitch error (used in GeometricCPE...)
+  virtual float pitchRelErr2() const { return 0.;}
+
   virtual float stripAngle( float strip ) const = 0;
 
   virtual int nstrips() const = 0;

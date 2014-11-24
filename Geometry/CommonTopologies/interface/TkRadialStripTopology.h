@@ -25,6 +25,7 @@
  * this version is optimized for tracker and is FINAL
  */
 
+template<int yAx>
 class TkRadialStripTopology GCC11_FINAL : public RadialStripTopology {
  public:
 
@@ -42,7 +43,7 @@ class TkRadialStripTopology GCC11_FINAL : public RadialStripTopology {
    *    \param yMid local y offset if mid-point of detector (strip plane) does not coincide with local origin.
    *    This decouples the extent of strip plane from the boundary of the detector in which the RST is embedded.
    */
-  TkRadialStripTopology( int ns, float aw, float dh, float r, int yAx);
+  TkRadialStripTopology( int ns, float aw, float dh, float r);
 
   /** 
    * Destructor
@@ -107,6 +108,11 @@ class TkRadialStripTopology GCC11_FINAL : public RadialStripTopology {
    * BEWARE: are you sure you really want to call this for a RadialStripTopology?
    */
   float localPitch(const LocalPoint&) const;
+
+  /// relative pitch error (used in GeometricCPE...)
+  virtual float	pitchRelErr2() const override { return std::pow( 0.5f * angularWidth() * stripLength()/localPitch(LocalPoint(0,0,0)), 2.f) / 12.f;}
+
+
 
   /** 
    * Angle between strip and symmetry axis (=local y axis)
@@ -222,8 +228,9 @@ class TkRadialStripTopology GCC11_FINAL : public RadialStripTopology {
 
   /** 
    * y axis orientation, 1 means detector width increases with local y
+   *  1 means y axis going from smaller to larger side, -1 means opposite direction
    */
-  float yAxisOrientation() const { return theYAxisOrientation; }
+  float yAxisOrientation() const { return float(yAx); }
 
   /**
    * Offset in local y between midpoint of detector (strip plane) extent and local origin
@@ -246,7 +253,6 @@ class TkRadialStripTopology GCC11_FINAL : public RadialStripTopology {
   float theCentreToIntersection;  // distance centre of detector face to intersection of edge strips (projected)
   float thePhiOfOneEdge;   // local 'phi' of one edge of plane of strips (I choose it negative!)
   float theTanOfOneEdge;   // the positive tangent of the above...
-  float theYAxisOrientation; // 1 means y axis going from smaller to larger side, -1 means opposite direction
   double theRadialSigma;    // radial sigma^2( uniform prob density along strip)
 
 };
