@@ -1,6 +1,5 @@
 #include "RecoLocalTracker/SiStripRecHitConverter/interface/StripCPE.h"
 #include "Geometry/CommonTopologies/interface/StripTopology.h"
-#include "Geometry/CommonTopologies/interface/TkRadialStripTopology.h"
 #include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetType.h"
 #include "boost/bind.hpp"
 #include "boost/lambda/lambda.hpp"
@@ -110,10 +109,6 @@ StripCPE::fillParams() {
     p.nstrips = p.topology->nstrips(); 
     p.moduleGeom = SiStripDetId(stripdet->geographicalId()).moduleGeometry();
     p.backplanecorrection = BackPlaneCorrectionMap_.getBackPlaneCorrection(stripdet->geographicalId().rawId());
-    
-    const TkRadialStripTopology* rtop = dynamic_cast<const TkRadialStripTopology*>(&stripdet->specificType().specificTopology());
-    p.pitch_rel_err2 = (rtop) 
-      ? pow( 0.5f * rtop->angularWidth() * rtop->stripLength()/rtop->localPitch(LocalPoint(0,0,0)), 2.f) / 12.f
-      : 0.f;
+    p.pitch_rel_err2 = stripdet->specificType().specificTopology().pitchRelErr2();
   }
 }

@@ -73,7 +73,7 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
     if unlikely(fabs(startZ) < 1e-5){  
       LogDebug("RKPropagatorInS")<< "Propagation is not performed: state is already on final surface.";
       GlobalTrajectoryParameters res( gpos, gmom, ts.charge(), 
-				      theVolume);
+				      &theVolume);
       return GlobalParametersWithPath( res, 0.0);
     }
 
@@ -84,11 +84,11 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
     // get solution
     //
     std::pair<bool,double> propResult = planeCrossing.pathLength(plane);
-    if likely( propResult.first && theVolume !=0) {
+    if likely( propResult.first) {
       double s = propResult.second;
       // point (reconverted to GlobalPoint)
       GlobalPoint x (planeCrossing.position(s));
-      GlobalTrajectoryParameters res( x, gmom, ts.charge(), theVolume);
+      GlobalTrajectoryParameters res( x, gmom, ts.charge(), &theVolume);
       return GlobalParametersWithPath( res, s);
       }
     //do someting
@@ -99,7 +99,6 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
 
 
 #ifdef EDM_LM_DEBUG
-  if (theVolume != 0) {
     LogDebug("RKPropagatorInS")  << "RKPropagatorInS: starting prop to plane in volume with pos " << theVolume->position()
 	      << " Z axis " << theVolume->toGlobal( LocalVector(0,0,1)) ;
 
@@ -116,13 +115,12 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
     StraightLinePlaneCrossing cross( ts.position().basicVector(), ts.momentum().basicVector());
     std::pair<bool,double> res3 = cross.pathLength(plane);
     LogDebug("RKPropagatorInS")  << "straight line distance " << res3.first << " " << res3.second ;
-  }
 #endif
 
   typedef RKAdaptiveSolver<double,RKOneCashKarpStep, 6>   Solver;
   typedef Solver::Vector                                  RKVector;
   
-  RKLocalFieldProvider field( fieldProvider());
+  RKLocalFieldProvider field(theVolume);
   PathToPlane2Order pathLength( field, &field.frame());
   CartesianLorentzForce deriv(field, ts.charge());
 
@@ -140,7 +138,7 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
 
     std::pair<bool,double> path = pathLength( plane, startState.position(), 
 					      startState.momentum(), 
-					      (double) ts.charge(), currentDirection);
+					      ts.charge(), currentDirection);
     if  unlikely(!path.first) { 
       LogDebug("RKPropagatorInS")  << "RKPropagatorInS: Path length calculation to plane failed!" 
 				   << "...distance to plane " << plane.localZ( globalPosition(startState.position()))
@@ -194,6 +192,7 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
   return GlobalParametersWithPath();
 }
 
+
 GlobalParametersWithPath
 RKPropagatorInS::propagateParametersOnCylinder( const FreeTrajectoryState& ts, 
 						const Cylinder& cyl) const {
@@ -236,11 +235,11 @@ RKPropagatorInS::propagateParametersOnCylinder( const FreeTrajectoryState& ts,
       // get solution
       //
       std::pair<bool,double> propResult = cylCrossing.pathLength(cyl);
-      if  likely( propResult.first && theVolume !=0) {
+      if  likely( propResult.first) {
 	  double s = propResult.second;
 	  // point (reconverted to GlobalPoint)
 	  GlobalPoint x (cylCrossing.position(s));
-	  GlobalTrajectoryParameters res( x, gmom, ts.charge(), theVolume);
+	  GlobalTrajectoryParameters res( x, gmom, ts.charge(), &theVolume);
 	  LogDebug("RKPropagatorInS")  << "Straight line propagation to cylinder succeeded !!";
 	  return GlobalParametersWithPath( res, s);
 	} 
@@ -252,7 +251,7 @@ RKPropagatorInS::propagateParametersOnCylinder( const FreeTrajectoryState& ts,
     }
   
   
-  RKLocalFieldProvider field( fieldProvider(cyl));
+  RKLocalFieldProvider field(theVolume, cyl);
   // StraightLineCylinderCrossing pathLength( pos, mom, propagationDirection());
   CartesianLorentzForce deriv(field, ts.charge());
   
@@ -339,48 +338,7 @@ GlobalTrajectoryParameters RKPropagatorInS::gtpFromLocal( const Basic3DVector<do
 							  TrackCharge ch, const Surface& surf) const
 {
     return GlobalTrajectoryParameters( surf.toGlobal( LocalPoint( lpos)),
-				       surf.toGlobal( LocalVector( lmom)), ch, theVolume);
-}
-
-RKLocalFieldProvider RKPropagatorInS::fieldProvider() const
-{
-  return RKLocalFieldProvider( *theVolume);
-}
-
-RKLocalFieldProvider RKPropagatorInS::fieldProvider( const Cylinder& cyl) const
-{
-  return RKLocalFieldProvider( *theVolume, cyl);
-}
-
-PropagationDirection RKPropagatorInS::invertDirection( PropagationDirection dir) const
-{
-  if (dir == anyDirection) return dir;
-  return ( dir == alongMomentum ? oppositeToMomentum : alongMomentum);
-}
-
-Basic3DVector<double> RKPropagatorInS::rkPosition( const GlobalPoint& pos) const
-{
-  if (theVolume != 0) return theVolume->toLocal( pos).basicVector();
-  else return pos.basicVector();
-}
-
-Basic3DVector<double> RKPropagatorInS::rkMomentum( const GlobalVector& mom) const
-{
-  if (theVolume != 0) return theVolume->toLocal( mom).basicVector();
-  else return mom.basicVector();
-}
-
-GlobalPoint RKPropagatorInS::globalPosition( const Basic3DVector<double>& pos) const
-{
-  if (theVolume != 0) return theVolume->toGlobal( LocalPoint(pos));
-  else return GlobalPoint(pos);
-}
-
-GlobalVector RKPropagatorInS::globalMomentum( const Basic3DVector<double>& mom) const
-
-{
-  if (theVolume != 0) return theVolume->toGlobal( LocalVector(mom));
-  else return GlobalVector(mom);
+				       surf.toGlobal( LocalVector( lmom)), ch, &theVolume);
 }
 
 GlobalTrajectoryParameters 
@@ -389,5 +347,5 @@ RKPropagatorInS::gtpFromVolumeLocal( const CartesianStateAdaptor& state,
 {
   return GlobalTrajectoryParameters( globalPosition(state.position()), 
 				     globalMomentum(state.momentum()), 
-				     charge, theVolume);
+				     charge, &theVolume);
 }

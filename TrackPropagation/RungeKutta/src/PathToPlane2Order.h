@@ -33,17 +33,8 @@ public:
     std::pair<bool,double> operator()( const Plane& plane, 
 				       const Vector3D& position,
 				       const Vector3D& momentum,
-				       double charge,
-				       const PropagationDirection propDir = alongMomentum);
-
-    std::pair<bool,double> operator()( const Plane& plane, 
-				       const GlobalPoint& position,
-				       const GlobalVector& momentum,
-				       double charge,
-				       const PropagationDirection propDir = alongMomentum) {
-	return operator()( plane, theFieldFrame->toLocal(position).basicVector(), 
-			   theFieldFrame->toLocal(momentum).basicVector(), charge, propDir);
-    }
+				       float charge,
+				       const PropagationDirection propDir = alongMomentum) const;
 
 private:
 

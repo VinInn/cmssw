@@ -8,23 +8,28 @@
  *  any orientation using a parabolic approximation. */
 
 class HelixArbitraryPlaneCrossing2Order GCC11_FINAL : public HelixPlaneCrossing {
-
-
 public:
+ // double precision vectors
+  //
+  typedef Basic3DVector<double>  PositionTypeDouble;
+  typedef Basic3DVector<double>  DirectionTypeDouble;
+  typedef Basic2DVector<double>::MathVector  Vector2D;
+
   /** Constructor using point, direction and (transverse!) curvature.
    */
   HelixArbitraryPlaneCrossing2Order(const PositionType& point,
 				    const DirectionType& direction,
 				    const float curvature,
 				    const PropagationDirection propDir = alongMomentum);
+
   /** Fast constructor (for use by HelixArbitraryPlaneCrossing).
    */
-  HelixArbitraryPlaneCrossing2Order(const double& x0, const double& y0, const double& z0,
-				    const double& cosPhi0, const double& sinPhi0,
-				    const double& cosTheta, const double& sinTheta,
-				    const double& rho,
+  HelixArbitraryPlaneCrossing2Order(PositionTypeDouble const & pos,
+				    double cosPhi0, double sinPhi0,
+				    double cosTheta, double sinTheta,
+				    double rho,
 				    const PropagationDirection propDir = alongMomentum) :
-    theX0(x0), theY0(y0), theZ0(z0),
+    thePos(pos),
     theCosPhi0(cosPhi0), theSinPhi0(sinPhi0),
     theCosTheta(cosTheta), theSinThetaI(1./sinTheta),
     theRho(rho), 
@@ -46,11 +51,6 @@ public:
   /** Direction at pathlength s from the starting point.
    */
   virtual DirectionType direction(double s) const;
-  //
-  // double precision vectors
-  //
-  typedef Basic3DVector<double>  PositionTypeDouble;
-  typedef Basic3DVector<double>  DirectionTypeDouble;
 
   /** Position at pathlength s from the starting point in double precision.
    */
@@ -74,7 +74,7 @@ private:
   std::pair<bool,double> solutionByDirection(const double dS1,const double dS2) const dso_internal;
 
 private:
-  const double theX0,theY0,theZ0;
+  const PositionTypeDouble thePos;
   double theCosPhi0,theSinPhi0;
   double theCosTheta,theSinThetaI;
   const double theRho;

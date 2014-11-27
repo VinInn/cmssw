@@ -2,6 +2,7 @@
 
 #include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "DataFormats/Math/interface/SIMDVec.h"
 
 #include <cmath>
 #include <cfloat>
@@ -11,9 +12,7 @@ HelixArbitraryPlaneCrossing2Order::HelixArbitraryPlaneCrossing2Order(const Posit
 								     const DirectionType& direction,
 								     const float curvature,
 								     const PropagationDirection propDir) :
-  theX0(point.x()),
-  theY0(point.y()),
-  theZ0(point.z()),
+  thePos(point),
   theRho(curvature),
   thePropDir(propDir)
 {
@@ -42,11 +41,11 @@ HelixArbitraryPlaneCrossing2Order::pathLength(const Plane& plane) {
   // get local z-vector in global co-ordinates and
   // distance to starting point
   //
-  GlobalVector normalToPlane = plane.normalVector();
+  auto const & normalToPlane = plane.normalVector();
   double nPx = normalToPlane.x();
   double nPy = normalToPlane.y();
   double nPz = normalToPlane.z();
-  double cP = plane.localZ(GlobalPoint(theX0,theY0,theZ0));
+  double cP = plane.localZ(GlobalPoint(thePos));
   //
   // coefficients of 2nd order equation to obtain intersection point
   // in approximation (without curvature-related factors).
@@ -58,41 +57,32 @@ HelixArbitraryPlaneCrossing2Order::pathLength(const Plane& plane) {
   // Check for degeneration to linear equation (zero
   //   curvature, forward plane or direction perp. to plane)
   //
-  double dS1,dS2;
+  Vector2D dS;
   if likely( std::abs(ceq1)>FLT_MIN ) {
     double deq1 = ceq2*ceq2;
     double deq2 = ceq1*ceq3;
-    if ( std::abs(deq1)<FLT_MIN || std::abs(deq2/deq1)>1.e-6 ) {
-      //
-      // Standard solution for quadratic equations
-      //
-      double deq = deq1+2*deq2;
-      if unlikely( deq<0. )  return std::pair<bool,double>(false,0);
-      double ceq =  ceq2+std::copysign(std::sqrt(deq),ceq2);
-      dS1 = (ceq/ceq1)*theSinThetaI;
-      dS2 = -2.*(ceq3/ceq)*theSinThetaI;
-    }
-    else {
-      //
-      // Solution by expansion of sqrt(1+deq)
-      //
-      double ceq = (ceq2/ceq1)*theSinThetaI;
-      double deq = deq2/deq1;
-      deq *= (1-0.5*deq);
-      dS1 = -ceq*deq;
-      dS2 = ceq*(2+deq);
-    }
+    //
+    // Standard solution for quadratic equations
+    //
+    auto deq = deq1+2*deq2;
+    if unlikely( deq<0. )  return std::pair<bool,double>(false,0);
+    auto ceq =  ceq2+std::copysign(std::sqrt(deq),ceq2);
+    // dS[0] =     (ceq/ceq1)*theSinThetaI;
+    // dS[1] = -2.*(ceq3/ceq)*theSinThetaI;
+    Vector2D c1 = {ceq,-2*ceq3};
+    Vector2D c2 = {ceq1,ceq};
+    dS = (c1/c2)*theSinThetaI;
   }
   else {
     //
     // Special case: linear equation
     //
-    dS1 = dS2 = -(ceq3/ceq2)*theSinThetaI;
+    dS[0] = dS[1] = -(ceq3/ceq2)*theSinThetaI;
   }
   //
   // Choose and return solution
   //
-  return solutionByDirection(dS1,dS2);
+  return solutionByDirection(dS[0],dS[1]);
 }
 
 //
@@ -101,9 +91,9 @@ HelixArbitraryPlaneCrossing2Order::pathLength(const Plane& plane) {
 HelixPlaneCrossing::PositionType
 HelixArbitraryPlaneCrossing2Order::position (double s) const {
   // use double precision result
-  PositionTypeDouble pos = positionInDouble(s);
-  return PositionType(pos.x(),pos.y(),pos.z());
+  return positionInDouble(s);
 }
+
 //
 // Position after a step of path length s (2nd order) (in double precision)
 //
@@ -111,19 +101,21 @@ HelixArbitraryPlaneCrossing2Order::PositionTypeDouble
 HelixArbitraryPlaneCrossing2Order::positionInDouble (double s) const {
   // based on path length in the transverse plane
   double st = s/theSinThetaI;
-  return PositionTypeDouble(theX0+(theCosPhi0-(st*0.5*theRho)*theSinPhi0)*st,
-			    theY0+(theSinPhi0+(st*0.5*theRho)*theCosPhi0)*st,
-			    theZ0+st*theCosTheta*theSinThetaI);
+  return thePos + PositionTypeDouble((theCosPhi0-(st*0.5*theRho)*theSinPhi0)*st,
+			             (theSinPhi0+(st*0.5*theRho)*theCosPhi0)*st,
+			             st*theCosTheta*theSinThetaI
+                                    );
 }
+
 //
 // Direction after a step of path length 2 (2nd order) (in double precision)
 //
 HelixPlaneCrossing::DirectionType
 HelixArbitraryPlaneCrossing2Order::direction (double s) const {
   // use double precision result
-  DirectionTypeDouble dir = directionInDouble(s);
-  return DirectionType(dir.x(),dir.y(),dir.z());
+  return directionInDouble(s);
 }
+
 //
 // Direction after a step of path length 2 (2nd order)
 //
@@ -135,6 +127,7 @@ HelixArbitraryPlaneCrossing2Order::directionInDouble (double s) const {
 			     theSinPhi0+(theCosPhi0-0.5*dph*theSinPhi0)*dph,
 			     theCosTheta*theSinThetaI);
 }
+
 //
 // Choice of solution according to propagation direction
 //
