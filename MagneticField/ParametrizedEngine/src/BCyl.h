@@ -84,19 +84,30 @@ namespace magfieldparam {
       T zainv=z*pars.ainv;
       T u=pars.hlova-zainv;
       T v=pars.hlova+zainv;
-      T fu[4],gv[4];
-      ffunkti(u,fu);
-      ffunkti(v,gv);
+      // T fu[4],gv[4];
+      T vv[4] ={u,v,T(0),T(0)};
+      T fg[4][4];
+      T * fu = fg[0];
+      T * gv = fg[1];
+      T zoff[4] = {z-pars.prm[7],z+pars.prm[7],T(0),T(0)};
+      T gpar[4];
+      // 4, it will not vectorize 2!
+      for (int i=0; i<4; ++i) {
+         ffunkti(vv[i],fg[i]);
+         gpar[i] = myExp(-zoff[i]*zoff[i]*pars.coeff);
+      }
+      // ffunkti(u,fu);
+      // ffunkti(v,gv);
       T rat=T(0.5)*pars.ainv;
       T rat2=rat*rat*r2;
       Br=pars.hb0*rat*(fu[1]-gv[1]-(fu[3]-gv[3])*rat2*T(0.5));
       Bz=pars.hb0*(fu[0]+gv[0]-(fu[2]+gv[2])*rat2);
       
       T corBr= pars.prm[4]*z*(az-pars.prm[5])*(az-pars.prm[5]);
-      T corBz=-pars.prm[6]*(
-			    myExp(-(z-pars.prm[7])*(z-pars.prm[7])*pars.coeff) +
-			    myExp(-(z+pars.prm[7])*(z+pars.prm[7])*pars.coeff)
-			    ); // double Gaussian
+      T corBz=-pars.prm[6]*(gpar[0]+gpar[1]);
+//			    myExp(-(z-pars.prm[7])*(z-pars.prm[7])*pars.coeff) +
+//			    myExp(-(z+pars.prm[7])*(z+pars.prm[7])*pars.coeff)
+//			    ); // double Gaussian
       Br+=corBr;
       Bz+=corBz;
     }
