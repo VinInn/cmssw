@@ -24,6 +24,20 @@ void  go() {
     std::cout << "size of Point   " << sizeof(GlobalPoint) << std::endl;
     std::cout << "size of Frame   " << sizeof(Frame) << std::endl;
 
+{
+    Frame triv(Position(0,0,0),Rotation());
+    cout << "triv.position() " << triv.position() << endl;
+    cout << "triv.rotation() " << endl << triv.rotation() << endl;
+    cout << (triv.trivial() ? " " : "not ") << "trivial" << endl;
+
+    GlobalPoint gp0( 11,22,33);
+    auto lp = triv.toLocal( gp0);
+    auto gp = triv.toGlobal(lp);
+    cout << "gp->lp->gp " << gp0 <<' ' << lp << ' ' << gp << std::endl;
+
+
+}
+
     double a = 0.01;
     double ca = cos(a);
     double sa = sin(a);
@@ -34,11 +48,14 @@ void  go() {
     Frame f1(Position(2,3,4), r1);
     cout << "f1.position() " << f1.position() << endl;
     cout << "f1.rotation() " << endl << f1.rotation() << endl;
+    cout << (f1.trivial() ? " " : "not ") << "trivial" << endl;
 
     Rotation r2( GlobalVector( 0, 1 ,0), GlobalVector( 0, 0, 1));
     Frame f2(Position(5,6,7), r2);
     cout << "f2.position() " << f2.position() << endl;
     cout << "f2.rotation() " << endl << f2.rotation() << endl;
+    cout << (f2.trivial() ? " " : "not ") << "trivial" << endl;
+
 
     // transform f2 to f1 so that f1 becomes the "global" frame of f3
     // Rotation r3 = r2.multiplyInverse(r1);
