@@ -1,2 +1,6 @@
+<flags   CXXFLAGS="-Ofast" />
 <use name="FWCore/Framework" />
 <bin file="TkBfield_t.cpp" />
+<bin file="TkBfield_t.cpp" name="TkBfieldVect_t">
+<flags   CXXFLAGS="-Ofast -DBCYCL_VECT"/>
+</bin>
