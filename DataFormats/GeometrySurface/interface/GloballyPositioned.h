@@ -49,7 +49,10 @@ public:
   T eta() const { 
     return theEta;
   }
-
+  // normal distance from origin
+  T dv() const {
+    return theDV;
+  }
 
   // multiply inverse is faster
   class ToLocal {
@@ -102,6 +105,7 @@ public:
   template <class U>
   Point3DBase< U, GlobalTag>
   toGlobal( const Point3DBase< U, LocalTag>& lp) const {
+    if ((theTrivial)) return Point3DBase< U, GlobalTag>(lp.basicVector());
     return Point3DBase< U, GlobalTag>( rotation().multiplyInverse( lp.basicVector()) +
 				       position().basicVector());
   }
@@ -110,7 +114,7 @@ public:
    *  local frame) to the global frame
    */
   GlobalVector toGlobal( const LocalVector& lv) const {
-    if ((theTrivial)) return	GlobalVector(lv.basicVector());
+    if ((theTrivial)) return GlobalVector(lv.basicVector());
     return GlobalVector( rotation().multiplyInverse( lv.basicVector()));
   }
 
@@ -121,6 +125,7 @@ public:
   template <class U>
   Vector3DBase< U, GlobalTag>
   toGlobal( const Vector3DBase< U, LocalTag>& lv) const {
+    if ((theTrivial)) return Vector3DBase< U, GlobalTag>(lv.basicVector());
     return Vector3DBase< U, GlobalTag>( rotation().multiplyInverse( lv.basicVector()));
   }
 
@@ -139,6 +144,7 @@ public:
   template <class U>
   Point3DBase< U, LocalTag>
   toLocal( const Point3DBase< U, GlobalTag>& gp) const {
+    if ((theTrivial)) return Point3DBase< U, LocalTag>(gp.basicVector());
     return Point3DBase< U, LocalTag>( rotation() * 
 				      (gp.basicVector()-position().basicVector()));
   }
@@ -158,6 +164,7 @@ public:
   template <class U>
   Vector3DBase< U, LocalTag>
   toLocal( const Vector3DBase< U, GlobalTag>& gv) const {
+    if ((theTrivial)) return Vector3DBase< U, LocalTag>(gv.basicVector());
     return Vector3DBase< U, LocalTag>( rotation() * gv.basicVector());
   }
 
@@ -197,6 +204,7 @@ private:
 
   void setCache() {
     setTrivial();
+    theDV = rotation().z().dot(-position().basicVector());
     if ((thePos.x() == 0.) & (thePos.y() == 0.)) {
       thePhi = theEta = 0.; // avoid FPE
     } else {
@@ -217,6 +225,7 @@ private:
 
   T thePhi;
   T theEta;
+  T theDV;  // normal distance from origin
   bool theTrivial; 
 
 };

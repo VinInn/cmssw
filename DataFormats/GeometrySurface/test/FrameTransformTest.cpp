@@ -1,8 +1,8 @@
 #include <iostream>
 #include "DataFormats/GeometrySurface/interface/TkRotation.h"
 #include "DataFormats/GeometrySurface/interface/GloballyPositioned.h"
+#include "DataFormats/GeometrySurface/interface/HessianPlane.h"
 #include "DataFormats/GeometrySurface/interface/BoundPlane.h"
-//#include "CommonReco/RKPropagators/interface/FrameChanger.h"
 #include "DataFormats/GeometrySurface/interface/Cylinder.h"
 
 #include <cmath>
@@ -13,6 +13,7 @@ void  go() {
 
     typedef TkRotation<T>                   Rotation;
     typedef GloballyPositioned<T>           Frame;
+    using HPlane = HessianPlane<T>;
     typedef typename Frame::PositionType             Position;
     typedef typename Frame::GlobalVector             GlobalVector;
     typedef typename Frame::GlobalPoint              GlobalPoint;
@@ -24,19 +25,22 @@ void  go() {
     std::cout << "size of Point   " << sizeof(GlobalPoint) << std::endl;
     std::cout << "size of Frame   " << sizeof(Frame) << std::endl;
 
-{
-    Frame triv(Position(0,0,0),Rotation());
+for (float zz=-1; zz<2; zz+=1) {
+    Frame triv(Position(0,0,zz),Rotation());
     cout << "triv.position() " << triv.position() << endl;
     cout << "triv.rotation() " << endl << triv.rotation() << endl;
-    cout << (triv.trivial() ? " " : "not ") << "trivial" << endl;
+    cout << (triv.trivial() ? " " : "not ") << "trivial " << triv.dv() << endl;
 
     GlobalPoint gp0( 11,22,33);
     auto lp = triv.toLocal( gp0);
     auto gp = triv.toGlobal(lp);
     cout << "gp->lp->gp " << gp0 <<' ' << lp << ' ' << gp << std::endl;
 
-
+    HPlane hp(triv.rotation().z(),triv.dv());
+    cout << "localz " << hp.localZ(gp0.basicVector()) << std::endl; 
+    
 }
+
 
     double a = 0.01;
     double ca = cos(a);
@@ -90,20 +94,8 @@ void  go() {
     cout << "p_in1_from3 + " << p_in1_from3 << endl;
 
     BoundPlane plane(f2.position(), f2.rotation());
-
-//     FrameChanger<double> changer;
-//     FrameChanger<double>::PlanePtr pp = changer.toFrame( plane, f1);
-
-/*
-    FrameChanger changer;
-    FrameChanger::PlanePtr pp = changer.transformPlane( plane, f1);
-    
-    LocalPoint p_in2p = plane.toLocal( gp);
-    LocalPoint p_in3p = pp->toLocal( GlobalPoint(p_in1.basicVector()));
-    cout << "p_in2p " << p_in2p << endl;
-    cout << "p_in3p " << p_in3p << endl;
-*/
-
+    auto hp = plane.hessianPlane();
+    std::cout << "localZ " << plane.localZ(gp) << ' ' << hp.localZ(gp.basicVector()) << std::endl;
 
 }
 
@@ -143,6 +135,7 @@ int main() {
   
   go<float>();
   cyl();
+  std::cout << std::endl;
   std::cout << std::endl;
   go<double>();
 
