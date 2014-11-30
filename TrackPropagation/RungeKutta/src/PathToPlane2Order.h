@@ -3,12 +3,12 @@
 
 #include "FWCore/Utilities/interface/Visibility.h"
 #include "DataFormats/GeometryVector/interface/Basic3DVector.h"
-#include "TrackingTools/GeomPropagators/interface/HelixPlaneCrossing.h"
-#include "CartesianState.h"
 #include "DataFormats/TrajectorySeed/interface/PropagationDirection.h"
 #include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
+#include "MagneticField/VolumeGeometry/interface/MagVolume.h"
+
 
 /** Computes the path length to reach a plane in general magnetic field.
  *  The problem (starting state and plane) is transformed to a frame where the
@@ -16,7 +16,6 @@
  *  to compute the path length.
  */
 
-class RKLocalFieldProvider;
 
 class dso_internal PathToPlane2Order {
 public:
@@ -25,8 +24,8 @@ public:
     typedef Basic3DVector<Scalar>                        Vector3D;
     typedef GloballyPositioned<Scalar>                   Frame;
 
-    PathToPlane2Order( const RKLocalFieldProvider& fld, const Frame* fieldFrame) : 
-      theField(fld), theFieldFrame(fieldFrame) {}
+    explicit PathToPlane2Order( const MagVolume & fld) : 
+      theField(fld) {}
 
     /// the position and momentum are local in the FieldFrame;
     /// the plane is in the global frame
@@ -36,10 +35,12 @@ public:
 				       float charge,
 				       const PropagationDirection propDir = alongMomentum) const;
 
-private:
+  Vector3D inTesla( Vector3D lp) const {
+    return theField.fieldInTesla( LocalPoint(lp) ).basicVector();
+  }
 
-    const RKLocalFieldProvider& theField;
-    const Frame*                theFieldFrame;
+private:
+    const MagVolume & theField;
 };
 
 #endif

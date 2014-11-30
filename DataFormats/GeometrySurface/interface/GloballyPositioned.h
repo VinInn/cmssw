@@ -49,7 +49,7 @@ public:
   T eta() const { 
     return theEta;
   }
-  // normal distance from origin
+  // normal distance of origin
   T dv() const {
     return theDV;
   }
@@ -225,7 +225,7 @@ private:
 
   T thePhi;
   T theEta;
-  T theDV;  // normal distance from origin
+  T theDV;  // normal distance of origin
   bool theTrivial; 
 
 };

@@ -12,7 +12,7 @@ class HessianPlane {
 public:
   // typedef typename Basic3DVector<T>::MathVector MathVector;
   HessianPlane(){}
-  // constructor from normal and distance from origin
+  // constructor from normal and distance of origin
   HessianPlane(Basic3DVector<T> n, T d) : m_me(n) {m_me[3]=d;}
 
   /// signed distance from plane
@@ -20,6 +20,14 @@ public:
    p[3]=T(1);
    return m_me.dot(p);
   }
+
+  Basic3DVector<T> basicVector() const { return m_me;}
+
+  T nx() const { return m_me[0];}
+  T ny() const { return	m_me[1];}
+  T nz() const { return	m_me[2];}
+  T dv() const { return	m_me[3];}
+
 
 private:
 

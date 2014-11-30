@@ -30,6 +30,7 @@
 
 #include "TrackingTools/GeomPropagators/interface/AnalyticalPropagator.h"
 #include "TrackPropagation/RungeKutta/interface/defaultRKPropagator.h"
+#include <cassert>
 
 class RKTestField GCC11_FINAL : public MagneticField
 {
@@ -50,35 +51,36 @@ public:
     using namespace edm;
     ESHandle<MagneticField> magfield;
     setup.get<IdealMagneticFieldRecord>().get(magfield);
+    auto f = magfield.product();
+    assert(nullptr!=f);
 
-    propagateInCentralVolume( &(*magfield));
+  // RKTestField is used internally in RKTestPropagator
+  // In the following code "field" or "&TestField" are interchangeable
+  // They should give identical field values if "field" is produced by VolumeBasedMagneticField
+  // with the non-default option "useParametrizedTrackerField = true"
+
+  // RKTestField TestField; // Not needed if you want to use field instead of &TestField
+
+
+    propagateInCentralVolume(*f);
   }
 
 private:
 
   typedef TrajectoryStateOnSurface TSOS;
 
-  void propagateInCentralVolume( const MagneticField* field) const;
+  void propagateInCentralVolume( const MagneticField & field) const;
   Surface::RotationType rotation( const GlobalVector& zAxis) const;
 
 };
 
 
 
-void RKTest::propagateInCentralVolume( const MagneticField* field) const
+void RKTest::propagateInCentralVolume( const MagneticField & field) const
 {
 
-  // RKTestField is used internally in RKTestPropagator
-  // In the following code "field" or "&TestField" are interchangeable
-  // They should give identical field values if "field" is produced by VolumeBasedMagneticField
-  // with the non-default option "useParametrizedTrackerField = true"
-  
-  RKTestField TestField; // Not needed if you want to use field instead of &TestField
-
-  //  RKTestPropagator RKprop ( &TestField, alongMomentum );
-  //AnalyticalPropagator ANprop  ( &TestField, alongMomentum);
   defaultRKPropagator::Product  prod( field, alongMomentum, 5.e-5); auto & RKprop = prod.propagator;
-  AnalyticalPropagator ANprop  ( field, alongMomentum);
+  AnalyticalPropagator ANprop  ( &field, alongMomentum);
 
 
   for (float phi = -3.14; phi<3.14 ; phi+=0.5) {
@@ -112,11 +114,11 @@ void RKTest::propagateInCentralVolume( const MagneticField* field) const
 	    CurvilinearTrajectoryError err(C);
 	    
 	    TSOS startingStateP( GlobalTrajectoryParameters(startingPosition, 
-							    startingMomentum, 1, &TestField), 
+							    startingMomentum, 1, &field), 
 				 err, *startingPlane);
 	    
 	    TSOS startingStateM( GlobalTrajectoryParameters(startingPosition, 
-							    startingMomentum, -1, &TestField), 
+							    startingMomentum, -1, &field), 
 				 err, *startingPlane);
 	    
 	    try {

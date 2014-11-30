@@ -13,7 +13,9 @@
 #include "TrackingTools/GeomPropagators/interface/StraightLineBarrelCylinderCrossing.h"
 #include "MagneticField/VolumeGeometry/interface/MagVolume.h"
 #include "TrackingTools/GeomPropagators/interface/PropagationDirectionFromPath.h"
-#include "FrameChanger.h"
+#ifdef EDM_LM_DEBUG
+#include "frameChanger.h"
+#endif
 #include "TrackingTools/GeomPropagators/interface/StraightLinePlaneCrossing.h"
 #include "AnalyticalErrorPropagation.h"
 #include "GlobalParametersWithPath.h"
@@ -105,8 +107,7 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
     LogDebug("RKPropagatorInS")  << "The starting position is " << ts.position() << " (global) "
 	      << theVolume->toLocal(ts.position()) << " (local) " ;
   
-    FrameChanger changer;
-    FrameChanger::PlanePtr localPlane = changer.transformPlane( plane, *theVolume);
+    auto localPlane = frameChanger::transformPlane( plane, *theVolume);
     LogDebug("RKPropagatorInS")  << "The plane position is " << plane.position() << " (global) "
 	      << localPlane->position() << " (local) " ;
 
@@ -121,7 +122,7 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
   typedef Solver::Vector                                  RKVector;
   
   RKLocalFieldProvider field(theVolume);
-  PathToPlane2Order pathLength( field, &field.frame());
+  PathToPlane2Order pathLength(theVolume);
   CartesianLorentzForce deriv(field, ts.charge());
 
   RKCartesianDistance dist;

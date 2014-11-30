@@ -59,7 +59,8 @@ for (float zz=-1; zz<2; zz+=1) {
     cout << "f2.position() " << f2.position() << endl;
     cout << "f2.rotation() " << endl << f2.rotation() << endl;
     cout << (f2.trivial() ? " " : "not ") << "trivial" << endl;
-
+    HPlane h2(f2.rotation().z(),f2.dv());
+    std::cout << "h2 " << h2.nx() << ' '<< h2.ny() << ' '<< h2.nz() << ' '<< h2.dv() << std::endl;
 
     // transform f2 to f1 so that f1 becomes the "global" frame of f3
     // Rotation r3 = r2.multiplyInverse(r1);
@@ -72,12 +73,17 @@ for (float zz=-1; zz<2; zz+=1) {
     // Rotation r3 = r2*r1;
     Rotation r3 = r2*r1.transposed();
 
+    HPlane h3m( f1.toLocal(GlobalVector(h2.basicVector())).basicVector(), h2.localZ(f1.position().basicVector()) );
 
     GlobalPoint pos2(f2.position());
     LocalPoint lp3 = f1.toLocal(pos2);
     Frame f3( GlobalPoint(lp3.basicVector()), r3);
     cout << "f3.position() " << f3.position() << endl;
     cout << "f3.rotation() " << endl << f3.rotation() << endl;
+    HPlane h3(f3.rotation().z(),f3.dv());
+    std::cout << "h3  " << h3.nx() << ' '<< h3.ny() << ' '<< h3.nz() << ' '<< h3.dv() << std::endl;
+    std::cout << "h3m " << h3m.nx() << ' '<< h3m.ny() << ' '<< h3m.nz() << ' '<< h3m.dv() << std::endl;
+
 
 // test
     GlobalPoint gp( 11,22,33);
