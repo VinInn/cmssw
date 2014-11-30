@@ -10,15 +10,20 @@ namespace frameChanger dso_internal {
    *  argument ("frame"). The returned frame is not positioned globally!
    */
     template <typename T, typename U>
-    HessianPlane<T> transformHessianPlane( const HessianPlane<T>& plane, const GloballyPositioned<U>& frame) {
-      using Frame =  GloballyPositioned<U>;
-      return HessianPlane<T>( frame.toLocal(Frame::GlobalVector(plane.basicVector())).basicVector(), plane.localZ(frame.position().basicVector()) );
+    static
+    HessianPlane<T> transform( const HessianPlane<T>& plane, const GloballyPositioned<U>& frame) {
+        using Frame = GloballyPositioned<U>;
+        using GlobalVector = typename GloballyPositioned<U>::GlobalVector; 
+        return HessianPlane<T>(frame.toLocal(GlobalVector(plane.basicVector())).basicVector(), 
+                               plane.localZ(frame.position().basicVector()) 
+                              );
     }
 
   /** Moves the first argument ("plane") to the reference frame given by the second 
    *  argument ("frame"). The returned frame is not positioned globally!
    */
     template <typename T>
+    static
     Plane transformPlane( const Plane& plane, const GloballyPositioned<T>& frame) {
         typedef GloballyPositioned<T>                  Frame;
 	typename Plane::RotationType rot = plane.rotation() * frame.rotation().transposed();
@@ -32,6 +37,7 @@ namespace frameChanger dso_internal {
  *  argument ("frame"). The returned frame is not positioned globally!
  */
     template <typename T, typename U>
+    static
     GloballyPositioned<T> toFrame( const GloballyPositioned<T>& plane, 
 				   const GloballyPositioned<U>& frame) {
 	typedef GloballyPositioned<T>                  Plane;
@@ -43,6 +49,7 @@ namespace frameChanger dso_internal {
 	return Plane( pos, rot);
 
     }
-}
+
+};
 
 #endif
