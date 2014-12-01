@@ -8,6 +8,7 @@
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
 #include "DataFormats/TrajectoryState/interface/TrackCharge.h"
 #include "MagneticField/VolumeGeometry/interface/MagVolume.h"
+#include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "FWCore/Utilities/interface/Visibility.h"
 
 
@@ -82,7 +83,7 @@ private:
 
 
   GlobalParametersWithPath propagateParametersOnPlane( const FreeTrajectoryState& ts, 
-						       const Plane& plane) const dso_internal;
+						       const HessianPlane<float>& plane) const dso_internal;
   GlobalParametersWithPath propagateParametersOnCylinder( const FreeTrajectoryState& ts, 
 							  const Cylinder& cyl) const dso_internal;
 

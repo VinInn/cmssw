@@ -2,11 +2,12 @@
 #define StraightLinePlaneCrossing_H_
 
 #include "DataFormats/GeometryVector/interface/Basic3DVector.h"
+#include "DataFormats/GeometrySurface/interface/Plane.h"
+
 #include "DataFormats/TrajectorySeed/interface/PropagationDirection.h"
 
 #include <utility>
 
-class Plane;
 
 /** Calculates intersections of a line with a plane.
  */
@@ -18,8 +19,9 @@ public:
    *  in any frame. Of course, the helix and the plane must be defined 
    *  in the same frame, which is also the frame of the result.
    */
-  typedef Basic3DVector<float>   PositionType;
-  typedef Basic3DVector<float>   DirectionType;
+  using PositionType  = Basic3DVector<float>;
+  using DirectionType = Basic3DVector<float>;
+  using HPlane = HessianPlane<float>;
 
 public:
   /** Constructor using point and momentum.
@@ -33,7 +35,8 @@ public:
   /** Propagation status (true if valid) and (signed) path length 
    *  along the helix from the starting point to the plane.
    */
-  std::pair<bool,double> pathLength (const Plane& plane) const;
+  std::pair<bool,double> pathLength( const Plane& p) const { return pathLength(p.hessianPlane());}
+  std::pair<bool,double> pathLength( const HPlane&) const;
 
   /** Position at pathlength s from the starting point.
    */

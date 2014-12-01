@@ -29,7 +29,7 @@ public:
 
     /// the position and momentum are local in the FieldFrame;
     /// the plane is in the global frame
-    std::pair<bool,double> operator()( const Plane& plane, 
+    std::pair<bool,double> operator()( const HessianPlane<float>& plane, 
 				       const Vector3D& position,
 				       const Vector3D& momentum,
 				       float charge,

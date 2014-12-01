@@ -22,7 +22,8 @@ public:
    *  along the helix from the starting point to the plane. The 
    *  starting point is given in the constructor.
    */
-  virtual std::pair<bool,double> pathLength(const Plane& plane);
+  virtual std::pair<bool,double> pathLength( const Plane& p) override { return pathLength(p.hessianPlane());}
+  virtual std::pair<bool,double> pathLength(const HPlane&) override;
 
   /** Position at pathlength s from the starting point.
    */
@@ -49,7 +50,7 @@ private:
 
   /** Iteration control: check for significant distance to plane.
    */
-  inline bool notAtSurface (const Plane&,
+  inline bool notAtSurface (const HPlane&,
   			    const PositionTypeDouble&,
 			    const float) const dso_internal;
 

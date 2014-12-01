@@ -68,7 +68,7 @@ HelixArbitraryPlaneCrossing::HelixArbitraryPlaneCrossing(const PositionType& poi
 // Propagation status and path length to intersection
 //
 std::pair<bool,double>
-HelixArbitraryPlaneCrossing::pathLength(const Plane& plane) {
+HelixArbitraryPlaneCrossing::pathLength(const HPlane& plane) {
   //
   // Constants used for control of convergence
   //
@@ -76,13 +76,13 @@ HelixArbitraryPlaneCrossing::pathLength(const Plane& plane) {
   //
   // maximum distance to plane (taking into account numerical precision)
   //
-  float maxNumDz = theNumericalPrecision*plane.position().mag();
+  float maxNumDz = theNumericalPrecision*std::abs(plane.dv());
   float safeMaxDist = (theMaxDistToPlane>maxNumDz?theMaxDistToPlane:maxNumDz);
   //
   // Prepare internal value of the propagation direction and position / direction vectors for iteration 
   //
   
-  float dz = plane.localZ(Surface::GlobalPoint(thePos));
+  float dz = plane.localZ(thePos);
   if (std::abs(dz)<safeMaxDist) return std::make_pair(true,0.);
 
   bool notFail;
@@ -233,9 +233,9 @@ HelixArbitraryPlaneCrossing::directionInDouble (double s) const {
 
 //   Iteration control: continue if distance to plane > theMaxDistToPlane. Includes 
 //   protection for numerical precision (Surfaces work with single precision).
-bool HelixArbitraryPlaneCrossing::notAtSurface (const Plane& plane,  				       
+bool HelixArbitraryPlaneCrossing::notAtSurface (const HPlane& plane,  				       
 						const PositionTypeDouble& point,
 						const float maxDist) const {
-  float dz = plane.localZ(Surface::GlobalPoint(point));
+  float dz = plane.localZ(point);
   return std::abs(dz)>maxDist;
 }

@@ -6,7 +6,7 @@
 #include <iostream>
 
 std::pair<bool,double> 
-PathToPlane2Order::operator()( const Plane& plane, 
+PathToPlane2Order::operator()( const HessianPlane<float>& plane, 
 			       const Vector3D& pos,
 			       const Vector3D& momentum,
 			       float charge,
@@ -43,7 +43,7 @@ PathToPlane2Order::operator()( const Plane& plane,
     Frame::LocalVector localMom = frame.toLocal( gmom); 
 
     // transform the plane to the same frame
-    Plane localPlane =  frameChanger::transformPlane( plane, frame);
+    auto localPlane =  frameChanger::transform( plane, frame);
 
 /*
      cout << "PathToPlane2Order input plane       " << plane.position() << endl 

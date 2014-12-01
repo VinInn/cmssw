@@ -42,7 +42,8 @@ public:
    *  along the helix from the starting point to the plane. The 
    *  starting point is given in the constructor.
    */
-  virtual std::pair<bool,double> pathLength(const Plane&);
+  virtual std::pair<bool,double> pathLength( const Plane& p) override { return pathLength(p.hessianPlane());}
+  virtual std::pair<bool,double> pathLength(const HPlane&) override;
 
   /** Position at pathlength s from the starting point.
    */

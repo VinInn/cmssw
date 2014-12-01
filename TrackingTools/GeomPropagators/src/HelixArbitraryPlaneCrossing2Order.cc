@@ -36,16 +36,15 @@ HelixArbitraryPlaneCrossing2Order::HelixArbitraryPlaneCrossing2Order(const Posit
 // Propagation status and path length to intersection
 //
 std::pair<bool,double>
-HelixArbitraryPlaneCrossing2Order::pathLength(const Plane& plane) {
+HelixArbitraryPlaneCrossing2Order::pathLength(const HPlane& plane) {
   //
   // get local z-vector in global co-ordinates and
   // distance to starting point
   //
-  auto const & normalToPlane = plane.normalVector();
-  double nPx = normalToPlane.x();
-  double nPy = normalToPlane.y();
-  double nPz = normalToPlane.z();
-  double cP = plane.localZ(GlobalPoint(thePos));
+  double nPx = plane.nx();
+  double nPy = plane.ny();
+  double nPz = plane.nz();
+  double cP = plane.localZ(thePos);
   //
   // coefficients of 2nd order equation to obtain intersection point
   // in approximation (without curvature-related factors).

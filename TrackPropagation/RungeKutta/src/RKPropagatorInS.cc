@@ -29,7 +29,7 @@ std::pair<TrajectoryStateOnSurface,double>
 RKPropagatorInS::propagateWithPath(const FreeTrajectoryState& fts, 
 				   const Plane& plane) const
 {
-  GlobalParametersWithPath gp =  propagateParametersOnPlane( fts, plane);
+  GlobalParametersWithPath gp =  propagateParametersOnPlane( fts, plane.hessianPlane());
   if unlikely(!gp) return TsosWP(TrajectoryStateOnSurface(),0.);
 
   SurfaceSideDefinition::SurfaceSide side = PropagationDirectionFromPath()(gp.s(),propagationDirection())==alongMomentum 
@@ -51,12 +51,12 @@ RKPropagatorInS::propagateWithPath (const FreeTrajectoryState& fts, const Cylind
 
 GlobalParametersWithPath
 RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts, 
-					     const Plane& plane) const
+					     const HessianPlane<float>& plane) const
 {
 
   GlobalPoint gpos( ts.position());
   GlobalVector gmom( ts.momentum());
-  double startZ = plane.localZ(gpos);
+  double startZ = plane.localZ(gpos.basicVector());
   // (transverse) curvature
   double rho = ts.transverseCurvature();
   //
@@ -107,11 +107,11 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
     LogDebug("RKPropagatorInS")  << "The starting position is " << ts.position() << " (global) "
 	      << theVolume->toLocal(ts.position()) << " (local) " ;
   
-    auto localPlane = frameChanger::transformPlane( plane, *theVolume);
-    LogDebug("RKPropagatorInS")  << "The plane position is " << plane.position() << " (global) "
-	      << localPlane->position() << " (local) " ;
+    auto localPlane = frameChanger::transform( plane, *theVolume);
+    //LogDebug("RKPropagatorInS")  << "The plane position is " << plane.position() << " (global) "
+   //	      << localPlane->position() << " (local) " ;
 
-    LogDebug("RKPropagatorInS")  << "The initial distance to plane is " << plane.localZ( ts.position()) ;
+    LogDebug("RKPropagatorInS")  << "The initial distance to plane is " << plane.localZ( ts.position().basicVector()) ;
 
     StraightLinePlaneCrossing cross( ts.position().basicVector(), ts.momentum().basicVector());
     std::pair<bool,double> res3 = cross.pathLength(plane);
@@ -142,7 +142,7 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
 					      ts.charge(), currentDirection);
     if  unlikely(!path.first) { 
       LogDebug("RKPropagatorInS")  << "RKPropagatorInS: Path length calculation to plane failed!" 
-				   << "...distance to plane " << plane.localZ( globalPosition(startState.position()))
+				   << "...distance to plane " << plane.localZ( globalPosition(startState.position()).basicVector())
 				   << "...Local starting position in volume " << startState.position() 
 				   << "...Magnetic field " << field.inTesla( startState.position()) ;
 
@@ -167,7 +167,7 @@ RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts,
     RKVector rkresult = solver( 0, start, sstep, deriv, dist, eps);
     stot += sstep;
     CartesianStateAdaptor cur( rkresult);
-    double remainingZ = plane.localZ( globalPosition(cur.position()));
+    double remainingZ = plane.localZ( globalPosition(cur.position()).basicVector());
 
     if ( fabs(remainingZ) < eps) {
       LogDebug("RKPropagatorInS")  << "On-surface accuracy reached! " << remainingZ ;
