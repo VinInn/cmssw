@@ -6,7 +6,7 @@
 #include <iostream>
 
 std::pair<bool,double> 
-PathToPlane2Order::operator()( const HessianPlane<float>& plane, 
+PathToPlane2Order::operator()( const HessianPlane<double>& plane, 
 			       const Vector3D& pos,
 			       const Vector3D& momentum,
 			       float charge,

@@ -29,7 +29,7 @@ std::pair<TrajectoryStateOnSurface,double>
 RKPropagatorInS::propagateWithPath(const FreeTrajectoryState& fts, 
 				   const Plane& plane) const
 {
-  GlobalParametersWithPath gp =  propagateParametersOnPlane( fts, plane.hessianPlane());
+  GlobalParametersWithPath gp =  propagateParametersOnPlane( fts, plane.hessianPlaneDouble());
   if unlikely(!gp) return TsosWP(TrajectoryStateOnSurface(),0.);
 
   SurfaceSideDefinition::SurfaceSide side = PropagationDirectionFromPath()(gp.s(),propagationDirection())==alongMomentum 
@@ -51,7 +51,7 @@ RKPropagatorInS::propagateWithPath (const FreeTrajectoryState& fts, const Cylind
 
 GlobalParametersWithPath
 RKPropagatorInS::propagateParametersOnPlane( const FreeTrajectoryState& ts, 
-					     const HessianPlane<float>& plane) const
+					     const HessianPlane<double>& plane) const
 {
 
   GlobalPoint gpos( ts.position());

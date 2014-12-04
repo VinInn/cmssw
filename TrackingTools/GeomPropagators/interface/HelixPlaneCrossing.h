@@ -25,14 +25,14 @@ public:
    */
   using PositionType  = Basic3DVector<float>;
   using DirectionType = Basic3DVector<float>;
-  using HPlane = HessianPlane<float>;
+  using HPlane = HessianPlane<double>;
 
   /** Propagation status (true if valid) and (signed) path length 
    *  along the helix from the starting point to the plane. The 
    *  starting point is given in the constructor.
    */
   virtual std::pair<bool,double> pathLength( const Plane& p) =0;
-  virtual std::pair<bool,double> pathLength( const HPlane&) { return std::make_pair(false,0.);} //=0
+  virtual std::pair<bool,double> pathLength( HPlane) { return std::make_pair(false,0.);} //=0
 
   /** Returns the position along the helix that corresponds to path
    *  length "s" from the starting point. If s is obtained from the

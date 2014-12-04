@@ -4,22 +4,37 @@
 
 #include <cmath>
 #include <vdt/vdtMath.h>
-// #include <iostream>
 #include "FWCore/Utilities/interface/Likely.h"
 
 #ifdef VI_DEBUG
+#include <iostream>
 #include <atomic>
 struct MaxIter {
    MaxIter(){}
-   ~MaxIter() { std::cout << "maxiter " << v << std::endl; }
-   void operator()(int i) const { 
-     int old = v;
+   ~MaxIter() { std::cout << "maxiter " << mn <<' '<< mx << ' ' << double(tot)/double(nc) << std::endl; }
+   void operator()(int i) const {
+     tot+=i;
+     ++nc;
+
+     int old = mn;
      int t = std::min(old,i);
-     while(not v.compare_exchange_weak(old,t)) {
+     while(not mn.compare_exchange_weak(old,t)) {
        t = std::min(old,i);
      }
+
+     old = mx;
+     t = std::max(old,i);
+     while(not mx.compare_exchange_weak(old,t)) {
+       t = std::max(old,i);
+     }
+
    }    
-  mutable std::atomic<int> v {100};
+  mutable std::atomic<int> mn {100};
+  mutable std::atomic<int> mx {0};
+  mutable std::atomic<long long> tot {0};
+  mutable std::atomic<long long> nc {0};
+
+
 };
 #else
 struct MaxIter { 
@@ -68,7 +83,7 @@ HelixArbitraryPlaneCrossing::HelixArbitraryPlaneCrossing(const PositionType& poi
 // Propagation status and path length to intersection
 //
 std::pair<bool,double>
-HelixArbitraryPlaneCrossing::pathLength(const HPlane& plane) {
+HelixArbitraryPlaneCrossing::pathLength(HPlane plane) {
   //
   // Constants used for control of convergence
   //

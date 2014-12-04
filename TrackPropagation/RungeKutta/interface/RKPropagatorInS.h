@@ -83,7 +83,7 @@ private:
 
 
   GlobalParametersWithPath propagateParametersOnPlane( const FreeTrajectoryState& ts, 
-						       const HessianPlane<float>& plane) const dso_internal;
+						       const HessianPlane<double>& plane) const dso_internal;
   GlobalParametersWithPath propagateParametersOnCylinder( const FreeTrajectoryState& ts, 
 							  const Cylinder& cyl) const dso_internal;
 

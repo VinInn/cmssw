@@ -21,7 +21,7 @@ public:
    */
   using PositionType  = Basic3DVector<float>;
   using DirectionType = Basic3DVector<float>;
-  using HPlane = HessianPlane<float>;
+  using HPlane = HessianPlane<double>;
 
 public:
   /** Constructor using point and momentum.
@@ -35,7 +35,7 @@ public:
   /** Propagation status (true if valid) and (signed) path length 
    *  along the helix from the starting point to the plane.
    */
-  std::pair<bool,double> pathLength( const Plane& p) const { return pathLength(p.hessianPlane());}
+  std::pair<bool,double> pathLength( const Plane& p) const { return pathLength(p.hessianPlaneDouble());}
   std::pair<bool,double> pathLength( const HPlane&) const;
 
   /** Position at pathlength s from the starting point.

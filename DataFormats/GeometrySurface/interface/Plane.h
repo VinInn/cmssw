@@ -63,6 +63,10 @@ public:
   HessianPlane<float> hessianPlane() const {
     return HessianPlane<float>(normalVector().basicVector(),dv());
   }
+  HessianPlane<double> hessianPlaneDouble() const {
+    return HessianPlane<double>(normalVector().basicVector(),dv());
+  }
+
 
   /// Fast access to component perpendicular to plane for a vector.
   float localZ (const GlobalVector& gv) const {
