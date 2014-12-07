@@ -902,8 +902,8 @@ inline mathSSE::Vec4D operator-(mathSSE::Vec4D b, mathSSE::Vec4F a) {
 inline double dot(mathSSE::Vec4D a, mathSSE::Vec4D b) __attribute__((always_inline)) __attribute__ ((pure));
 
 inline double dot(mathSSE::Vec4D a, mathSSE::Vec4D b) {
-  __m128d res = _mm_add_sd ( _mm_mul_pd ( a.vec[0], b.vec[0]),
-			     _mm_mul_sd ( a.vec[1], b.vec[1]) 
+  __m128d res = _mm_add_pd ( _mm_mul_pd ( a.vec[0], b.vec[0]),
+			     _mm_mul_pd ( a.vec[1], b.vec[1]) 
 			     );
   res = _mm_add_sd ( _mm_unpackhi_pd ( res , res ), res );
   double s;
@@ -925,7 +925,7 @@ inline mathSSE::Vec4D cross(mathSSE::Vec4D a, mathSSE::Vec4D b) {
   // lh .x * rh .y , lh .y * rh .x
   l1 = _mm_mul_pd (  a.vec[0] , _mm_shuffle_pd (  b.vec[0] ,  b.vec[0] , 1 ) );
   // lh .x * rh .y - lh .y * rh .x
-  __m128d m2 = _mm_sub_sd ( l1 , _mm_unpackhi_pd ( l1 , l1 ) );
+  __m128d m2 = _mm_sub_pd ( l1 , _mm_unpackhi_pd ( l1 , l1 ) );
   return mathSSE::Vec4D(m1, m2);
 }
 

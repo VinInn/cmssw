@@ -22,7 +22,7 @@ public:
 
   MagVolume( const PositionType& pos, const RotationType& rot, 
 	     DDSolidShape shape, const MagneticFieldProvider<float> * mfp,
-	     double sf=1.) :
+	     float sf=1.f) :
     Base(pos,rot), MagneticField(), theShape(shape), theProvider(mfp), 
     theProviderOwned(false), theScalingFactor(sf), isIronFlag(false) {}
 
@@ -31,6 +31,7 @@ public:
   DDSolidShape shapeType() const {return theShape;}
 
   LocalVector fieldInTesla( const LocalPoint& lp) const;
+
   GlobalVector fieldInTesla( const GlobalPoint& lp) const;
 
   virtual bool inside( const GlobalPoint& gp, double tolerance=0.) const = 0;
@@ -54,10 +55,10 @@ public:
 
 private:
 
-  DDSolidShape theShape;
+  const DDSolidShape theShape;
   const MagneticFieldProvider<float> * theProvider;
   bool theProviderOwned;
-  double theScalingFactor;
+  const float theScalingFactor;
   // Temporary hack to keep information on material. Will eventually be replaced!
   bool isIronFlag;
 

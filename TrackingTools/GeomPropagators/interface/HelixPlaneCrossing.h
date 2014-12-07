@@ -2,12 +2,14 @@
 #define HelixPlaneCrossing_H
 
 #include "DataFormats/GeometryVector/interface/Basic3DVector.h"
+#include "DataFormats/GeometrySurface/interface/Plane.h"
 
 #include <utility>
 
 #include "FWCore/Utilities/interface/GCC11Compatibility.h"
 
-class Plane;
+// class Plane;
+// template<typename T> class HessianPlane;
 
 /** Abstract interface for the crossing of a helix with a plane.
  */
@@ -21,14 +23,16 @@ public:
    *  in any frame. Of course, the helix and the plane must be defined 
    *  in the same frame, which is also the frame of the result.
    */
-  typedef Basic3DVector<float>   PositionType;
-  typedef Basic3DVector<float>   DirectionType;
+  using PositionType  = Basic3DVector<float>;
+  using DirectionType = Basic3DVector<float>;
+  using HPlane = HessianPlane<double>;
 
   /** Propagation status (true if valid) and (signed) path length 
    *  along the helix from the starting point to the plane. The 
    *  starting point is given in the constructor.
    */
-  virtual std::pair<bool,double> pathLength( const Plane&) = 0;
+  virtual std::pair<bool,double> pathLength( const Plane& p) =0;
+  virtual std::pair<bool,double> pathLength( HPlane) { return std::make_pair(false,0.);} //=0
 
   /** Returns the position along the helix that corresponds to path
    *  length "s" from the starting point. If s is obtained from the

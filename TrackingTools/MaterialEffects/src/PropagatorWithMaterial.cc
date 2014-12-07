@@ -17,7 +17,7 @@ PropagatorWithMaterial::PropagatorWithMaterial (PropagationDirection dir,
 						bool useRungeKutta,
                                                 float ptMin,bool useOldAnalPropLogic) :
   Propagator(dir),
-  rkProduct(mf,dir),
+  rkProduct(*mf,dir),
   theGeometricalPropagator(useRungeKutta ?
 			   rkProduct.propagator.clone() :
 			   new AnalyticalPropagator(mf,dir,maxDPhi,useOldAnalPropLogic)
