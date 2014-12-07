@@ -1,12 +1,24 @@
-#ifndef FrameChanger_H
-#define FrameChanger_H
+#ifndef RKframeChanger_H
+#define RKframeChanger_H
 
 #include "FWCore/Utilities/interface/Visibility.h"
 #include "DataFormats/GeometrySurface/interface/Plane.h"
-#include "DataFormats/GeometrySurface/interface/ReferenceCounted.h"
 
-class dso_internal FrameChanger {
-public:
+namespace frameChanger dso_internal {
+
+  /** Moves the first argument ("plane") to the reference frame given by the second
+   *  argument ("frame"). The returned frame is not positioned globally!
+   */
+    template <typename T, typename U>
+    static
+    HessianPlane<T> transform( const HessianPlane<T>& plane, const GloballyPositioned<U>& frame) {
+        using Frame = GloballyPositioned<U>;
+        using GlobalVector = typename GloballyPositioned<U>::GlobalVector; 
+        return HessianPlane<T>(frame.toLocal(GlobalVector(plane.basicVector())).basicVector(), 
+                               plane.localZ(frame.position().basicVector()) 
+                              );
+    }
+
   /** Moves the first argument ("plane") to the reference frame given by the second 
    *  argument ("frame"). The returned frame is not positioned globally!
    */

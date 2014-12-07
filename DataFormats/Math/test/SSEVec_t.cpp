@@ -173,14 +173,14 @@ void go() {
   std::cout <<  mathSSE::sqrt(x) << std::endl;
 
 
-  std::cout << dot(x,y) << std::endl; 
-  std::cout << dotSimple(x,y) << std::endl;
+  std::cout << "dot " << dot(x,y) << std::endl; 
+  std::cout << "sdot " << dotSimple(x,y) << std::endl;
 
   std::cout << "equal" << (x==x ? " " : " not ") << "ok" << std::endl;
   std::cout << "not equal" << (x==y ? " not " : " ") << "ok" << std::endl;
  
   Vec z = cross(x,y);
-  std::cout << z << std::endl;
+  std::cout << "cross " << z << std::endl;
 
 
   std::cout << "rotations" << std::endl;

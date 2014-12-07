@@ -22,7 +22,8 @@ public:
    *  along the helix from the starting point to the plane. The 
    *  starting point is given in the constructor.
    */
-  virtual std::pair<bool,double> pathLength(const Plane& plane);
+  virtual std::pair<bool,double> pathLength( const Plane& p) override { return pathLength(p.hessianPlaneDouble());}
+  virtual std::pair<bool,double> pathLength(HPlane) override;
 
   /** Position at pathlength s from the starting point.
    */
@@ -31,6 +32,8 @@ public:
   /** Direction at pathlength s from the starting point.
    */
   virtual DirectionType direction(double s) const;
+
+private:
   //
   // double precision vectors for internal use
   //
@@ -39,16 +42,15 @@ public:
 
   /** Position at pathlength s from the starting point.
    */
-  PositionTypeDouble positionInDouble(double s) const;
+  PositionTypeDouble positionInDouble(double s) const dso_internal;
 
   /** Direction at pathlength s from the starting point.
    */
-  DirectionTypeDouble directionInDouble(double s) const;
+  DirectionTypeDouble directionInDouble(double s) const dso_internal;
 
-private:
   /** Iteration control: check for significant distance to plane.
    */
-  inline bool notAtSurface (const Plane&,
+  inline bool notAtSurface (const HPlane&,
   			    const PositionTypeDouble&,
 			    const float) const dso_internal;
 
@@ -56,7 +58,7 @@ private:
   HelixArbitraryPlaneCrossing2Order theQuadraticCrossingFromStart;
 
 
-  const double theX0,theY0,theZ0;
+  PositionTypeDouble thePos;
   double theCosPhi0,theSinPhi0;
   double theCosTheta,theSinTheta;
   const double theRho;
@@ -67,9 +69,6 @@ private:
   mutable double theCachedDPhi;
   mutable double theCachedSDPhi;
   mutable double theCachedCDPhi;
-
-  static const float theNumericalPrecision;
-  static const float theMaxDistToPlane;
 
 };
 

@@ -2,6 +2,11 @@
 #include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "TrackingTools/GeomPropagators/interface/HelixBarrelPlaneCrossing2OrderLocal.h"
 #include "TrackingTools/GeomPropagators/interface/HelixBarrelPlaneCrossingByCircle.h"
+#include "TrackingTools/GeomPropagators/interface/HelixArbitraryPlaneCrossing2Order.h"
+#include "TrackingTools/GeomPropagators/interface/HelixArbitraryPlaneCrossing.h"
+#include "TrackingTools/GeomPropagators/interface/StraightLinePlaneCrossing.h"
+
+
 
 #include <algorithm>
 #include <cmath>
@@ -55,6 +60,9 @@ std::pair<LocalPoint,LocalVector> secondOrderAccurate(
 }
 
 void crossing1() {
+  std::cout << std::endl;
+
+
   GlobalPoint startingPos(-7.79082,-47.6418,9.18163);
   GlobalVector startingDir(-0.553982,-5.09198,1.02212);
 
@@ -70,24 +78,45 @@ void crossing1() {
 
   Plane plane(pos,rot);
 
-  HelixBarrelPlaneCrossingByCircle precise(startingPos, startingDir, rho,alongMomentum);
   bool cross; double s;
+
+  StraightLinePlaneCrossing  line(startingPos.basicVector(), startingDir.basicVector(), alongMomentum);
+  std::tie(cross,s) = line.pathLength(plane);
+  std::cout << s << ' ' << plane.toLocal(GlobalPoint(line.position(s))) << " " << std::endl;
+
+
+  HelixArbitraryPlaneCrossing arbitrary(startingPos.basicVector(), startingDir.basicVector(), rho,alongMomentum);
+  HelixArbitraryPlaneCrossing2Order arbitrary2O(startingPos.basicVector(), startingDir.basicVector(), rho,alongMomentum);
+
+  std::tie(cross,s) = arbitrary.pathLength(plane);
+  std::cout << s << ' ' << plane.toLocal(GlobalPoint(arbitrary.position(s))) << " " <<  plane.toLocal(GlobalVector(arbitrary.direction(s))) << std::endl;
+
+  std::tie(cross,s) = arbitrary2O.pathLength(plane);
+  std::cout << s << ' ' << plane.toLocal(GlobalPoint(arbitrary2O.position(s))) << " " <<  plane.toLocal(GlobalVector(arbitrary2O.direction(s))) << std::endl;
+
+
+
+  HelixBarrelPlaneCrossingByCircle precise(startingPos, startingDir, rho,alongMomentum);
   std::tie(cross,s) = precise.pathLength(plane);
 
   HelixBarrelPlaneCrossing2OrderLocal crossing(startingPos, startingDir, rho, plane);
 
-
-  std::cout << plane.toLocal(GlobalPoint(precise.position(s))) << " " <<  plane.toLocal(GlobalVector(precise.direction(s))) << std::endl;
+  std::cout << s << ' ' << plane.toLocal(GlobalPoint(precise.position(s))) << " " <<  plane.toLocal(GlobalVector(precise.direction(s))) << std::endl;
   std::cout << HelixBarrelPlaneCrossing2OrderLocal::positionOnly(startingPos, startingDir, rho, plane) << ' ';
   std::cout << crossing.position() << ' ' << crossing.direction() << std::endl;
 
   LocalPoint thePos; LocalVector theDir;
   std::tie(thePos,theDir) = secondOrderAccurate(startingPos, startingDir, rho, plane);
-
   std::cout << thePos << ' ' << theDir << std::endl;
+
+
+
 }
 
 void crossing2() {
+
+  std::cout << std::endl;
+
   GlobalPoint startingPos(-8.12604,-50.829,9.82116);   
   GlobalVector startingDir(-0.517536,-5.09581,1.02212);
 
@@ -102,13 +131,32 @@ void crossing2() {
   
   double rho = 0.00223254;
   
-  HelixBarrelPlaneCrossingByCircle precise(startingPos, startingDir, rho,alongMomentum);
   bool cross; double s;
+
+
+  StraightLinePlaneCrossing  line(startingPos.basicVector(), startingDir.basicVector(), alongMomentum);
+  std::tie(cross,s) = line.pathLength(plane);
+  std::cout << s << ' ' << plane.toLocal(GlobalPoint(line.position(s))) << " " << std::endl;
+ 
+
+  HelixArbitraryPlaneCrossing arbitrary(startingPos.basicVector(), startingDir.basicVector(), rho,alongMomentum);
+  HelixArbitraryPlaneCrossing2Order arbitrary2O(startingPos.basicVector(), startingDir.basicVector(), rho,alongMomentum);
+
+  std::tie(cross,s) = arbitrary.pathLength(plane);
+  std::cout << s << ' ' << plane.toLocal(GlobalPoint(arbitrary.position(s))) << " " <<  plane.toLocal(GlobalVector(arbitrary.direction(s))) << std::endl;
+
+  std::tie(cross,s) = arbitrary2O.pathLength(plane);
+  std::cout << s << ' ' << plane.toLocal(GlobalPoint(arbitrary2O.position(s))) << " " <<  plane.toLocal(GlobalVector(arbitrary2O.direction(s))) << std::endl;
+
+
+
+
+  HelixBarrelPlaneCrossingByCircle precise(startingPos, startingDir, rho,alongMomentum);
   std::tie(cross,s) = precise.pathLength(plane);
 
   HelixBarrelPlaneCrossing2OrderLocal crossing(startingPos, startingDir, rho, plane);
 
-  std::cout << plane.toLocal(GlobalPoint(precise.position(s))) << " " <<  plane.toLocal(GlobalVector(precise.direction(s))) << std::endl;
+  std::cout << s<< ' ' << plane.toLocal(GlobalPoint(precise.position(s))) << " " <<  plane.toLocal(GlobalVector(precise.direction(s))) << std::endl;
   std::cout << HelixBarrelPlaneCrossing2OrderLocal::positionOnly(startingPos, startingDir, rho, plane) << ' ';
   std::cout << crossing.position() << ' ' << crossing.direction() << std::endl;
 
