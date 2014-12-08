@@ -127,13 +127,10 @@ HelixArbitraryPlaneCrossing2Order::directionInDouble (double s) const {
 std::pair<bool,double>
 HelixArbitraryPlaneCrossing2Order::solutionByDirection(const double dS1,
 						       const double dS2) const {
+  if likely( thePropDir == anyDirection ) return std::make_pair(true,smallestPathLength(dS1,dS2));
+
   bool valid = false;
   double path = 0;
-  if ( thePropDir == anyDirection ) {
-    valid = true;
-    path = smallestPathLength(dS1,dS2);
-  }
-  else {
     // use same logic for both directions (invert if necessary)
     double propSign = thePropDir==alongMomentum ? 1 : -1;
     double s1(propSign*dS1);
@@ -151,6 +148,5 @@ HelixArbitraryPlaneCrossing2Order::solutionByDirection(const double dS1,
       valid = true;
       path = propSign*s1;
     }
-  }
   return std::pair<bool,double>(valid,path);
 }
