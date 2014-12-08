@@ -133,10 +133,9 @@ HelixArbitraryPlaneCrossing::pathLength(HPlane const & plane) {
     // create temporary object for subsequent passes.
     auto  pnew = directionInDouble(dSTotal);
     HelixArbitraryPlaneCrossing2Order quadraticCrossing(xnew,
-							  pnew.x(),pnew.y(),
-							  theCosTheta,theSinTheta,
-							  theRho,
-							  anyDirection);
+							  pnew,
+							  theSinTheta,
+							  theRho);
       
     auto  deltaS2 = quadraticCrossing.pathLength(plane);
    

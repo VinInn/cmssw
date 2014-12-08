@@ -25,14 +25,13 @@ public:
   /** Fast constructor (for use by HelixArbitraryPlaneCrossing).
    */
   HelixArbitraryPlaneCrossing2Order(PositionTypeDouble const & pos,
-				    double cosPhi0, double sinPhi0,
-				    double cosTheta, double sinTheta,
-				    double rho,
-				    const PropagationDirection propDir = alongMomentum) :
+				    DirectionTypeDouble const & dir,
+				    double sinTheta,
+				    double rho) :
     thePos(pos),
-    theDir0(cosPhi0,sinPhi0,cosTheta/sinTheta), theSinThetaI(1./sinTheta),
+    theDir0(dir), theSinThetaI(1./sinTheta),
     theRho(rho), 
-    thePropDir(propDir) {}
+    thePropDir(anyDirection) {}
 
   // destructor
   virtual ~HelixArbitraryPlaneCrossing2Order() {}
