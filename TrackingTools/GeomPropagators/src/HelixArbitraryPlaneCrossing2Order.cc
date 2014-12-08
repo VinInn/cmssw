@@ -13,22 +13,19 @@ HelixArbitraryPlaneCrossing2Order::HelixArbitraryPlaneCrossing2Order(const Posit
 								     const float curvature,
 								     const PropagationDirection propDir) :
   thePos(point),
+  theDir0(direction),
   theRho(curvature),
   thePropDir(propDir)
 {
   //
   // Components of direction vector (with correct normalisation)
   //
-  double px = direction.x();
-  double py = direction.y();
-  double pz = direction.z();
-  double pt2 = px*px+py*py;
+  auto pt2 = theDir0.perp2();
+  auto pz = theDir0.z();
   double p2 = pt2+pz*pz;
   double pI = 1./sqrt(p2);
   double ptI = 1./sqrt(pt2);
-  theCosPhi0 = px*ptI;
-  theSinPhi0 = py*ptI;
-  theCosTheta = pz*pI;
+  theDir0 *=ptI;
   theSinThetaI = p2*pI*ptI; //  (1/(pt/p)) = p/pt = p*ptI and p = p2/p = p2*pI
 }
 
@@ -36,22 +33,19 @@ HelixArbitraryPlaneCrossing2Order::HelixArbitraryPlaneCrossing2Order(const Posit
 // Propagation status and path length to intersection
 //
 std::pair<bool,double>
-HelixArbitraryPlaneCrossing2Order::pathLength(HPlane plane) {
+HelixArbitraryPlaneCrossing2Order::pathLength(HPlane const& plane) {
   //
   // get local z-vector in global co-ordinates and
   // distance to starting point
   //
-  DirectionTypeDouble nv = plane.basicVector(); 
-  double nPx = nv.x();
-  double nPy = nv.y();
-  double nPz = nv.z();
+  auto && nv = plane.basicVector(); 
   double cP = plane.localZ(thePos);
   //
   // coefficients of 2nd order equation to obtain intersection point
   // in approximation (without curvature-related factors).
   //
-  double ceq1 = theRho*(nPx*theSinPhi0-nPy*theCosPhi0);
-  double ceq2 = nPx*theCosPhi0 + nPy*theSinPhi0 + nPz*theCosTheta*theSinThetaI;
+  double ceq1 = theRho*(nv.x()*theDir0.y() - nv.y()*theDir0.x());
+  double ceq2 = nv.dot(theDir0);
   double ceq3 = cP;
   //
   // Check for degeneration to linear equation (zero
@@ -83,6 +77,7 @@ HelixArbitraryPlaneCrossing2Order::pathLength(HPlane plane) {
   // Choose and return solution
   //
   return solutionByDirection(dS[0],dS[1]);
+
 }
 
 //
@@ -101,10 +96,7 @@ HelixArbitraryPlaneCrossing2Order::PositionTypeDouble
 HelixArbitraryPlaneCrossing2Order::positionInDouble (double s) const {
   // based on path length in the transverse plane
   double st = s/theSinThetaI;
-  return thePos + PositionTypeDouble((theCosPhi0-(st*0.5*theRho)*theSinPhi0)*st,
-			             (theSinPhi0+(st*0.5*theRho)*theCosPhi0)*st,
-			             st*theCosTheta*theSinThetaI
-                                    );
+  return thePos + st*(theDir0 + (st*0.5*theRho)*PositionTypeDouble(-theDir0.y(),+theDir0.x(),0) );
 }
 
 //
@@ -123,9 +115,10 @@ HelixArbitraryPlaneCrossing2Order::DirectionTypeDouble
 HelixArbitraryPlaneCrossing2Order::directionInDouble (double s) const {
   // based on delta phi
   double dph = s*theRho/theSinThetaI;
-  return DirectionTypeDouble(theCosPhi0-(theSinPhi0+0.5*dph*theCosPhi0)*dph,
-			     theSinPhi0+(theCosPhi0-0.5*dph*theSinPhi0)*dph,
-			     theCosTheta*theSinThetaI);
+  return theDir0 +dph*DirectionTypeDouble(-(theDir0.y()+0.5*dph*theDir0.x()),
+			                  +(theDir0.x()-0.5*dph*theDir0.y()),
+			                  0
+                                         );
 }
 
 //

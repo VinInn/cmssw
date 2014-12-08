@@ -83,7 +83,7 @@ HelixArbitraryPlaneCrossing::HelixArbitraryPlaneCrossing(const PositionType& poi
 // Propagation status and path length to intersection
 //
 std::pair<bool,double>
-HelixArbitraryPlaneCrossing::pathLength(HPlane plane) {
+HelixArbitraryPlaneCrossing::pathLength(HPlane const & plane) {
   //
   // Constants used for control of convergence
   //

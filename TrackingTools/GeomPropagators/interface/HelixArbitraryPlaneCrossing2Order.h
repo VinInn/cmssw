@@ -30,8 +30,7 @@ public:
 				    double rho,
 				    const PropagationDirection propDir = alongMomentum) :
     thePos(pos),
-    theCosPhi0(cosPhi0), theSinPhi0(sinPhi0),
-    theCosTheta(cosTheta), theSinThetaI(1./sinTheta),
+    theDir0(cosPhi0,sinPhi0,cosTheta/sinTheta), theSinThetaI(1./sinTheta),
     theRho(rho), 
     thePropDir(propDir) {}
 
@@ -42,8 +41,8 @@ public:
    *  along the helix from the starting point to the plane. The 
    *  starting point is given in the constructor.
    */
-  virtual std::pair<bool,double> pathLength( const Plane& p) override { return pathLength(p.hessianPlaneDouble());}
-  virtual std::pair<bool,double> pathLength(HPlane) override;
+  virtual std::pair<bool,double> pathLength(const Plane& p) override { return pathLength(p.hessianPlaneDouble());}
+  virtual std::pair<bool,double> pathLength(HPlane const&) override;
 
   /** Position at pathlength s from the starting point.
    */
@@ -76,8 +75,8 @@ private:
 
 private:
   const PositionTypeDouble thePos;
-  double theCosPhi0,theSinPhi0;
-  double theCosTheta,theSinThetaI;
+  DirectionTypeDouble theDir0;
+  double theSinThetaI;
   const double theRho;
   const PropagationDirection thePropDir;
 

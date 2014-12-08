@@ -23,7 +23,7 @@ public:
    *  starting point is given in the constructor.
    */
   virtual std::pair<bool,double> pathLength( const Plane& p) override { return pathLength(p.hessianPlaneDouble());}
-  virtual std::pair<bool,double> pathLength(HPlane) override;
+  virtual std::pair<bool,double> pathLength(HPlane const&) override;
 
   /** Position at pathlength s from the starting point.
    */

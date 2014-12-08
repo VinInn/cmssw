@@ -32,7 +32,7 @@ public:
    *  starting point is given in the constructor.
    */
   virtual std::pair<bool,double> pathLength( const Plane& p) =0;
-  virtual std::pair<bool,double> pathLength( HPlane) { return std::make_pair(false,0.);} //=0
+  virtual std::pair<bool,double> pathLength( HPlane const& ) { return std::make_pair(false,0.);} //=0
 
   /** Returns the position along the helix that corresponds to path
    *  length "s" from the starting point. If s is obtained from the
