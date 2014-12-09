@@ -52,7 +52,7 @@ private:
    */
   inline bool notAtSurface (const HPlane&,
   			    const PositionTypeDouble&,
-			    const float) const dso_internal;
+			    const double) const dso_internal;
 
 private:
   HelixArbitraryPlaneCrossing2Order theQuadraticCrossingFromStart;

@@ -46,8 +46,8 @@ static const MaxIter maxiter;
 
 
 namespace {    
-  constexpr float theNumericalPrecision = 5.e-7f;
-  constexpr float theMaxDistToPlane = 1.e-4f;
+  constexpr double theNumericalPrecision = 5.e-7f;
+  constexpr double theMaxDistToPlane = 1.e-4f;
 }
 
 
@@ -91,15 +91,17 @@ HelixArbitraryPlaneCrossing::pathLength(HPlane const & plane) {
   //
   // maximum distance to plane (taking into account numerical precision)
   //
-  float maxNumDz = theNumericalPrecision*std::abs(plane.dv());
-  float safeMaxDist = (theMaxDistToPlane>maxNumDz?theMaxDistToPlane:maxNumDz);
-  //
-  // Prepare internal value of the propagation direction and position / direction vectors for iteration 
-  //
-  
-  float dz = plane.localZ(thePos);
-  if unlikely(std::abs(dz)<safeMaxDist) return std::make_pair(true,0.);
+  auto maxNumDz = theNumericalPrecision*std::abs(plane.dv());
+  auto safeMaxDist = std::max(theMaxDistToPlane,maxNumDz);
 
+  
+  // no need to check if already on plane as already verified in caller
+  //auto dz = plane.localZ(thePos);
+  //if unlikely(std::abs(dz)<safeMaxDist) return std::make_pair(true,0.);
+
+  //
+  // Prepare internal value of the propagation direction and position / direction vectors for iteration
+  //
   bool notFail;
   double dSTotal;
   // Use existing 2nd order object at first pass
@@ -249,7 +251,7 @@ HelixArbitraryPlaneCrossing::directionInDouble (double s) const {
 //   protection for numerical precision (Surfaces work with single precision).
 bool HelixArbitraryPlaneCrossing::notAtSurface (const HPlane& plane,  				       
 						const PositionTypeDouble& point,
-						const float maxDist) const {
-  float dz = plane.localZ(point);
+						const double maxDist) const {
+  auto dz = plane.localZ(point);
   return std::abs(dz)>maxDist;
 }
