@@ -63,14 +63,22 @@ public:
    */
   inline double smallestPathLength (const double firstPathLength,
 				    const double secondPathLength) const {
-    return fabs(firstPathLength)<fabs(secondPathLength) ? firstPathLength : secondPathLength;
+    return std::abs(firstPathLength)<std::abs(secondPathLength) ? firstPathLength : secondPathLength;
   }
 
 private:
 
   /** Choice of one of two solutions according to the propagation direction.
    */
-  std::pair<bool,double> solutionByDirection(const double dS1,const double dS2) const dso_internal;
+  inline
+  std::pair<bool,double> solutionByDirection(const double dS1,const double dS2) const {
+    if likely( thePropDir == anyDirection ) return std::make_pair(true,smallestPathLength(dS1,dS2));
+    return genericSolutionByDirection(dS1,dS2);
+  }
+
+  std::pair<bool,double> genericSolutionByDirection(const double dS1,const double dS2) const dso_internal;
+
+
 
 private:
   const PositionTypeDouble thePos;

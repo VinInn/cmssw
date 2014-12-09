@@ -125,10 +125,8 @@ HelixArbitraryPlaneCrossing2Order::directionInDouble (double s) const {
 // Choice of solution according to propagation direction
 //
 std::pair<bool,double>
-HelixArbitraryPlaneCrossing2Order::solutionByDirection(const double dS1,
+HelixArbitraryPlaneCrossing2Order::genericSolutionByDirection(const double dS1,
 						       const double dS2) const {
-  if likely( thePropDir == anyDirection ) return std::make_pair(true,smallestPathLength(dS1,dS2));
-
   bool valid = false;
   double path = 0;
     // use same logic for both directions (invert if necessary)
