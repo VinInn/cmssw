@@ -256,9 +256,12 @@ void timing() {
   bool cross; double s;
  
   double stot=0;
+
+  auto const & hp = plane.hessianPlaneDouble();
+  // auto hp = new decltype(plane.hessianPlaneDouble())(plane.hessianPlaneDouble());
   unsigned long long t = -rdtsc();
   for (int i=0; i<1000; ++i) {
-    std::tie(cross,s) = arbitrary.pathLength(plane);
+    std::tie(cross,s) = arbitrary.pathLength(hp);
     stot+=s;
   }
   t+=rdtsc();

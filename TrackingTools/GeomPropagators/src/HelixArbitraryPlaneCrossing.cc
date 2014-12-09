@@ -98,7 +98,7 @@ HelixArbitraryPlaneCrossing::pathLength(HPlane const & plane) {
   //
   
   float dz = plane.localZ(thePos);
-  if (std::abs(dz)<safeMaxDist) return std::make_pair(true,0.);
+  if unlikely(std::abs(dz)<safeMaxDist) return std::make_pair(true,0.);
 
   bool notFail;
   double dSTotal;
@@ -120,7 +120,7 @@ HelixArbitraryPlaneCrossing::pathLength(HPlane const & plane) {
   // Prepare iterations: count and total pathlength
   //
   auto iteration = maxIterations;
-  while ( notAtSurface(plane,xnew,safeMaxDist) ) {
+  while unlikely(notAtSurface(plane,xnew,safeMaxDist) ) {
     //
     // return empty solution vector if no convergence after maxIterations iterations
     //

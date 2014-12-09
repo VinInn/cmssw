@@ -8,6 +8,13 @@
 #include <cfloat>
 #include "FWCore/Utilities/interface/Likely.h"
 
+#include<iostream>
+namespace {
+ int nn=0;
+ struct A{ ~A(){ std::cout <<"bha " << nn << std::endl;}};
+ A a;
+}
+
 HelixArbitraryPlaneCrossing2Order::HelixArbitraryPlaneCrossing2Order(const PositionType& point,
 								     const DirectionType& direction,
 								     const float curvature,
@@ -34,12 +41,15 @@ HelixArbitraryPlaneCrossing2Order::HelixArbitraryPlaneCrossing2Order(const Posit
 //
 std::pair<bool,double>
 HelixArbitraryPlaneCrossing2Order::pathLength(HPlane const& plane) {
+//  ++nn;
   //
   // get local z-vector in global co-ordinates and
   // distance to starting point
   //
   auto && nv = plane.basicVector(); 
   double cP = plane.localZ(thePos);
+  // auto cP = nv.x()*thePos.x()+nv.y()*thePos.y()+nv.z()*thePos.z()+nv.w();
+
   //
   // coefficients of 2nd order equation to obtain intersection point
   // in approximation (without curvature-related factors).

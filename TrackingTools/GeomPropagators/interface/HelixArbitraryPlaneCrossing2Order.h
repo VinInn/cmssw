@@ -9,7 +9,8 @@
 
 class HelixArbitraryPlaneCrossing2Order GCC11_FINAL : public HelixPlaneCrossing {
 public:
- // double precision vectors
+
+   // double precision vectors
   //
   typedef Basic3DVector<double>  PositionTypeDouble;
   typedef Basic3DVector<double>  DirectionTypeDouble;
@@ -40,8 +41,8 @@ public:
    *  along the helix from the starting point to the plane. The 
    *  starting point is given in the constructor.
    */
-  virtual std::pair<bool,double> pathLength(const Plane& p) override { return pathLength(p.hessianPlaneDouble());}
-  virtual std::pair<bool,double> pathLength(HPlane const&) override;
+  std::pair<bool,double> pathLength(const Plane& p) override { return pathLength(p.hessianPlaneDouble());}
+  std::pair<bool,double> pathLength(HPlane const&)  override;
 
   /** Position at pathlength s from the starting point.
    */
