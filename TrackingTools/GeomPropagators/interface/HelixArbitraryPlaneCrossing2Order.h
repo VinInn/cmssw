@@ -8,27 +8,31 @@
  *  any orientation using a parabolic approximation. */
 
 class HelixArbitraryPlaneCrossing2Order GCC11_FINAL : public HelixPlaneCrossing {
-
-
 public:
+
+   // double precision vectors
+  //
+  typedef Basic3DVector<double>  PositionTypeDouble;
+  typedef Basic3DVector<double>  DirectionTypeDouble;
+  typedef Basic2DVector<double>::MathVector  Vector2D;
+
   /** Constructor using point, direction and (transverse!) curvature.
    */
   HelixArbitraryPlaneCrossing2Order(const PositionType& point,
 				    const DirectionType& direction,
 				    const float curvature,
 				    const PropagationDirection propDir = alongMomentum);
+
   /** Fast constructor (for use by HelixArbitraryPlaneCrossing).
    */
-  HelixArbitraryPlaneCrossing2Order(const double& x0, const double& y0, const double& z0,
-				    const double& cosPhi0, const double& sinPhi0,
-				    const double& cosTheta, const double& sinTheta,
-				    const double& rho,
-				    const PropagationDirection propDir = alongMomentum) :
-    theX0(x0), theY0(y0), theZ0(z0),
-    theCosPhi0(cosPhi0), theSinPhi0(sinPhi0),
-    theCosTheta(cosTheta), theSinThetaI(1./sinTheta),
+  HelixArbitraryPlaneCrossing2Order(PositionTypeDouble const & pos,
+				    DirectionTypeDouble const & dir,
+				    double sinTheta,
+				    double rho) :
+    thePos(pos),
+    theDir0(dir), theSinThetaI(1./sinTheta),
     theRho(rho), 
-    thePropDir(propDir) {}
+    thePropDir(anyDirection) {}
 
   // destructor
   virtual ~HelixArbitraryPlaneCrossing2Order() {}
@@ -37,7 +41,8 @@ public:
    *  along the helix from the starting point to the plane. The 
    *  starting point is given in the constructor.
    */
-  virtual std::pair<bool,double> pathLength(const Plane&);
+  std::pair<bool,double> pathLength(const Plane& p) override { return pathLength(p.hessianPlaneDouble());}
+  std::pair<bool,double> pathLength(HPlane const&)  override;
 
   /** Position at pathlength s from the starting point.
    */
@@ -46,11 +51,6 @@ public:
   /** Direction at pathlength s from the starting point.
    */
   virtual DirectionType direction(double s) const;
-  //
-  // double precision vectors
-  //
-  typedef Basic3DVector<double>  PositionTypeDouble;
-  typedef Basic3DVector<double>  DirectionTypeDouble;
 
   /** Position at pathlength s from the starting point in double precision.
    */
@@ -64,19 +64,27 @@ public:
    */
   inline double smallestPathLength (const double firstPathLength,
 				    const double secondPathLength) const {
-    return fabs(firstPathLength)<fabs(secondPathLength) ? firstPathLength : secondPathLength;
+    return std::abs(firstPathLength)<std::abs(secondPathLength) ? firstPathLength : secondPathLength;
   }
 
 private:
 
   /** Choice of one of two solutions according to the propagation direction.
    */
-  std::pair<bool,double> solutionByDirection(const double dS1,const double dS2) const dso_internal;
+  inline
+  std::pair<bool,double> solutionByDirection(const double dS1,const double dS2) const {
+    if likely( thePropDir == anyDirection ) return std::make_pair(true,smallestPathLength(dS1,dS2));
+    return genericSolutionByDirection(dS1,dS2);
+  }
+
+  std::pair<bool,double> genericSolutionByDirection(const double dS1,const double dS2) const dso_internal;
+
+
 
 private:
-  const double theX0,theY0,theZ0;
-  double theCosPhi0,theSinPhi0;
-  double theCosTheta,theSinThetaI;
+  const PositionTypeDouble thePos;
+  DirectionTypeDouble theDir0;
+  double theSinThetaI;
   const double theRho;
   const PropagationDirection thePropDir;
 
