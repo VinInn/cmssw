@@ -27,15 +27,24 @@ public:
    */
   HelixArbitraryPlaneCrossing2Order(PositionTypeDouble const & pos,
 				    DirectionTypeDouble const & dir,
-				    double sinTheta,
+				    double sinThetaI,
 				    double rho) :
     thePos(pos),
-    theDir0(dir), theSinThetaI(1./sinTheta),
+    theDir0(dir), theSinThetaI(sinThetaI),
     theRho(rho), 
     thePropDir(anyDirection) {}
 
   // destructor
   virtual ~HelixArbitraryPlaneCrossing2Order() {}
+
+  PositionTypeDouble position0() const { return thePos;}
+  DirectionTypeDouble direction0() const { return theDir0;}
+  double sinThetaI() const { return theSinThetaI; }
+  double rho() const { return theRho;} 
+  PropagationDirection propDir0() const { return thePropDir;}
+
+
+
 
   /** Propagation status (true if valid) and (signed) path length 
    *  along the helix from the starting point to the plane. The 

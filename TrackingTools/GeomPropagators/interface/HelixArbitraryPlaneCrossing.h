@@ -18,6 +18,21 @@ public:
   // destructor
   virtual ~HelixArbitraryPlaneCrossing() {}
 
+  //
+  // double precision vectors for internal use
+  //
+  typedef Basic3DVector<double>  PositionTypeDouble;
+  typedef Basic3DVector<double>  DirectionTypeDouble;
+
+
+  PositionTypeDouble position0() const { return theQuadraticCrossingFromStart.position0();}
+  DirectionTypeDouble direction0() const { return theQuadraticCrossingFromStart.direction0();}
+  double sinThetaI() const { return theQuadraticCrossingFromStart.sinThetaI(); }
+  double rho() const { return theQuadraticCrossingFromStart.rho();}
+  PropagationDirection propDir0() const { return theQuadraticCrossingFromStart.propDir0();}
+
+
+
   /** Propagation status (true if valid) and (signed) path length 
    *  along the helix from the starting point to the plane. The 
    *  starting point is given in the constructor.
@@ -33,12 +48,8 @@ public:
    */
   virtual DirectionType direction(double s) const;
 
+
 private:
-  //
-  // double precision vectors for internal use
-  //
-  typedef Basic3DVector<double>  PositionTypeDouble;
-  typedef Basic3DVector<double>  DirectionTypeDouble;
 
   /** Position at pathlength s from the starting point.
    */
@@ -48,22 +59,10 @@ private:
    */
   DirectionTypeDouble directionInDouble(double s) const dso_internal;
 
-  /** Iteration control: check for significant distance to plane.
-   */
-  inline bool notAtSurface (const HPlane&,
-  			    const PositionTypeDouble&,
-			    const double) const dso_internal;
-
 private:
   HelixArbitraryPlaneCrossing2Order theQuadraticCrossingFromStart;
 
-
-  PositionTypeDouble thePos;
-  double theCosPhi0,theSinPhi0;
   double theCosTheta,theSinTheta;
-  const double theRho;
-
-  const PropagationDirection thePropDir;
 
   mutable double theCachedS;
   mutable double theCachedDPhi;
