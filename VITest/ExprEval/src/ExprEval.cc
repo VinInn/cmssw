@@ -1,8 +1,13 @@
 #include "VITest/ExprEval/include/ExprEval.h"
+#include "FWCore/Version/interface/GetReleaseVersion.h"
+#include "FWCore/Utilities/interface/GetEnvironmentVariable.h"
+
 #include "popenCPP.h"
 #include <fstream>
 #include <iostream>
 #include <dlfcn.h>
+
+
 
 namespace {
   std::string generateName() {
@@ -14,8 +19,12 @@ namespace {
   }
 
 
-  const std::string CXXFLAGS="-DGNU_GCC -D_GNU_SOURCE -DCMSSW_GIT_HASH='\"CMSSW_7_4_DEVEL_X_2015-01-07-1400\"' -DPROJECT_NAME='\"CMSSW\"' -DPROJECT_VERSION='\"CMSSW_7_4_DEVEL_X_2015-01-07-1400\"' -DBOOST_SPIRIT_THREADSAFE -DPHOENIX_THREADSAFE -O2 -pthread -pipe -Werror=main -Werror=pointer-arith -Werror=overlength-strings -Wno-vla -Werror=overflow -Wstrict-overflow -std=c++11 -msse3 -ftree-vectorize -Wno-strict-overflow -Werror=array-bounds -Werror=format-contains-nul -Werror=type-limits -fvisibility-inlines-hidden -fno-math-errno --param vect-max-version-for-alias-checks=50 -fipa-pta -Wa,--compress-debug-sections -felide-constructors -fmessage-length=0 -ftemplate-depth-300 -Wall -Wno-non-template-friend -Wno-long-long -Wreturn-type -Wunused -Wparentheses -Wno-deprecated -Werror=return-type -Werror=missing-braces -Werror=unused-value -Werror=address -Werror=format -Werror=sign-compare -Werror=write-strings -Werror=delete-non-virtual-dtor -Werror=maybe-uninitialized -Werror=strict-aliasing -Werror=narrowing -Werror=uninitialized -Werror=unused-but-set-variable -Werror=reorder -Werror=unused-variable -Werror=conversion-null -Werror=return-local-addr -Werror=switch -fdiagnostics-show-option -Wno-unused-local-typedefs -Wno-attributes -Wno-psabi -DBOOST_DISABLE_ASSERTS -fPIC ";
-
+  std::string cxxflags() {
+    std::string ret = 
+      "-DGNU_GCC -D_GNU_SOURCE -DPROJECT_NAME='\"CMSSW\"' -DBOOST_SPIRIT_THREADSAFE -DPHOENIX_THREADSAFE -O2 -pthread -pipe -Werror=main -Werror=pointer-arith -Werror=overlength-strings -Wno-vla -Werror=overflow -Wstrict-overflow -std=c++11 -msse3 -ftree-vectorize -Wno-strict-overflow -Werror=array-bounds -Werror=format-contains-nul -Werror=type-limits -fvisibility-inlines-hidden -fno-math-errno --param vect-max-version-for-alias-checks=50 -fipa-pta -Wa,--compress-debug-sections -felide-constructors -fmessage-length=0 -ftemplate-depth-300 -Wall -Wno-non-template-friend -Wno-long-long -Wreturn-type -Wunused -Wparentheses -Wno-deprecated -Werror=return-type -Werror=missing-braces -Werror=unused-value -Werror=address -Werror=format -Werror=sign-compare -Werror=write-strings -Werror=delete-non-virtual-dtor -Werror=maybe-uninitialized -Werror=strict-aliasing -Werror=narrowing -Werror=uninitialized -Werror=unused-but-set-variable -Werror=reorder -Werror=unused-variable -Werror=conversion-null -Werror=return-local-addr -Werror=switch -fdiagnostics-show-option -Wno-unused-local-typedefs -Wno-attributes -Wno-psabi -DBOOST_DISABLE_ASSERTS -fPIC ";
+    ret += "-DCMSSW_GIT_HASH='"+ edm::getReleaseVersion() + "' -DPROJECT_VERSION='" + edm::getReleaseVersion() + "' ";
+    return ret;
+  }
 
 }
 
@@ -48,9 +57,12 @@ ExprEval::ExprEval(const char * pkg, const char * iname, const char * iexpr) :
     tmp<<source << std::endl;
   }
 
-  std::string cpp = "c++ -H -Wall -shared -Winvalid-pch "; cpp+=CXXFLAGS;
-  cpp += "-I/home/vin/CMSSW_7_4_DEVEL_X_2015-01-07-1400/include/slc6_amd64_gcc491 "; 
-  cpp +=  "-o " + ofile + ' ' + sfile+" 2>&1\n";
+  auto arch = edm::getEnvironmentVariable("SCRAM_ARCH");
+  auto baseDir = edm::getEnvironmentVariable("CMSSW_BASE");
+
+  std::string cpp = "c++ -H -Wall -shared -Winvalid-pch "; cpp+=cxxflags();
+  cpp += "-I" + baseDir + "/include/" + arch; 
+  cpp +=  " -o " + ofile + ' ' + sfile+" 2>&1\n";
 
   std::cout << cpp << std::endl;
 
