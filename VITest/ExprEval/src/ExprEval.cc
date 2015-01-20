@@ -37,8 +37,11 @@ ExprEval::ExprEval(const char * pkg, const char * iname, const char * iexpr) :
   
   std::string factory = "factory" + m_name;
 
+  std::string pch = pkg; pch += "/src/precompile.h";
+
+
   std::string quote("\"");
-  std::string source = std::string("#include ")+quote+pkg +"/src/precompile.h"+quote+"\n";
+  std::string source = std::string("#include ")+quote+ pch +quote+"\n";
   source+="struct "+m_name+" final : public "+iname + "{\n";
   source+=iexpr;
   source+="\n};\n";
@@ -61,20 +64,37 @@ ExprEval::ExprEval(const char * pkg, const char * iname, const char * iexpr) :
 
   auto arch = edm::getEnvironmentVariable("SCRAM_ARCH");
   auto baseDir = edm::getEnvironmentVariable("CMSSW_BASE");
+  auto relDir = edm::getEnvironmentVariable("CMSSW_RELEASE_BASE");
 
+  std::string incDir = "/include/" + arch + "/";
   std::string cxxf;
-  try{
-    auto ss = popenCPP(std::string("sed 's/-I[^ ]*//g' ") + baseDir + "/include/" + arch + "/" + pkg +"/src/precompile.h.cxxflags");
-    std::getline(*ss,cxxf);
+  {
+    std::string file = baseDir + incDir + pch + ".cxxflags";
+    std::ifstream ss(file.c_str());
+    std::cout << file << std::endl;
+    if (ss) {
+      std::getline(ss,cxxf);
+      incDir = baseDir + incDir;
+    } else {
+       std::string file = relDir + incDir + pch + ".cxxflags";
+       std::ifstream ss(file.c_str());
+       if (!ss) throw("file not found!");
+       std::getline(ss,cxxf);
+       incDir = relDir + incDir;
+    }
 
+
+    // auto ss = popenCPP(std::string("sed 's/-I[^ ]*//g' ") + baseDir + "/include/" + arch + "/" + pkg +"/src/precompile.h.cxxflags");
+    { std::regex rq("-I[^ ]+"); cxxf = std::regex_replace(cxxf,rq,std::string("")); }
     { std::regex rq("=\""); cxxf = std::regex_replace(cxxf,rq,std::string("='\"")); }
     { std::regex rq("\" "); cxxf = std::regex_replace(cxxf,rq,std::string("\"' ")); }
     std::cout << '|' << cxxf << "|\n" << std::endl;
-  }catch(...) { std::cout << "error in popen" << " sed " << cxxf << std::endl;}
+
+  }
 
   std::string cpp = "c++ -H -Wall -shared -Winvalid-pch "; cpp+=cxxf;
-  cpp += " -I" + baseDir + "/include/" + arch; 
-  cpp +=  " -o " + ofile + ' ' + sfile+" 2>&1\n";
+  cpp += " -I" + incDir; 
+  cpp += " -o " + ofile + ' ' + sfile+" 2>&1\n";
 
   std::cout << cpp << std::endl;
 
