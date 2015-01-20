@@ -1,0 +1,8 @@
+<bin file="popen_t.cpp">
+  <use name="VITest/ExprEval"/>
+</bin>
+<bin file="ExprEval_t.cpp">
+  <use name="VITest/ExprEval"/>
+  <include_path path="$(LOCALTOP)/$(SCRAMSTORENAME_INCLUDE)/$(SCRAM_ARCH)"/>
+</bin>
+
