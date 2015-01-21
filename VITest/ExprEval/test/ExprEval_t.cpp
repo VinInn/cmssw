@@ -3,6 +3,8 @@
 #include "VITest/ExprEval/include/MyExpr.h"
 #include "VITest/ExprEval/include/vcut.h"
 
+#include "FWCore/Utilities/interface/Exception.h"
+
 
 #include <iostream>
 
@@ -31,6 +33,34 @@ int main() {
   auto mcut = parser2.expr<vcut>();
 
   std::cout << mcut->eval(2,7) << ' ' << mcut->eval(3, 4) << std::endl;
+
+  try {
+    std::string cut = "bool eval(int i, int j) override { return i<10&& j<5; }";
+    ExprEval parser2("Bla/Blo","vcut",cut.c_str());
+    auto mcut = parser2.expr<vcut>();
+    std::cout << mcut->eval(2,7) << ' ' << mcut->eval(3, 4) << std::endl;
+  }catch( cms::Exception const & e) {
+    std::cout << e.what()  << std::endl;
+  }catch(...) {
+    std::cout << "unknown error...." << std::endl;
+  }
+
+
+  try {
+    std::string cut = "bool eval(int i, int j) ride { return i<10&& j<5; }";
+    ExprEval parser2("VITest/ExprEval","vcut",cut.c_str());
+    auto mcut = parser2.expr<vcut>();
+    std::cout << mcut->eval(2,7) << ' ' << mcut->eval(3, 4) << std::endl;
+ 
+ }catch( cms::Exception const & e) {
+    std::cout << e.what()  << std::endl;
+  }catch(...) {
+    std::cout << "unknown error...." << std::endl;
+  }
+
+
+
+
 
   return 0;
 

@@ -1,13 +1,14 @@
-// Copyright © 2012 the Minima Authors under the MIT license. See AUTHORS for the list of authors.
+// original code by the Minima Authors under the MIT license. See AUTHORS for the list of authors.
 
 #include "popenCPP.h"
+#include "FWCore/Utilities/interface/Exception.h"
 #include <cstdio>
 #include <string>
 #include <istream>
 
 
 namespace{
-        class fbuf : public std::streambuf{
+        class fbuf final : public std::streambuf{
                 FILE *file;
                 char *buf;
                 constexpr static size_t bufsz = 4096;
@@ -18,12 +19,9 @@ namespace{
                 virtual std::streambuf *setbuf(char_type *s, std::streamsize n);
                 virtual int sync();
                 virtual int_type underflow();
-                //char_type *eback() const; // beginning of get area
-                //char_type *gptr() const; // current char to get
-                //char_type *egptr() const; // end of get area
         };
 
-        class cfstream : public std::istream{
+        class cfstream final : public std::istream{
                 fbuf buf;
         public:
                 cfstream(FILE *f);
@@ -33,7 +31,7 @@ namespace{
 std::unique_ptr<std::istream> popenCPP(const std::string &cmdline){
         FILE *f = popen(cmdline.c_str(), "r");
         if(!f)
-	  throw std::string("Popen(\""+cmdline+"\") failed");
+	  throw  cms::Exception("PopenCPP","(\""+cmdline+"\") failed");
         return std::unique_ptr<std::istream>(new cfstream(f));
 }
 

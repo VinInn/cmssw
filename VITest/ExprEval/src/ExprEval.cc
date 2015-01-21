@@ -1,6 +1,8 @@
 #include "VITest/ExprEval/include/ExprEval.h"
 #include "FWCore/Version/interface/GetReleaseVersion.h"
 #include "FWCore/Utilities/interface/GetEnvironmentVariable.h"
+#include "FWCore/Utilities/interface/Exception.h"
+
 
 #include "popenCPP.h"
 #include <fstream>
@@ -12,9 +14,7 @@
 
 namespace {
   std::string generateName() {
-    auto s1 = popenCPP("uuidgen | sed 's/-//g'");
-    char c; std::string n1;
-    while (s1->get(c)) n1+=c;
+    auto n1 = execSysCommand("uuidgen | sed 's/-//g'");
     n1.pop_back();
     return n1;
   }
@@ -78,7 +78,7 @@ ExprEval::ExprEval(const char * pkg, const char * iname, const char * iexpr) :
     } else {
        std::string file = relDir + incDir + pch + ".cxxflags";
        std::ifstream ss(file.c_str());
-       if (!ss) throw("file not found!");
+       if (!ss) throw  cms::Exception("ExprEval", file + " file not found!");
        std::getline(ss,cxxf);
        incDir = relDir + incDir;
     }
@@ -98,16 +98,13 @@ ExprEval::ExprEval(const char * pkg, const char * iname, const char * iexpr) :
 
   std::cout << cpp << std::endl;
 
-  try{
-    auto ss = popenCPP(cpp);
-    char c;
-    while (ss->get(c)) std::cout << c;
-    std::cout << std::endl;
-  }catch(...) { std::cout << "error in popen " << cpp << std::endl;}
+ 
+  auto ss = execSysCommand(cpp);
+  std::cout << ss << std::endl;
 
   void * dl = dlopen(ofile.c_str(),RTLD_LAZY);
   if (!dl) {
-    std::cout << dlerror() <<std::endl;
+     throw  cms::Exception("ExprEval",  cpp + ss + "dlerror " + dlerror());
     return;
   }
 
