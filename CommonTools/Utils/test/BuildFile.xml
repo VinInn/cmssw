@@ -11,6 +11,7 @@
 </bin>
 
 <bin   name="testExpressionEvaluator" file="testExpressionEvaluator.cc,testRunner.cpp">
+  <flags TEST_RUNNER_CMD="src/CommonTools/Utils/test/ExpressionEvaluatorIntTest.sh"/>
   <use   name="Geometry/CommonDetUnit"/>
   <use   name="DataFormats/TrackReco"/>
   <use   name="DataFormats/TrackerRecHit2D"/>
@@ -30,6 +31,7 @@
 
 
 <bin file="ExpressionEvaluatorUnitTest.cpp">
+ <flags TEST_RUNNER_CMD="src/CommonTools/Utils/test/ExpressionEvaluatorIntTest.sh"/>
   <use name="CommonTools/Utils"/>
 </bin>
 
