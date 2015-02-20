@@ -1,0 +1,3 @@
+<bin   file="Histos_t.cpp">
+  <use   name="roothistmatrix"/>
+</bin>
