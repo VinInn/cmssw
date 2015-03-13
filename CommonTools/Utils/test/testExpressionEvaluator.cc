@@ -11,6 +11,8 @@
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "Cintex/Cintex.h"
 
+#include <chrono>
+
 
 class testExpressionEvaluator : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(testExpressionEvaluator);
@@ -21,7 +23,6 @@ public:
   testExpressionEvaluator() {ROOT::Cintex::Cintex::Enable();} // for crappy pats
   ~testExpressionEvaluator(){}
   void checkAll(); 
-
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION( testExpressionEvaluator );
@@ -66,6 +67,7 @@ namespace {
   struct MyAnalyzer {
     using Selector = reco::MaskCollection<reco::LeafCandidate>;
     explicit MyAnalyzer(std::string const & cut) {
+      auto start = std::chrono::system_clock::now();
       std::string sexpr = "void eval(Collection const & c, Mask & m) const override{";
       sexpr += "\n auto cut = [](reco::LeafCandidate const & cand){ return "+cut+";};\n"; 
       sexpr += "mask(c,m,cut); }";
@@ -78,7 +80,9 @@ namespace {
         std::cerr << e.what()  << std::endl;
         CPPUNIT_ASSERT("ExpressionEvaluator threw"==0);
       }
-
+     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now() - start);
+      std::cout << "elapsed time " << duration.count() << std::endl;
     }
 
     void analyze() const {
@@ -101,6 +105,7 @@ namespace {
   struct MyAnalyzer2 {
     using Selector = reco::SelectInCollection<reco::LeafCandidate>;
     explicit MyAnalyzer2(std::string const & cut) {
+      auto start = std::chrono::system_clock::now();
       std::string sexpr = "void eval(Collection & c) const override{";
       sexpr += "\n auto cut = [](reco::LeafCandidate const & cand){ return "+cut+";};\n";
       sexpr += "select(c,cut); }";
@@ -113,6 +118,10 @@ namespace {
         std::cerr << e.what()  << std::endl;
         CPPUNIT_ASSERT("ExpressionEvaluator threw"==0);
       }                                                                                                     
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now() - start);
+      std::cout << "elapsed time " << duration.count() << std::endl;
+ 
     }
 
     void analyze() const {
@@ -143,6 +152,8 @@ void testExpressionEvaluator::checkAll() {
   CPPUNIT_ASSERT(cand.numberOfDaughters()==2);
   CPPUNIT_ASSERT(cand.daughter(0)!=0);
   CPPUNIT_ASSERT(cand.daughter(1)!=0);
+  std::cout<< "starting " << std::endl;
+  auto start = std::chrono::system_clock::now();
   {
     checkCandidate(cand,"cand.numberOfDaughters()", cand.numberOfDaughters());
     checkCandidate(cand,"cand.daughter(0)->isStandAloneMuon()", cand.daughter(0)->isStandAloneMuon());  
@@ -157,7 +168,10 @@ void testExpressionEvaluator::checkAll() {
     checkCandidate(cand,"reco::deltaR(*cand.daughter(0), *cand.daughter(1))", reco::deltaR(*cand.daughter(0), *cand.daughter(1)));
 
   }
-
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now() - start);
+  std::cout << "elapsed time " << duration.count() << std::endl;
+ 
   MyAnalyzer analyzer("cand.pt()>15 & std::abs(cand.eta())<2");
   analyzer.analyze();
 
@@ -176,6 +190,7 @@ void testExpressionEvaluator::checkAll() {
   reco::CaloJet::Specific caloSpecific; caloSpecific.mMaxEInEmTowers = 0.5;
   pat::Jet jet(reco::CaloJet(p1+p2, reco::Jet::Point(), caloSpecific, constituents));
   { 
+  auto start = std::chrono::system_clock::now();
   std::string expression = "jet.userData<math::XYZVector>(\"my2int\")";
   std::cerr << "testing " << expression << std::endl;
     try {
@@ -196,6 +211,9 @@ void testExpressionEvaluator::checkAll() {
       std::cerr << e.what()  << std::endl;
       CPPUNIT_ASSERT("ExpressionEvaluator threw"==0);
     }
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now() - start);
+    std::cout << "elapsed time " << duration.count() << std::endl;
   }
 
 }
