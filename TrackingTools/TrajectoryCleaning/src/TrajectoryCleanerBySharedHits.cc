@@ -88,28 +88,29 @@ void TrajectoryCleanerBySharedHits::clean( TrajectoryPointerContainer & tc) cons
       auto score = [=](auto tp) { return validHitBonus_*tp->foundHits() - missingHitPenalty_*tp->lostHits() - tp->chiSquared();};
     
       // check for duplicated tracks
-      if(!theTrajMap.empty() > 0)
+      if(theTrajMap.empty() ) continue;
+        auto const & innerMeasure1 = ( tt->direction() == alongMomentum ) ?
+                tt->firstMeasurement() : tt->lastMeasurement();
+        auto h1 = &(*(innerMeasure1).recHit());
+        int nhit1 = tt->foundHits();
+        auto score1 = score(tt);
 	for(auto mapp :  theTrajMap) {
 	  if(mapp.second > 0 ){
 	    int innerHit = 0;
 	    if ( allowSharedFirstHit ) {
-	      const TrajectoryMeasurement & innerMeasure1 = ( tt->direction() == alongMomentum ) ? 
-		tt->firstMeasurement() : tt->lastMeasurement();
-	      const TransientTrackingRecHit* h1 = &(*(innerMeasure1).recHit());
-	      const TrajectoryMeasurement & innerMeasure2 = ( mapp.first->direction() == alongMomentum ) ? 
+	      auto const  & innerMeasure2 = ( mapp.first->direction() == alongMomentum ) ? 
 		mapp.first->firstMeasurement() : mapp.first->lastMeasurement();
-	      const TransientTrackingRecHit* h2 = &(*(innerMeasure2).recHit());
+	      auto h2 = &(*(innerMeasure2).recHit());
 	      if ( (h1 == h2) || ((h1->geographicalId() == h2->geographicalId()) && 
-				  (h1->hit()->sharesInput(h2->hit(), TrackingRecHit::some))) ) {
+				  (h1->sharesInput(h2, TrackingRecHit::some))) ) {
 		innerHit = 1;
 	      }
 	    }
-	    int nhit1 = tt->foundHits();
 	    int nhit2 = mapp.first->foundHits();
 	    if( ( mapp.second - innerHit) >= ( (std::min(nhit1, nhit2)-innerHit) * theFraction) ){
-	      auto badtraj = (score(tt) > score(mapp.first)) ? mapp.first : tt;
+	      auto badtraj = (score1 > score(mapp.first)) ? mapp.first : tt;
 	      badtraj->invalidate();  // invalidate this trajectory
-              if (badtraj== tt ) break; //  is invalid, no need to loop further
+              // if (badtraj== tt ) break; //  is invalid, no need to loop further
 	    }
 	  }
 	}  // end TrajMap loop
