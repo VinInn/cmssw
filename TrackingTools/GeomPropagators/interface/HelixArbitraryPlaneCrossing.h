@@ -18,11 +18,27 @@ public:
   // destructor
   virtual ~HelixArbitraryPlaneCrossing() {}
 
+  //
+  // double precision vectors for internal use
+  //
+  typedef Basic3DVector<double>  PositionTypeDouble;
+  typedef Basic3DVector<double>  DirectionTypeDouble;
+
+
+  PositionTypeDouble position0() const { return theQuadraticCrossingFromStart.position0();}
+  DirectionTypeDouble direction0() const { return theQuadraticCrossingFromStart.direction0();}
+  double sinThetaI() const { return theQuadraticCrossingFromStart.sinThetaI(); }
+  double rho() const { return theQuadraticCrossingFromStart.rho();}
+  PropagationDirection propDir0() const { return theQuadraticCrossingFromStart.propDir0();}
+
+
+
   /** Propagation status (true if valid) and (signed) path length 
    *  along the helix from the starting point to the plane. The 
    *  starting point is given in the constructor.
    */
-  virtual std::pair<bool,double> pathLength(const Plane& plane);
+  std::pair<bool,double> pathLength( const Plane& p) override { return pathLength(p.hessianPlaneDouble());}
+  std::pair<bool,double> pathLength(HPlane const&) override;
 
   /** Position at pathlength s from the starting point.
    */
@@ -31,45 +47,27 @@ public:
   /** Direction at pathlength s from the starting point.
    */
   virtual DirectionType direction(double s) const;
-  //
-  // double precision vectors for internal use
-  //
-  typedef Basic3DVector<double>  PositionTypeDouble;
-  typedef Basic3DVector<double>  DirectionTypeDouble;
+
+
+private:
 
   /** Position at pathlength s from the starting point.
    */
-  PositionTypeDouble positionInDouble(double s) const;
+  PositionTypeDouble positionInDouble(double s) const dso_internal;
 
   /** Direction at pathlength s from the starting point.
    */
-  DirectionTypeDouble directionInDouble(double s) const;
-
-private:
-  /** Iteration control: check for significant distance to plane.
-   */
-  inline bool notAtSurface (const Plane&,
-  			    const PositionTypeDouble&,
-			    const float) const dso_internal;
+  DirectionTypeDouble directionInDouble(double s) const dso_internal;
 
 private:
   HelixArbitraryPlaneCrossing2Order theQuadraticCrossingFromStart;
 
-
-  const double theX0,theY0,theZ0;
-  double theCosPhi0,theSinPhi0;
   double theCosTheta,theSinTheta;
-  const double theRho;
-
-  const PropagationDirection thePropDir;
 
   mutable double theCachedS;
   mutable double theCachedDPhi;
   mutable double theCachedSDPhi;
   mutable double theCachedCDPhi;
-
-  static const float theNumericalPrecision;
-  static const float theMaxDistToPlane;
 
 };
 

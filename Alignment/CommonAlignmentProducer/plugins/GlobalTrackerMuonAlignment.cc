@@ -688,8 +688,8 @@ void GlobalTrackerMuonAlignment::analyzeTrackTrack
     SteppingHelixPropagator(magneticField_, oppositeToMomentum);  
 
   //double tolerance = 5.e-5;
-  defaultRKPropagator::Product  aprod( magneticField_, alongMomentum, 5.e-5); auto & alongRKPr = aprod.propagator;
-  defaultRKPropagator::Product  oprod( magneticField_, oppositeToMomentum, 5.e-5); auto & oppositeRKPr = oprod.propagator;
+  defaultRKPropagator::Product  aprod( *magneticField_, alongMomentum, 5.e-5); auto & alongRKPr = aprod.propagator;
+  defaultRKPropagator::Product  oprod( *magneticField_, oppositeToMomentum, 5.e-5); auto & oppositeRKPr = oprod.propagator;
 
   float epsilon = 5.;
   SmartPropagator alongSmPr = 
@@ -1370,8 +1370,8 @@ void GlobalTrackerMuonAlignment::analyzeTrackTrajectory
     SteppingHelixPropagator(magneticField_, oppositeToMomentum);  
 
   //double tolerance = 5.e-5;
-  defaultRKPropagator::Product  aprod( magneticField_, alongMomentum, 5.e-5); auto & alongRKPr = aprod.propagator;
-  defaultRKPropagator::Product  oprod( magneticField_, oppositeToMomentum, 5.e-5); auto & oppositeRKPr = oprod.propagator;
+  defaultRKPropagator::Product  aprod( *magneticField_, alongMomentum, 5.e-5); auto & alongRKPr = aprod.propagator;
+  defaultRKPropagator::Product  oprod( *magneticField_, oppositeToMomentum, 5.e-5); auto & oppositeRKPr = oprod.propagator;
 
   float epsilon = 5.;
   SmartPropagator alongSmPr = 

@@ -44,7 +44,8 @@ StripTopologyBuilder::constructForward( float length, float width, float widthAt
 {
   int nstrip = int( 128 * theAPVNumb );
   float rCross = widthAtHalf * length / ( 2 * ( width - widthAtHalf ));
-  float aw = atan2( widthAtHalf / 2., static_cast<double>( rCross )) / ( nstrip / 2 );
-  return new TkRadialStripTopology( nstrip, aw, length, rCross, yAxOr );
+  float aw = std::atan2( widthAtHalf / 2., static_cast<double>( rCross )) / ( nstrip / 2 );
+  return (yAxOr==1) ? (StripTopology*)(new TkRadialStripTopology<1> ( nstrip, aw, length, rCross)) : 
+                      (StripTopology*)(new TkRadialStripTopology<-1>( nstrip, aw, length, rCross));
 }
 

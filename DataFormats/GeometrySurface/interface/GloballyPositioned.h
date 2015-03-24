@@ -49,13 +49,16 @@ public:
   T eta() const { 
     return theEta;
   }
-
+  // normal distance of origin
+  T dv() const {
+    return theDV;
+  }
 
   // multiply inverse is faster
   class ToLocal {
   public:
     ToLocal(GloballyPositioned const & frame) :
-      thePos(frame.position()), theRot(frame.rotation().transposed()){}
+      thePos(frame.position()), theRot(frame.rotation().transposed()), theTrivial(frame.trivial()) {}
     
     LocalPoint operator()(const GlobalPoint& gp) const {
          return toLocal(gp);
@@ -66,18 +69,21 @@ public:
     }
 
     LocalPoint toLocal( const GlobalPoint& gp) const {
+      if ((theTrivial)) return LocalPoint(gp.basicVector());
       return LocalPoint( theRot.multiplyInverse( gp.basicVector() -
 			 thePos.basicVector()) 
                        );
     }
     
     LocalVector toLocal( const GlobalVector& gv) const {
+      if ((theTrivial)) return LocalVector(gv.basicVector());
       return LocalVector(theRot.multiplyInverse(gv.basicVector()));
     } 
     
   // private:
     PositionType  thePos;
     RotationType  theRot;
+    bool theTrivial;
     
   };
 
@@ -87,6 +93,7 @@ public:
    *  local frame) to the global frame
    */
   GlobalPoint toGlobal( const LocalPoint& lp) const {
+    if ((theTrivial)) return GlobalPoint(lp.basicVector());
     return GlobalPoint( rotation().multiplyInverse( lp.basicVector()) +
 			position().basicVector());
   }
@@ -98,6 +105,7 @@ public:
   template <class U>
   Point3DBase< U, GlobalTag>
   toGlobal( const Point3DBase< U, LocalTag>& lp) const {
+    if ((theTrivial)) return Point3DBase< U, GlobalTag>(lp.basicVector());
     return Point3DBase< U, GlobalTag>( rotation().multiplyInverse( lp.basicVector()) +
 				       position().basicVector());
   }
@@ -106,6 +114,7 @@ public:
    *  local frame) to the global frame
    */
   GlobalVector toGlobal( const LocalVector& lv) const {
+    if ((theTrivial)) return GlobalVector(lv.basicVector());
     return GlobalVector( rotation().multiplyInverse( lv.basicVector()));
   }
 
@@ -116,6 +125,7 @@ public:
   template <class U>
   Vector3DBase< U, GlobalTag>
   toGlobal( const Vector3DBase< U, LocalTag>& lv) const {
+    if ((theTrivial)) return Vector3DBase< U, GlobalTag>(lv.basicVector());
     return Vector3DBase< U, GlobalTag>( rotation().multiplyInverse( lv.basicVector()));
   }
 
@@ -123,6 +133,7 @@ public:
    *  global frame) to the local frame
    */
   LocalPoint toLocal( const GlobalPoint& gp) const {
+    if ((theTrivial)) return LocalPoint(gp.basicVector());
     return LocalPoint( rotation() * (gp.basicVector()-position().basicVector()));
   }
 
@@ -133,6 +144,7 @@ public:
   template <class U>
   Point3DBase< U, LocalTag>
   toLocal( const Point3DBase< U, GlobalTag>& gp) const {
+    if ((theTrivial)) return Point3DBase< U, LocalTag>(gp.basicVector());
     return Point3DBase< U, LocalTag>( rotation() * 
 				      (gp.basicVector()-position().basicVector()));
   }
@@ -141,6 +153,7 @@ public:
    *  global frame) to the local frame
    */
   LocalVector toLocal( const GlobalVector& gv) const {
+    if ((theTrivial)) return LocalVector(gv.basicVector());
     return LocalVector( rotation() * gv.basicVector());
   }
 
@@ -151,6 +164,7 @@ public:
   template <class U>
   Vector3DBase< U, LocalTag>
   toLocal( const Vector3DBase< U, GlobalTag>& gv) const {
+    if ((theTrivial)) return Vector3DBase< U, LocalTag>(gv.basicVector());
     return Vector3DBase< U, LocalTag>( rotation() * gv.basicVector());
   }
 
@@ -170,6 +184,8 @@ public:
     setCache();
   }
 
+  bool trivial() const{ return theTrivial;}
+
 private:
 
   PositionType  thePos;
@@ -187,6 +203,8 @@ private:
  */
 
   void setCache() {
+    setTrivial();
+    theDV = rotation().z().dot(-position().basicVector());
     if ((thePos.x() == 0.) & (thePos.y() == 0.)) {
       thePhi = theEta = 0.; // avoid FPE
     } else {
@@ -195,8 +213,20 @@ private:
     }
   }
   
+  void  setTrivial() {
+    theTrivial =   
+      thePos == PositionType(0,0,0)
+      && theRot.xx() == T(1)
+      && theRot.yy() ==	T(1)
+      && theRot.zz() ==	T(1)
+      ;
+
+  }
+
   T thePhi;
   T theEta;
+  T theDV;  // normal distance of origin
+  bool theTrivial; 
 
 };
   
