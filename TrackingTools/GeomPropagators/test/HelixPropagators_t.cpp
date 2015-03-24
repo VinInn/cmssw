@@ -110,11 +110,11 @@ void crossing1() {
   std::cout << s << ' ' << plane.toLocal(GlobalPoint(precise.position(s))) << " " <<  plane.toLocal(GlobalVector(precise.direction(s))) << std::endl;
   std::cout << HelixBarrelPlaneCrossing2OrderLocal::positionOnly(startingPos, startingDir, rho, plane) << ' ';
   std::cout << crossing.position() << ' ' << crossing.direction() << std::endl;
-
-  LocalPoint thePos; LocalVector theDir;
-  std::tie(thePos,theDir) = secondOrderAccurate(startingPos, startingDir, rho, plane);
-  std::cout << thePos << ' ' << theDir << std::endl;
-
+  {
+    LocalPoint thePos; LocalVector theDir;
+    std::tie(thePos,theDir) = secondOrderAccurate(startingPos, startingDir, rho, plane);
+    std::cout << thePos << ' ' << theDir << std::endl;
+  }
 
 
 }
@@ -187,13 +187,14 @@ void crossing2() {
 
   std::cout << s<< ' ' << plane.toLocal(GlobalPoint(precise.position(s))) << " " <<  plane.toLocal(GlobalVector(precise.direction(s))) << std::endl;
   std::cout << HelixBarrelPlaneCrossing2OrderLocal::positionOnly(startingPos, startingDir, rho, plane) << ' ';
+  
   std::cout << crossing.position() << ' ' << crossing.direction() << std::endl;
 
-  LocalPoint thePos; LocalVector theDir;
-  std::tie(thePos,theDir) = secondOrderAccurate(startingPos, startingDir, rho, plane);
-
-  std::cout << thePos << ' ' << theDir << std::endl;
-
+  {
+    LocalPoint thePos; LocalVector theDir;
+    std::tie(thePos,theDir) = secondOrderAccurate(startingPos, startingDir, rho, plane);
+    std::cout << thePos << ' ' << theDir << std::endl;
+  }
 
 
 }
@@ -219,7 +220,7 @@ void crossing3() {
   GlobalVector u = plane.normalVector();
   std::cout << "norm " << u << std::endl;
 
-
+  {
   OptimalHelixPlaneCrossing ocrossing(plane, HelixPlaneCrossing::PositionType(startingPos), HelixPlaneCrossing::DirectionType(startingDir), rho, alongMomentum);
   auto & crossing = *ocrossing;
   bool cross; double s;
@@ -231,6 +232,8 @@ void crossing3() {
 	      << plane.toLocal(GlobalVector(crossing.direction(s))) << std::endl;
 
   }
+  }
+
 
   LocalPoint thePos; LocalVector theDir;
   std::tie(thePos,theDir) = secondOrderAccurate(startingPos, startingDir, rho, plane);
@@ -238,12 +241,11 @@ void crossing3() {
   std::cout << thePos << ' ' << theDir << std::endl;
   std::cout << std::endl;
 
-  GlobalPoint startingPos(-8.12604,-50.829,9.82116);
-  GlobalVector startingDir(-0.517536,-5.09581,1.02212);
 
-    startingPos-= 10*startingDir;
-
-
+  startingPos-= 10*startingDir;
+  
+  {
+  
   GlobalPoint  pos(-2.96723,-51.4573,14.8322);
 
   Surface::RotationType rot(0.995041,0.0994701,0.000124443,
@@ -283,13 +285,12 @@ void crossing3() {
   std::cout << s<< ' ' << plane.toLocal(GlobalPoint(precise.position(s))) << " " <<  plane.toLocal(GlobalVector(precise.direction(s))) << std::endl;
   std::cout << HelixBarrelPlaneCrossing2OrderLocal::positionOnly(startingPos, startingDir, rho, plane) << ' ';
   std::cout << crossing.position() << ' ' << crossing.direction() << std::endl;
-                            
-  LocalPoint thePos; LocalVector theDir;
-  std::tie(thePos,theDir) = secondOrderAccurate(startingPos, startingDir, rho, plane);
-  
-  std::cout << thePos << ' ' << theDir << std::endl;
-  
-  
+  {                          
+    LocalPoint thePos; LocalVector theDir;
+    std::tie(thePos,theDir) = secondOrderAccurate(startingPos, startingDir, rho, plane);
+    std::cout << thePos << ' ' << theDir << std::endl;
+  }
+  }
 
 }
 
@@ -331,7 +332,6 @@ void timing() {
 
 
   std::cout << "time " << double(t)/1000000 << ' ' << stot << std::endl;
->>>>>>> VinInn/tkcleanup74_2
 
 }
 
@@ -340,20 +340,14 @@ void timing() {
 void testHelixBarrelPlaneCrossing2OrderLocal() {
 
   crossing1();
-<<<<<<< HEAD
   std::cout << std::endl;
 
   crossing2();
   std::cout << std::endl;
 
-  crossing3();
-
-=======
-  crossing2();
   crossing3();
 
   timing();
->>>>>>> VinInn/tkcleanup74_2
 
 }
 
