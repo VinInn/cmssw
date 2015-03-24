@@ -12,6 +12,8 @@
  */
 
 #include "DataFormats/GeometrySurface/interface/Surface.h"
+#include "DataFormats/GeometrySurface/interface/HessianPlane.h"
+
 #include "boost/intrusive_ptr.hpp" 
 
 class Plane : public Surface {
@@ -45,17 +47,26 @@ public:
   GlobalVector normalVector() const { return GlobalVector(rotation().z()); }
 
   /// Fast access to distance from plane for a point.
-  /// return 0 if too close
   float localZ (const GlobalPoint& gp) const {
     return normalVector().dot(gp-position());
   }
 
 #ifndef CMS_NOCXX11
+  /// return 0 if too close
   float localZclamped (const GlobalPoint& gp) const {
     auto d = localZ(gp);
     return std::abs(d) > posPrec() ? d : 0; 
   }
 #endif
+
+  // return normal representation
+  HessianPlane<float> hessianPlane() const {
+    return HessianPlane<float>(normalVector().basicVector(),dv());
+  }
+  HessianPlane<double> hessianPlaneDouble() const {
+    return HessianPlane<double>(normalVector().basicVector(),dv());
+  }
+
 
   /// Fast access to component perpendicular to plane for a vector.
   float localZ (const GlobalVector& gv) const {

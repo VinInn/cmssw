@@ -375,7 +375,7 @@ bool ReferenceTrajectory::propagate(const Plane &previousSurface, const Trajecto
   // Hard coded RungeKutta instead Analytical (avoid bias in TEC), but
   // work around TrackPropagation/RungeKutta/interface/RKTestPropagator.h and
   // http://www.parashift.com/c++-faq-lite/strange-inheritance.html#faq-23.9
-  defaultRKPropagator::Product  rkprod(magField, propDir); //double tolerance = 5.e-5)
+  defaultRKPropagator::Product  rkprod(*magField, propDir); //double tolerance = 5.e-5)
   Propagator &aPropagator = rkprod.propagator;
   const std::pair<TrajectoryStateOnSurface, double> tsosWithPath =
     aPropagator.propagateWithPath(previousTsos, newSurface);

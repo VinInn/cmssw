@@ -122,5 +122,4 @@ LocalPoint HelixBarrelPlaneCrossing2OrderLocal::positionOnly(const GlobalPoint& 
     LocalPoint( x*cosPhi - y*sinPhi,
 		x*sinPhi + y*cosPhi, 0);
 
-
 }
