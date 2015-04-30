@@ -32,6 +32,8 @@
 
 #include "DataFormats/SiStripDetId/interface/SiStripDetId.h"
 
+#include "TrackingTools/TrackFitters/interface/TrajectoryStateWithArbitraryError.h"
+
 template <class T> void
 TrackProducerAlgorithm<T>::runWithCandidate(const TrackingGeometry * theG,
 					    const MagneticField * theMF,
@@ -60,6 +62,8 @@ TrackProducerAlgorithm<T>::runWithCandidate(const TrackingGeometry * theG,
       TrajectoryStateOnSurface theTSOS = trajectoryStateTransform::transientState( state,
 								     &(theG->idToDet(detId)->surface()), 
 								     theMF);
+
+     // theTSOS.rescaleError(4.);
 
       LogDebug("TrackProducer") << "Initial TSOS\n" << theTSOS << "\n";
       

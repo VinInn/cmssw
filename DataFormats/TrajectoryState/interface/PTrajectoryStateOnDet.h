@@ -63,6 +63,8 @@ public:
   }
 
 
+  LocalTrajectoryParameters & parameters() {return theLocalParameters;}
+
   const LocalTrajectoryParameters& parameters() const {return theLocalParameters;}
   float pt() const { return thePt; }
   bool hasError() const { return theLocalErrors[0] > -1.e10; }

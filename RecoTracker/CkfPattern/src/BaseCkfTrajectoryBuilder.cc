@@ -60,7 +60,18 @@ BaseCkfTrajectoryBuilder::seedMeasurements(const TrajectorySeed& seed,  TempTraj
 
   TrajectorySeed::range hitRange = seed.recHits();
 
-  PTrajectoryStateOnDet pState( seed.startingState());
+  auto pState =  seed.startingState();
+
+  /*
+  if ( (pState.pt()<1.f) & pState.hasError() ) {
+     auto param = pState.parameters();
+     auto new_qbp = param.qbp() - std::copysign(std::sqrt(pState.error(0)), param.qbp());
+     if (new_qbp*param.qbp() > 0 ) pState.parameters().updateQbp(new_qbp);
+  //   std::cout << "increase momentum " << 1./param.qbp() << ' ' << 1./pState.parameters().qbp() << std::endl;
+  }
+  */
+
+
   const GeomDet* gdet = theMeasurementTracker->geomTracker()->idToDet(pState.detId());
   TSOS outerState = trajectoryStateTransform::transientState(pState, &(gdet->surface()),
 							     forwardPropagator(seed)->magneticField());

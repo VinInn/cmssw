@@ -28,9 +28,10 @@ mixedTripletStepClusters = trackClusterRemover.clone(
 # SEEDING LAYERS
 from RecoLocalTracker.SiStripClusterizer.SiStripClusterChargeCut_cfi import *
 mixedTripletStepSeedLayersA = cms.EDProducer("SeedingLayersEDProducer",
-    layerList = cms.vstring('BPix1+BPix2+BPix3', 
-        'BPix1+BPix2+FPix1_pos', 'BPix1+BPix2+FPix1_neg', 
-        'BPix1+FPix1_pos+FPix2_pos', 'BPix1+FPix1_neg+FPix2_neg', 
+    layerList = cms.vstring(
+  #      'BPix1+BPix2+BPix3', 
+  #      'BPix1+BPix2+FPix1_pos', 'BPix1+BPix2+FPix1_neg', 
+  #      'BPix1+FPix1_pos+FPix2_pos', 'BPix1+FPix1_neg+FPix2_neg', 
         'BPix2+FPix1_pos+FPix2_pos', 'BPix2+FPix1_neg+FPix2_neg'),
     BPix = cms.PSet(
         TTRHBuilder = cms.string('WithTrackAngle'),
@@ -42,14 +43,6 @@ mixedTripletStepSeedLayersA = cms.EDProducer("SeedingLayersEDProducer",
         HitProducer = cms.string('siPixelRecHits'),
         skipClusters = cms.InputTag('mixedTripletStepClusters')
     ),
-    TEC = cms.PSet(
-        matchedRecHits = cms.InputTag("siStripMatchedRecHits","matchedRecHit"),
-        useRingSlector = cms.bool(True),
-        TTRHBuilder = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight')),
-        minRing = cms.int32(1),
-        maxRing = cms.int32(1),
-        skipClusters = cms.InputTag('mixedTripletStepClusters')
-    )
 )
 
 # SEEDS
@@ -61,7 +54,7 @@ mixedTripletStepSeedsA = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff
 mixedTripletStepSeedsA.OrderedHitsFactoryPSet.SeedingLayers = 'mixedTripletStepSeedLayersA'
 mixedTripletStepSeedsA.OrderedHitsFactoryPSet.GeneratorPSet = cms.PSet(PixelTripletLargeTipGenerator)
 mixedTripletStepSeedsA.SeedCreatorPSet.ComponentName = 'SeedFromConsecutiveHitsTripletOnlyCreator'
-mixedTripletStepSeedsA.RegionFactoryPSet.RegionPSet.ptMin = 0.4
+mixedTripletStepSeedsA.RegionFactoryPSet.RegionPSet.ptMin = 0.3
 mixedTripletStepSeedsA.RegionFactoryPSet.RegionPSet.originHalfLength = 15.0
 mixedTripletStepSeedsA.RegionFactoryPSet.RegionPSet.originRadius = 1.5
 
@@ -83,7 +76,7 @@ mixedTripletStepSeedsA.SeedComparitorPSet = cms.PSet(
 
 # SEEDING LAYERS
 mixedTripletStepSeedLayersB = cms.EDProducer("SeedingLayersEDProducer",
-    layerList = cms.vstring('BPix2+BPix3+TIB1'),
+    layerList = cms.vstring('BPix2+BPix3+TIB1'), # 'BPix3+TIB1+TIB2'), # 'BPix2+TIB1+TIB2'),
     BPix = cms.PSet(
         TTRHBuilder = cms.string('WithTrackAngle'),
         HitProducer = cms.string('siPixelRecHits'),
@@ -100,23 +93,42 @@ mixedTripletStepSeedLayersB = cms.EDProducer("SeedingLayersEDProducer",
 from RecoPixelVertexing.PixelTriplets.PixelTripletLargeTipGenerator_cfi import *
 PixelTripletLargeTipGenerator.extraHitRZtolerance = 0.0
 PixelTripletLargeTipGenerator.extraHitRPhitolerance = 0.0
+
 import RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff
 mixedTripletStepSeedsB = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.globalSeedsFromTriplets.clone()
 mixedTripletStepSeedsB.OrderedHitsFactoryPSet.SeedingLayers = 'mixedTripletStepSeedLayersB'
+
 mixedTripletStepSeedsB.OrderedHitsFactoryPSet.GeneratorPSet = cms.PSet(PixelTripletLargeTipGenerator)
+
+#import RecoTracker.TkSeedGenerator.MultiHitGeneratorFromChi2_cfi
+#mixedTripletStepSeedsB.OrderedHitsFactoryPSet.ComponentName = 'StandardMultiHitGenerator'
+#mixedTripletStepSeedsB.OrderedHitsFactoryPSet.GeneratorPSet = RecoTracker.TkSeedGenerator.MultiHitGeneratorFromChi2_cfi.MultiHitGeneratorFromChi2.clone()
+
+#SeedCreator
 mixedTripletStepSeedsB.SeedCreatorPSet.ComponentName = 'SeedFromConsecutiveHitsTripletOnlyCreator'
-mixedTripletStepSeedsB.RegionFactoryPSet.RegionPSet.ptMin = 0.6
-mixedTripletStepSeedsB.RegionFactoryPSet.RegionPSet.originHalfLength = 10.0
+#RegionFactory
+mixedTripletStepSeedsB.RegionFactoryPSet.RegionPSet.ptMin = 0.3
+mixedTripletStepSeedsB.RegionFactoryPSet.RegionPSet.originHalfLength = 15.0
 mixedTripletStepSeedsB.RegionFactoryPSet.RegionPSet.originRadius = 1.5
 
+#SeedComparitor
+import RecoPixelVertexing.PixelLowPtUtilities.StripSubClusterShapeSeedFilter_cfi
 mixedTripletStepSeedsB.SeedComparitorPSet = cms.PSet(
-        ComponentName = cms.string('PixelClusterShapeSeedComparitor'),
-        FilterAtHelixStage = cms.bool(False),
-        FilterPixelHits = cms.bool(True),
-        FilterStripHits = cms.bool(True),
-        ClusterShapeHitFilterName = cms.string('mixedTripletStepClusterShapeHitFilter'),
-        ClusterShapeCacheSrc = cms.InputTag('siPixelClusterShapeCache')
+    ComponentName = cms.string('CombinedSeedComparitor'),
+        mode = cms.string("and"),
+        comparitors = cms.VPSet(
+        cms.PSet(
+          ComponentName = cms.string('PixelClusterShapeSeedComparitor'),
+          FilterAtHelixStage = cms.bool(True),
+          FilterPixelHits = cms.bool(True),
+          FilterStripHits = cms.bool(True),
+          ClusterShapeHitFilterName = cms.string('mixedTripletStepClusterShapeHitFilter'),
+          ClusterShapeCacheSrc = cms.InputTag('siPixelClusterShapeCache')
+        ),
+        RecoPixelVertexing.PixelLowPtUtilities.StripSubClusterShapeSeedFilter_cfi.StripSubClusterShapeSeedFilter.clone()
+        )
     )
+
 
 import RecoTracker.TkSeedGenerator.GlobalCombinedSeeds_cfi
 mixedTripletStepSeeds = RecoTracker.TkSeedGenerator.GlobalCombinedSeeds_cfi.globalCombinedSeeds.clone()

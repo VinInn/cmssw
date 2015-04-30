@@ -156,6 +156,9 @@ public:
     return true;
   }
 
+  void updateQbp(float newQbp) {
+   theQbp = newQbp;
+  }
 
   float qbp() const { return theQbp;}
   float dxdz() const { return theDxdz;}
