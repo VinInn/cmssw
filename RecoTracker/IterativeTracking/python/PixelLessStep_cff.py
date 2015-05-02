@@ -203,7 +203,7 @@ pixelLessStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.m
             dz_par1 = ( 1.2, 4.0 ),
             d0_par2 = ( 1.2, 4.0 ),
             dz_par2 = ( 1.2, 4.0 )
-            ),
+            ),#0
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.tightMTS.clone(
             name = 'pixelLessStepTight',
             preFilterName = 'pixelLessStepLoose',
@@ -217,7 +217,7 @@ pixelLessStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.m
             dz_par1 = ( 0.9, 4.0 ),
             d0_par2 = ( 0.9, 4.0 ),
             dz_par2 = ( 0.9, 4.0 )
-            ),
+            ),#1
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.looseMTS.clone(
             name = 'pixelLessStep',
             preFilterName = 'pixelLessStepLoose',
@@ -233,7 +233,7 @@ pixelLessStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.m
             dz_par1 = ( 0.7, 4.0 ),
             d0_par2 = ( 0.7, 4.0 ),
             dz_par2 = ( 0.7, 4.0 )
-            ),
+            ),#2
         mixedTripletStepSelector.trackSelectors[4].clone(
             name = 'pixelLessStepVtx',
             preFilterName=cms.string(''),
@@ -248,8 +248,7 @@ pixelLessStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.m
             dz_par1 = ( 1.0, 3.0 ),
             d0_par2 = ( 1.1, 3.0 ),
             dz_par2 = ( 1.1, 3.0 )
-
-            ),
+            ),#3
         ) #end of vpset
     ) #end of clone
 

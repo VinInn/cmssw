@@ -69,7 +69,7 @@ import RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimatorESProducer_cfi
 detachedTripletStepChi2Est = RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimatorESProducer_cfi.Chi2ChargeMeasurementEstimator.clone(
     ComponentName = cms.string('detachedTripletStepChi2Est'),
     nSigma = cms.double(3.0),
-    MaxChi2 = cms.double(9.0),
+    MaxChi2 = cms.double(16.0),
     clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight')),
 )
 
@@ -133,7 +133,7 @@ detachedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector
             dz_par1 = ( 1.2, 3.0 ),
             d0_par2 = ( 1.3, 3.0 ),
             dz_par2 = ( 1.3, 3.0 )
-            ),
+            ), #0
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.looseMTS.clone(
             name = 'detachedTripletStepTrkLoose',
             chi2n_par = 9999,
@@ -147,7 +147,7 @@ detachedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector
             dz_par1 = ( 1.4, 4.0 ),
             d0_par2 = ( 1.4, 4.0 ),
             dz_par2 = ( 1.4, 4.0 )
-            ),
+            ),#1
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.tightMTS.clone(
             name = 'detachedTripletStepVtxTight',
             preFilterName = 'detachedTripletStepVtxLoose',
@@ -160,7 +160,7 @@ detachedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector
             dz_par1 = ( 1.1, 3.0 ),
             d0_par2 = ( 1.2, 3.0 ),
             dz_par2 = ( 1.2, 3.0 )
-            ),
+            ),#2
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.tightMTS.clone(
             name = 'detachedTripletStepTrkTight',
             preFilterName = 'detachedTripletStepTrkLoose',
@@ -173,7 +173,7 @@ detachedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector
             dz_par1 = ( 1.1, 4.0 ),
             d0_par2 = ( 1.1, 4.0 ),
             dz_par2 = ( 1.1, 4.0 )
-            ),
+            ),#3
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.looseMTS.clone(
             name = 'detachedTripletStepVtx',
             preFilterName = 'detachedTripletStepVtxLoose',
@@ -188,7 +188,7 @@ detachedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector
             dz_par1 = ( 1.0, 3.0 ),
             d0_par2 = ( 1.1, 3.0 ),
             dz_par2 = ( 1.1, 3.0 )
-            ),
+            ),#4
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.looseMTS.clone(
             name = 'detachedTripletStepTrk',
             preFilterName = 'detachedTripletStepTrkLoose',
@@ -204,7 +204,7 @@ detachedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector
             dz_par1 = ( 1.0, 4.0 ),
             d0_par2 = ( 1.0, 4.0 ),
             dz_par2 = ( 1.0, 4.0 )
-            )
+            )#5
         ) #end of vpset
     ) #end of clone
 

@@ -28,9 +28,10 @@ mixedTripletStepClusters = trackClusterRemover.clone(
 # SEEDING LAYERS
 from RecoLocalTracker.SiStripClusterizer.SiStripClusterChargeCut_cfi import *
 mixedTripletStepSeedLayersA = cms.EDProducer("SeedingLayersEDProducer",
-    layerList = cms.vstring('BPix1+BPix2+BPix3', 
-        'BPix1+BPix2+FPix1_pos', 'BPix1+BPix2+FPix1_neg', 
-        'BPix1+FPix1_pos+FPix2_pos', 'BPix1+FPix1_neg+FPix2_neg', 
+    layerList = cms.vstring(
+#        'BPix1+BPix2+BPix3', 
+#        'BPix1+BPix2+FPix1_pos', 'BPix1+BPix2+FPix1_neg', 
+#        'BPix1+FPix1_pos+FPix2_pos', 'BPix1+FPix1_neg+FPix2_neg', 
         'BPix2+FPix1_pos+FPix2_pos', 'BPix2+FPix1_neg+FPix2_neg'),
     BPix = cms.PSet(
         TTRHBuilder = cms.string('WithTrackAngle'),
@@ -105,8 +106,8 @@ mixedTripletStepSeedsB = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff
 mixedTripletStepSeedsB.OrderedHitsFactoryPSet.SeedingLayers = 'mixedTripletStepSeedLayersB'
 mixedTripletStepSeedsB.OrderedHitsFactoryPSet.GeneratorPSet = cms.PSet(PixelTripletLargeTipGenerator)
 mixedTripletStepSeedsB.SeedCreatorPSet.ComponentName = 'SeedFromConsecutiveHitsTripletOnlyCreator'
-mixedTripletStepSeedsB.RegionFactoryPSet.RegionPSet.ptMin = 0.6
-mixedTripletStepSeedsB.RegionFactoryPSet.RegionPSet.originHalfLength = 10.0
+mixedTripletStepSeedsB.RegionFactoryPSet.RegionPSet.ptMin = 0.4
+mixedTripletStepSeedsB.RegionFactoryPSet.RegionPSet.originHalfLength = 15.0
 mixedTripletStepSeedsB.RegionFactoryPSet.RegionPSet.originRadius = 1.5
 
 mixedTripletStepSeedsB.SeedComparitorPSet = cms.PSet(
@@ -224,7 +225,7 @@ mixedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cf
             dz_par1 = ( 1.2, 3.0 ),
             d0_par2 = ( 1.3, 3.0 ),
             dz_par2 = ( 1.3, 3.0 )
-            ),
+            ),#0
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.looseMTS.clone(
             name = 'mixedTripletStepTrkLoose',
             GBRForestLabel = cms.string('MVASelectorIter4_13TeV_v0'),
@@ -241,7 +242,7 @@ mixedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cf
             dz_par1 = ( 1.1, 4.0 ),
             d0_par2 = ( 1.1, 4.0 ),
             dz_par2 = ( 1.1, 4.0 )
-            ),
+            ),#1
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.tightMTS.clone(
             name = 'mixedTripletStepVtxTight',
             preFilterName = 'mixedTripletStepVtxLoose',
@@ -255,7 +256,7 @@ mixedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cf
             dz_par1 = ( 1.1, 3.0 ),
             d0_par2 = ( 1.2, 3.0 ),
             dz_par2 = ( 1.2, 3.0 )
-            ),
+            ),#2
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.tightMTS.clone(
             name = 'mixedTripletStepTrkTight',
             preFilterName = 'mixedTripletStepTrkLoose',
@@ -269,7 +270,7 @@ mixedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cf
             dz_par1 = ( 1.0, 4.0 ),
             d0_par2 = ( 1.0, 4.0 ),
             dz_par2 = ( 1.0, 4.0 )
-            ),
+            ),#3
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.looseMTS.clone(
             name = 'mixedTripletStepVtx',
             preFilterName = 'mixedTripletStepVtxLoose',
@@ -284,7 +285,7 @@ mixedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cf
             dz_par1 = ( 1.0, 3.0 ),
             d0_par2 = ( 1.1, 3.0 ),
             dz_par2 = ( 1.1, 3.0 )
-            ),
+            ),#4
         RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.looseMTS.clone(
             name = 'mixedTripletStepTrk',
             preFilterName = 'mixedTripletStepTrkLoose',
@@ -300,7 +301,7 @@ mixedTripletStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cf
             dz_par1 = ( 0.8, 4.0 ),
             d0_par2 = ( 0.8, 4.0 ),
             dz_par2 = ( 0.8, 4.0 )
-            )
+            )#5
         ) #end of vpset
     ) #end of clone
 
