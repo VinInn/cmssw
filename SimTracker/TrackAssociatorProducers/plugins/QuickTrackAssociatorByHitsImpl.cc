@@ -255,6 +255,7 @@ template<typename T_TPCollection,typename iter> std::vector<std::pair<edm::Ref<T
 	// Most reco hits will probably have come from the same sim track, so the number of entries in this vector should be fewer than the
 	// number of reco hits.  The pair::second entries should add up to the total number of reco hits though.
 	std::vector< std::pair<SimTrackIdentifiers,size_t> > hitIdentifiers=getAllSimTrackIdentifiers( hitAssociator, begin, end );
+        std::sort(std::begin(hitIdentifiers),std::end(hitIdentifiers),[](auto const &a, auto const& b) { return a.first<b.first;});
 
 	// Loop over the TrackingParticles
 	size_t collectionSize=::collectionSize(trackingParticles);
@@ -266,13 +267,16 @@ template<typename T_TPCollection,typename iter> std::vector<std::pair<edm::Ref<T
 		// Ignore TrackingParticles with no hits
 		if( pTrackingParticle->numberOfHits()==0 ) continue;
 
-		size_t numberOfAssociatedHits=0;
-		// Loop over all of the sim track identifiers and see if any of them are part of this TrackingParticle. If they are, add
-		// the number of reco hits associated to that sim track to the total number of associated hits.
-		for( std::vector< std::pair<SimTrackIdentifiers,size_t> >::const_iterator iIdentifierCountPair=hitIdentifiers.begin(); iIdentifierCountPair!=hitIdentifiers.end(); ++iIdentifierCountPair )
-		{
-			if( trackingParticleContainsIdentifier( pTrackingParticle, iIdentifierCountPair->first ) ) numberOfAssociatedHits+=iIdentifierCountPair->second;
-		}
+         	size_t numberOfAssociatedHits=0;
+
+                // search the sim track identifiers and see if any of them are part of this TrackingParticle. If they are, add
+         	// the number of reco hits associated to that sim track to the total number of associated hits.
+                for (auto const & iSimTrack : (*pTrackingParticle).g4Tracks()) {
+                   std::pair<SimTrackIdentifiers,size_t> sid(SimTrackIdentifiers(iSimTrack.trackId(),iSimTrack.eventId()),0);
+	           auto idpair = std::equal_range(std::begin(hitIdentifiers),std::end(hitIdentifiers), sid,
+                                                  [](auto const &a, auto const& b) { return a.first<b.first;});
+                   for (auto id=idpair.first;id!=idpair.second;++id) numberOfAssociatedHits+=id->second;
+                }
 
 		if( numberOfAssociatedHits>0 )
 		{

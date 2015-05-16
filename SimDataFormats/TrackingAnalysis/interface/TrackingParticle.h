@@ -75,10 +75,10 @@ public:
     void addGenParticle( const reco::GenParticleRef& ref);
     void addG4Track( const SimTrack& t);
     /// iterators
-    genp_iterator genParticle_begin() const;
-    genp_iterator genParticle_end() const;
-    g4t_iterator g4Track_begin() const;
-    g4t_iterator g4Track_end() const;
+    genp_iterator genParticle_begin() const { return genParticles_.begin(); }
+    genp_iterator genParticle_end() const { return genParticles_.end(); }
+    g4t_iterator g4Track_begin() const { return g4Tracks_.begin(); }
+    g4t_iterator g4Track_end() const { return g4Tracks_.end(); }
     void setParentVertex(const TrackingVertexRef& ref);
     void addDecayVertex(const TrackingVertexRef& ref);
     void clearParentVertex();
