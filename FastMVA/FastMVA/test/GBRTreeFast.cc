@@ -1,10 +1,8 @@
-
-
 #include "GBRTreeFast.h"
 
-using namespace std;
 #include "TMVA/DecisionTreeNode.h"
 #include "TMVA/DecisionTree.h"
+#include<cassert>
 
 //_______________________________________________________________________
 GBRTreeFast::GBRTreeFast()
@@ -22,21 +20,19 @@ GBRTreeFast::GBRTreeFast(const TMVA::DecisionTree *tree)
   
   //special case, root node is terminal
   if (nIntermediate==0) nIntermediate = 1;
-  
-  fCutIndices.reserve(nIntermediate);
-  fCutVals.reserve(nIntermediate);
-  fLeftIndices.reserve(nIntermediate);
-  fRightIndices.reserve(nIntermediate);
-  fResponses.reserve(nTerminal);
+  assert(nIntermediate<=NMAX);
+  assert(nTerminal<=NMAX);
 
+  
   AddNode((TMVA::DecisionTreeNode*)tree->GetRoot());
 
   //special case, root node is terminal, create fake intermediate node at root
-  if (fCutIndices.size()==0) {
-    fCutIndices.push_back(0);
-    fCutVals.push_back(0);
-    fLeftIndices.push_back(0);
-    fRightIndices.push_back(0);
+  if (size()==0) {
+    m_size=1;
+    fCutIndices[0]=0;;
+    fCutVals[0]=0;
+    fLeftIndices[0]=0;
+    fRightIndices[0]=0;
   }
 
 }
@@ -76,17 +72,18 @@ unsigned int GBRTreeFast::CountTerminalNodes(const TMVA::DecisionTreeNode *node)
 void GBRTreeFast::AddNode(const TMVA::DecisionTreeNode *node) {
 
   if (!node->GetLeft() || !node->GetRight() || node->IsTerminal()) {
-    fResponses.push_back(node->GetResponse());
+    fResponses[rsize()] = node->GetResponse();
+    ++m_rsize;
     return;
   }
   else {    
-    int thisidx = fCutIndices.size();
-    
-    fCutIndices.push_back(node->GetSelector());
-    fCutVals.push_back(node->GetCutValue());
-    fLeftIndices.push_back(0);   
-    fRightIndices.push_back(0);
-    
+    int thisidx = size();
+    fCutIndices[m_size] = node->GetSelector();
+    tof16(node->GetCutValue(),fCutVals[m_size]);
+    fLeftIndices[m_size] = 0;   
+    fRightIndices[m_size] = 0;
+    ++m_size;
+
     TMVA::DecisionTreeNode *left;
     TMVA::DecisionTreeNode *right;
     if (node->GetCutType()) {
@@ -100,18 +97,18 @@ void GBRTreeFast::AddNode(const TMVA::DecisionTreeNode *node) {
     
     
     if (!left->GetLeft() || !left->GetRight() || left->IsTerminal()) {
-      fLeftIndices[thisidx] = -fResponses.size();
+      fLeftIndices[thisidx] = -rsize();
     }
     else {
-      fLeftIndices[thisidx] = fCutIndices.size();
+      fLeftIndices[thisidx] = size();
     }
     AddNode(left);
     
     if (!right->GetLeft() || !right->GetRight() || right->IsTerminal()) {
-      fRightIndices[thisidx] = -fResponses.size();
+      fRightIndices[thisidx] = -rsize();
     }
     else {
-      fRightIndices[thisidx] = fCutIndices.size();
+      fRightIndices[thisidx] = size();
     }
     AddNode(right);    
     

@@ -35,8 +35,8 @@
        explicit GBRForestFast(const TMVA::MethodBDT *bdt);
        virtual ~GBRForestFast();
        
-       float GetResponse(const float* vector) const;
-       float GetClassifier(const float* vector) const;
+       float GetResponse(const short * vector) const;
+       float GetClassifier(const short * vector) const;
        
        void SetInitialResponse(float response) { fInitialResponse = response; }
        
@@ -52,7 +52,7 @@
 };
 
 //_______________________________________________________________________
-inline float GBRForestFast::GetResponse(const float* vector) const {
+inline float GBRForestFast::GetResponse(const short * vector) const {
   auto response = fInitialResponse;
   for (auto const & t : fTrees) {
     response += t.GetResponse(vector);
@@ -61,7 +61,7 @@ inline float GBRForestFast::GetResponse(const float* vector) const {
 }
 
 //_______________________________________________________________________
-inline float GBRForestFast::GetClassifier(const float* vector) const {
+inline float GBRForestFast::GetClassifier(const short * vector) const {
   float response = GetResponse(vector);
   return 2.0f/(1.0f+std::exp(-2.0f*response))-1.f; //MVA output between -1 and 1
 }

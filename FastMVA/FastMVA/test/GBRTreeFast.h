@@ -20,13 +20,50 @@
 // intermediate nodes, containing the variable index and cut value, as well
 // as the indices of the 'left' and 'right' daughter nodes.  Positive indices
 // indicate further intermediate nodes, whereas negative indices indicate
-// terminal nodes, which are stored simply as a vector of regression responses
+// terminal nodes, which are stored simply as a array of regression responses
 
 
 #include "CondFormats/Serialization/interface/Serializable.h"
 
-#include <vector>
-#include <map>
+#include <x86intrin.h>
+#include <cstring>
+#include<cassert>
+
+inline
+void tof16(float const * f32, short * f16, unsigned int n) {
+  assert(0==n%4);
+
+  __m128 vf32;
+  for (auto i=0U; i<n; i+=4) {
+    ::memcpy(&vf32,f32+i,sizeof(vf32));
+    auto vf16 = _mm_cvtps_ph (vf32,0) ;
+    ::memcpy(f16+i,&vf16,sizeof(long long));
+  }
+			 
+}
+
+inline
+void tof16(float f32, short & f16) {
+
+  __m128 vf32;
+    ::memcpy(&vf32,&f32,sizeof(float));
+    auto vf16 = _mm_cvtps_ph (vf32,0) ;
+    ::memcpy(&f16,&vf16,sizeof(f16));
+}
+
+
+inline
+void tof32(short f16, float & f32) {
+
+  __m128i vf16;
+   ::memcpy(&vf16,&f16,sizeof(f16));
+    auto vf32 = _mm_cvtph_ps (vf16) ;
+    ::memcpy(&f32, &vf32,sizeof(f32));
+			 
+}
+
+
+#include <array>
 
   namespace TMVA {
     class DecisionTree;
@@ -37,28 +74,34 @@
 
     public:
 
+       static constexpr int NMAX=8;
+
        GBRTreeFast();
        explicit GBRTreeFast(const TMVA::DecisionTree *tree);
        virtual ~GBRTreeFast();
        
-       double GetResponse(const float* vector) const;
-       int TerminalIndex(const float *vector) const;
+       float GetResponse(const short * array) const;
+       int TerminalIndex(const short  *array) const;
        
-       std::vector<float> &Responses() { return fResponses; }       
-       const std::vector<float> &Responses() const { return fResponses; }
+       std::array<float,NMAX> &Responses() { return fResponses; }       
+       const std::array<float,NMAX> &Responses() const { return fResponses; }
        
-       std::vector<unsigned char> &CutIndices() { return fCutIndices; }
-       const std::vector<unsigned char> &CutIndices() const { return fCutIndices; }
+       std::array<unsigned char,NMAX> &CutIndices() { return fCutIndices; }
+       const std::array<unsigned char,NMAX> &CutIndices() const { return fCutIndices; }
        
-       std::vector<float> &CutVals() { return fCutVals; }
-       const std::vector<float> &CutVals() const { return fCutVals; }
+       std::array<short,NMAX> &CutVals() { return fCutVals; }
+       const std::array<short,NMAX> &CutVals() const { return fCutVals; }
        
-       std::vector<int> &LeftIndices() { return fLeftIndices; }
-       const std::vector<int> &LeftIndices() const { return fLeftIndices; } 
+       std::array<short,NMAX> &LeftIndices() { return fLeftIndices; }
+       const std::array<short,NMAX> &LeftIndices() const { return fLeftIndices; } 
        
-       std::vector<int> &RightIndices() { return fRightIndices; }
-       const std::vector<int> &RightIndices() const { return fRightIndices; }
+       std::array<short,NMAX> &RightIndices() { return fRightIndices; }
+       const std::array<short,NMAX> &RightIndices() const { return fRightIndices; }
        
+       unsigned int size() const { return m_size;}
+       void setSize(int s) { m_size =s;}
+       unsigned int rsize() const { return m_rsize;}
+       void setRsize(int s) { m_rsize =s;}
 
        
     protected:      
@@ -67,56 +110,53 @@
       
         void AddNode(const TMVA::DecisionTreeNode *node);
         
-	std::vector<unsigned char> fCutIndices;
-	std::vector<float> fCutVals;
-	std::vector<int> fLeftIndices;
-	std::vector<int> fRightIndices;
-	std::vector<float> fResponses;  
+	std::array<unsigned char,NMAX> fCutIndices;
+	std::array<short,NMAX> fCutVals;
+	std::array<short,NMAX> fLeftIndices;
+	std::array<short,NMAX> fRightIndices;
+	std::array<float,NMAX> fResponses;  
         
+        unsigned int  m_size=0; unsigned int  m_rsize=0;
   
   COND_SERIALIZABLE;
 };
 
 //_______________________________________________________________________
-inline double GBRTreeFast::GetResponse(const float* vector) const {
+inline float GBRTreeFast::GetResponse(const short * array) const {
+  return fResponses[TerminalIndex(array)];
   
+  /*  
   int index = 0;
   
-  unsigned char cutindex = fCutIndices[0];
-  float cutval = fCutVals[0];
-  
+  int s = size();
+  short d[NMAX];
+  short val[NMAX]; // ={0};
+  for (auto i=0; i<s; ++i) val[i]=array[fCutIndices[i]];
+  for (auto i=0; i<int(NMAX); ++i) d[i]=val[i]>fCutVals[i];
+
   while (true) {
-     
-    if (vector[cutindex] > cutval) {
-      index = fRightIndices[index];
-    }
-    else {
-      index = fLeftIndices[index];
-    }
+    index =  d[index] ?
+        fRightIndices[index] :
+        fLeftIndices[index];
     
-    if (index>0) {
-      cutindex = fCutIndices[index];
-      cutval = fCutVals[index];
-    }
-    else {
+    if (index<=0) 
       return fResponses[-index];
-    }
     
   }
-  
+  */
 
 }
 
 //_______________________________________________________________________
-inline int GBRTreeFast::TerminalIndex(const float* vector) const {
+inline int GBRTreeFast::TerminalIndex(const short * array) const {
   
   int index = 0;
   
   unsigned char cutindex = fCutIndices[0];
-  float cutval = fCutVals[0];
+  short cutval = fCutVals[0];
   
   while (true) {
-    if (vector[cutindex] > cutval) {
+    if (array[cutindex] > cutval) {
       index = fRightIndices[index];
     }
     else {

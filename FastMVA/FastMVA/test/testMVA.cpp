@@ -8,6 +8,7 @@
 #include<random>
 
 #include<iostream>
+#include<cassert>
 
 #include <x86intrin.h>
 
@@ -19,9 +20,15 @@ inline volatile unsigned long long rdtsc() {
 
 template<typename A, typename B>
 void copyIn(A const & a, B & b) {
-  b.resize(a.size());
   std::copy(a.begin(),a.end(),b.begin());
 }
+
+template<typename A, typename B>
+void copyf16(A const & a, B & b) {
+  std::transform(a.begin(),a.end(),b.begin(),[](float x) { short y; tof16(x,y); return y;});
+}
+
+
 
 void copy(GBRForest const & f, GBRForestFast & ff) {
   ff.Trees().resize(f.Trees().size());
@@ -30,9 +37,14 @@ void copy(GBRForest const & f, GBRForestFast & ff) {
     auto & tf = ff.Trees()[kk++];
     copyIn(t.Responses(),tf.Responses());
     copyIn(t.CutIndices(),tf.CutIndices());
-    copyIn(t.CutVals(),tf.CutVals());
+    copyf16(t.CutVals(),tf.CutVals());
     copyIn(t.LeftIndices(),tf.LeftIndices());
     copyIn(t.RightIndices(),tf.RightIndices());
+    tf.setSize(t.CutIndices().size());
+    tf.setRsize(t.Responses().size());
+    assert(tf.size()<=tf.CutIndices().size());
+    assert(tf.rsize()<=tf.Responses().size());
+
   }
 
 }
@@ -74,6 +86,36 @@ float eval(FF const & forest, float *  x, long long & t1) {
     return ret;
 }
 
+
+template<>
+float eval(GBRForestFast const & forest, float *  x, long long & t1) {
+
+    float gbrVals_[16];
+    gbrVals_[0] = 0.2f + 20.f*x[0];
+    gbrVals_[1] = x[1];
+    gbrVals_[2] = int(3.f*x[2]);
+    gbrVals_[3] = int(20.f*x[3]);
+    gbrVals_[4] = 0.1f*x[4];
+    gbrVals_[5] = 2.4f+4.8d*x[5];
+    gbrVals_[6] = 8.f*x[6];
+    gbrVals_[7] = 8.f*x[6];
+    gbrVals_[8] = int(3.f*x[7]);
+    gbrVals_[9] = int(7.f*x[3]);
+    gbrVals_[10] = int(12.f*x[3]);
+    gbrVals_[11] = int(20.f*x[3])-5;
+    gbrVals_[12] = 0.01*x[8];
+    gbrVals_[13] = 15.f*x[9];
+    gbrVals_[14] = x[10];
+    gbrVals_[15] = 0.01*x[8];;
+
+
+    t1 -= rdtsc();
+    short xx[16];
+    tof16(gbrVals_,xx,16);
+    auto ret = forest.GetClassifier(xx);
+    t1 += rdtsc();
+    return ret;
+}
 
 
 
