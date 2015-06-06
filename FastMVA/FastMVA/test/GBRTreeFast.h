@@ -31,13 +31,26 @@
 
 inline
 void tof16(float const * f32, short * f16, unsigned int n) {
-  assert(0==n%4);
+//  assert(0==n%4);
 
   __m128 vf32;
   for (auto i=0U; i<n; i+=4) {
     ::memcpy(&vf32,f32+i,sizeof(vf32));
     auto vf16 = _mm_cvtps_ph (vf32,0) ;
     ::memcpy(f16+i,&vf16,sizeof(long long));
+  }
+			 
+}
+
+inline
+void tof32(short const * f16, float * f32, unsigned int n) {
+  // assert(0==n%4);
+
+  __m128i vf16;
+  for (auto i=0U; i<n; i+=4) {
+    ::memcpy(&vf16,f16+i,sizeof(long long));
+    auto vf32 = _mm_cvtph_ps (vf16) ;
+    ::memcpy(f32+i, &vf32,sizeof(vf32));
   }
 			 
 }
@@ -80,11 +93,11 @@ void tof32(short f16, float & f32) {
        explicit GBRTreeFast(const TMVA::DecisionTree *tree);
        virtual ~GBRTreeFast();
        
-       float GetResponse(const short * array) const;
+       short GetResponse(const short * array) const;
        int TerminalIndex(const short  *array) const;
        
-       std::array<float,NMAX> &Responses() { return fResponses; }       
-       const std::array<float,NMAX> &Responses() const { return fResponses; }
+       std::array<short,NMAX> &Responses() { return fResponses; }       
+       const std::array<short,NMAX> &Responses() const { return fResponses; }
        
        std::array<unsigned char,NMAX> &CutIndices() { return fCutIndices; }
        const std::array<unsigned char,NMAX> &CutIndices() const { return fCutIndices; }
@@ -114,7 +127,7 @@ void tof32(short f16, float & f32) {
 	std::array<short,NMAX> fCutVals;
 	std::array<short,NMAX> fLeftIndices;
 	std::array<short,NMAX> fRightIndices;
-	std::array<float,NMAX> fResponses;  
+	std::array<short,NMAX> fResponses;  
         
         unsigned int  m_size=0; unsigned int  m_rsize=0;
   
@@ -122,7 +135,7 @@ void tof32(short f16, float & f32) {
 };
 
 //_______________________________________________________________________
-inline float GBRTreeFast::GetResponse(const short * array) const {
+inline short GBRTreeFast::GetResponse(const short * array) const {
   return fResponses[TerminalIndex(array)];
   
   /*  

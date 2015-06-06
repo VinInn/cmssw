@@ -35,7 +35,7 @@ void copy(GBRForest const & f, GBRForestFast & ff) {
   int kk=0;
   for (auto const & t : f.Trees() ) {
     auto & tf = ff.Trees()[kk++];
-    copyIn(t.Responses(),tf.Responses());
+    copyf16(t.Responses(),tf.Responses());
     copyIn(t.CutIndices(),tf.CutIndices());
     copyf16(t.CutVals(),tf.CutVals());
     copyIn(t.LeftIndices(),tf.LeftIndices());

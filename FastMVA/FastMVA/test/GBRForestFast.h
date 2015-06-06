@@ -54,10 +54,17 @@
 //_______________________________________________________________________
 inline float GBRForestFast::GetResponse(const short * vector) const {
   auto response = fInitialResponse;
-  for (auto const & t : fTrees) {
-    response += t.GetResponse(vector);
+  auto s =  fTrees.size();
+  float ss[4]={0.f};
+  short r[4] ={0}; 
+  for (auto i=0U; i<s; i+=4) {
+    for (auto j=0; j<4; ++j)
+       r[j]=fTrees[i+j].GetResponse(vector);
+    float x[4]; tof32(r,x,4);
+    for (auto j=0; j<4; ++j) ss[j]+=x[j];
   }
-  return response;
+  return response+ss[0]+ss[1]+ss[2]+ss[3];
+  // return response+(r[0]+r[1]+r[2]+r[3]);
 }
 
 //_______________________________________________________________________
