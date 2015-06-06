@@ -72,7 +72,7 @@ unsigned int GBRTreeFast::CountTerminalNodes(const TMVA::DecisionTreeNode *node)
 void GBRTreeFast::AddNode(const TMVA::DecisionTreeNode *node) {
 
   if (!node->GetLeft() || !node->GetRight() || node->IsTerminal()) {
-    fResponses[rsize()] = node->GetResponse();
+    tof16(node->GetResponse(),fResponses[rsize()]);
     ++m_rsize;
     return;
   }
