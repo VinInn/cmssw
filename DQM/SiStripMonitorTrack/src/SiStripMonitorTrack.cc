@@ -769,7 +769,9 @@ void SiStripMonitorTrack::trackStudyFromTrack(edm::Handle<reco::TrackCollection 
     
     //    const reco::TransientTrack transientTrack = transientTrackBuilder->build(track);
     
+   if (track->pt()<1. || track->algo()!=reco::Track::initialStep || !track->quality(reco::Track::highPurity) ) continue;
      
+
     for (trackingRecHit_iterator hit = track->recHitsBegin(), ehit = track->recHitsEnd();
 	 hit!=ehit; ++hit) {
       if (!(*hit)->isValid()) continue;
@@ -831,7 +833,10 @@ void SiStripMonitorTrack::trackStudyFromTrajectory(edm::Handle<TrajTrackAssociat
     const edm::Ref<std::vector<Trajectory> > traj_iterator = it->key;
 
     // Trajectory Map, extract Trajectory for this track
-    reco::TrackRef trackref = it->val;
+    reco::TrackRef track = it->val;
+
+    if (track->pt()<1. || track->algo()!=reco::Track::initialStep || track->quality(reco::Track::highPurity) ) continue;
+
     LogDebug("SiStripMonitorTrack")
       << "Track number "<< i+1 << std::endl;
       //      << "\n\tmomentum: " << trackref->momentum()

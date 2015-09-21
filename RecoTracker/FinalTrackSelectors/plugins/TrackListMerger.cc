@@ -542,7 +542,8 @@ TrackListMerger::~TrackListMerger() { }
 
 	  } //loop over ih & jh
 
-	  bool dupfound = (collNum != collNum2) ? (noverlap-firstoverlap) > (std::min(nhit1,nhit2)-firstoverlap)*shareFrac_ :
+          bool dupfound = noverlap>1;
+	  dupfound &= (collNum != collNum2) ? (noverlap-firstoverlap) > (std::min(nhit1,nhit2)-firstoverlap)*shareFrac_ :
 	    (noverlap-firstoverlap) > (std::min(nhit1,nhit2)-firstoverlap)*indivShareFrac_[collNum];
 
           auto seti = [&](unsigned int ii, unsigned int jj) {

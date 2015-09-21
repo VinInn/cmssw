@@ -464,6 +464,13 @@ GroupedCkfTrajectoryBuilder::advanceOneLayer (const TrajectorySeed& seed,
   std::pair<TSOS,std::vector<const DetLayer*> > && stateAndLayers = findStateAndLayers(traj);
 
 
+  bool lastInactive = false; 
+      //     !traj.empty() && traj.lastMeasurement().recHitR().det()
+      //                && traj.lastMeasurement().recHitR().getType()==TrackingRecHit::inactive;
+
+  if (lastInactive) std::cout << "advanceOneLayer from Inactive " 
+                              << traj.lastMeasurement().recHitR().det()->geographicalId().rawId() <<std::endl;
+
   if(maxPt2ForLooperReconstruction>0){
     if(
        //stateAndLayers.second.size()==0 &&
@@ -609,13 +616,14 @@ GroupedCkfTrajectoryBuilder::advanceOneLayer (const TrajectorySeed& seed,
       
     rejected:;    // http://xkcd.com/292/
       if(toBeRejected){
-#ifdef VI_DEBUG
-        cout << "WARNING: neglect candidate because it contains the same hit twice \n";
-          cout << "-- discarded track's pt,eta,#found/lost: "
+// #ifdef VI_DEBUG
+      if(lastInactive)
+        cout << "WARNING: neglect candidate because it contains the same hit twice \n"
+          << "-- discarded track's pt,eta,#found/lost: "
           << traj.lastMeasurement().updatedState().globalMomentum().perp() << " , "
           << traj.lastMeasurement().updatedState().globalMomentum().eta() << " , "
-          << traj.foundHits() << '/' << traj.lostHits() << "\n";
-#endif
+          << traj.foundHits() << '/' << traj.lostHits() << "\n" << std::endl;
+// #endif
 	traj.setDPhiCacheForLoopersReconstruction(dPhiCacheForLoopersReconstruction);
 	continue; //Are we sure about this????
       }
@@ -627,11 +635,12 @@ GroupedCkfTrajectoryBuilder::advanceOneLayer (const TrajectorySeed& seed,
       TempTrajectory newTraj(traj);
       traj.setDPhiCacheForLoopersReconstruction(dPhiCacheForLoopersReconstruction);
       newTraj.join(*is);
-
-      //std::cout << "DEBUG: newTraj after push found,lost: " 
-      //	  << newTraj.foundHits() << " , " 
-      //	  << newTraj.lostHits() << " , "
-      //	  << newTraj.measurements().size() << std::endl;
+       
+      if(lastInactive)
+       std::cout << "DEBUG: newTraj after push found,lost: " 
+      	  << newTraj.foundHits() << " , " 
+      	  << newTraj.lostHits() << " , "
+      	  << newTraj.measurements().size() << std::endl;
       
       
       
@@ -642,6 +651,9 @@ GroupedCkfTrajectoryBuilder::advanceOneLayer (const TrajectorySeed& seed,
 	// Have added one more hit to track candidate
 	
 	LogDebug("CkfPattern")<<"GCTB: adding updated trajectory to candidates: inOut="<<inOut<<" hits="<<newTraj.foundHits();
+        if(lastInactive) 
+           std::cout << "GCTB: adding updated trajectory to candidates: inOut="<<inOut<<" hits="<<newTraj.foundHits() << std::endl;
+
 
 	newCand.push_back(std::move(newTraj));
 	foundNewCandidates = true;
@@ -650,14 +662,16 @@ GroupedCkfTrajectoryBuilder::advanceOneLayer (const TrajectorySeed& seed,
 	// Have finished building this track. Check if it passes cuts.
 
 	LogDebug("CkfPattern")<< "GCTB: adding completed trajectory to results if passes cuts: inOut="<<inOut<<" hits="<<newTraj.foundHits();
-
+        if(lastInactive) std::cout << "GCTB: adding completed trajectory to results if passes cuts: inOut="<<inOut
+                                   <<" hits="<<newTraj.foundHits() << std::endl;
+ 
 	moveToResult(std::move(newTraj), result, inOut);
       }
     } // loop over segs
   } // loop over layers
 
   if ( !foundSegments ){
-    LogDebug("CkfPattern")<< "GCTB: adding input trajectory to result";
+    if(lastInactive) std::cout << "GCTB: adding input trajectory to result" << std::endl;
     addToResult(traj, result, inOut);
   }
   return foundNewCandidates;

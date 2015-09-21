@@ -414,8 +414,9 @@ TrajectorySegmentBuilder::updateWithInvalidHit (TempTrajectory& traj,
 	    // add the hit
             candidates.push_back(traj); 
             updateTrajectory(candidates.back(), *im);
-	    if unlikely( theDbgFlg ) cout << "TrajectorySegmentBuilder::updateWithInvalidHit "
-				  << "added inactive hit" << endl;
+	    if unlikely( theDbgFlg ) 
+            cout << "TrajectorySegmentBuilder::updateWithInvalidHit "
+				  << "added inactive hit " << hit.det()->geographicalId() << endl;
 	    return;
 	  }
 	}

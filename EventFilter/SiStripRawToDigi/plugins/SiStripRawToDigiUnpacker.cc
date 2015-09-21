@@ -67,6 +67,8 @@ namespace sistrip {
 
   void RawToDigiUnpacker::createDigis( const SiStripFedCabling& cabling, const FEDRawDataCollection& buffers, SiStripEventSummary& summary, RawDigis& scope_mode, RawDigis& virgin_raw, RawDigis& proc_raw, Digis& zero_suppr, DetIdCollection& detids, RawDigis& cm_values ) {
 
+    // std::cout << "here, hi, hello" << std::endl;
+
     // Clear done at the end
     assert(zs_work_digis_.empty()); 
     zs_work_digis_.reserve(localRA.upper());
@@ -140,13 +142,38 @@ namespace sistrip {
       // get the cabling connections for this FED
       auto conns = cabling.fedConnections(*ifed);
     
+     // std::cout << "fed " << int(*ifed) << std::endl;
+
+     // Check on masked FED
+      if ( 439 == *ifed || 434 == *ifed ) {
+	if ( edm::isDebugEnabled() ) {
+
+//        edm::LogWarning(sistrip::mlRawToDigi_)
+          std::cout
+            << "[sistrip::RawToDigiUnpacker::" << __func__ << "]"
+            << " disabled FED for FED id "
+            << *ifed << std::endl;
+	}
+        // Mark FED modules as bad
+        detids.reserve(detids.size()+conns.size());
+        std::vector<FedChannelConnection>::const_iterator iconn = conns.begin();
+        for ( ; iconn != conns.end(); iconn++ ) {
+          if ( !iconn->detId() || iconn->detId() == sistrip::invalid32_ ) continue;
+          detids.push_back(iconn->detId()); //@@ Possible multiple entries (ok for Giovanni)
+        }
+        continue;
+      }
+
+
       // Check on FEDRawData pointer
       if ( !input.data() ) {
 	if ( edm::isDebugEnabled() ) {
-	  edm::LogWarning(sistrip::mlRawToDigi_)
+
+//	  edm::LogWarning(sistrip::mlRawToDigi_)
+          std::cout
 	    << "[sistrip::RawToDigiUnpacker::" << __func__ << "]"
 	    << " NULL pointer to FEDRawData for FED id " 
-	    << *ifed;
+	    << *ifed << std::endl;
 	}
         // Mark FED modules as bad
         detids.reserve(detids.size()+conns.size());
@@ -161,11 +188,12 @@ namespace sistrip {
       // Check on FEDRawData size
       if ( !input.size() ) {
 	if ( edm::isDebugEnabled() ) {
-	  edm::LogWarning(sistrip::mlRawToDigi_)
+//	  edm::LogWarning(sistrip::mlRawToDigi_)
+           std::cout
 	    << "[sistrip::RawToDigiUnpacker::" << __func__ << "]"
 	    << " FEDRawData has zero size for FED id " 
-	    << *ifed;
-	}
+	    << *ifed << std::endl;
+	 }
         // Mark FED modules as bad
         detids.reserve(detids.size()+conns.size());
         std::vector<FedChannelConnection>::const_iterator iconn = conns.begin();
@@ -189,9 +217,10 @@ namespace sistrip {
         }
       }
       catch (const cms::Exception& e) { 
-	if ( edm::isDebugEnabled() ) {
-	  edm::LogWarning("sistrip::RawToDigiUnpacker") << "Exception caught when creating FEDBuffer object for FED " << *ifed << ": " << e.what();
-	}
+	// if ( edm::isDebugEnabled() ) {
+	 //  edm::LogWarning("sistrip::RawToDigiUnpacker") 
+         // std::cout << "Exception caught when creating FEDBuffer object for FED " << *ifed << ": " << e.what() << std::endl;
+// 	}
         // FED buffer is bad and should not be unpacked. Skip this FED and mark all modules as bad. 
         std::vector<FedChannelConnection>::const_iterator iconn = conns.begin();
         for ( ; iconn != conns.end(); iconn++ ) {
@@ -258,6 +287,7 @@ namespace sistrip {
 	if (!buffer->channelGood(iconn->fedCh(),doAPVEmulatorCheck_)) {
           if (!unpackBadChannels_ || !(buffer->fePresent(iconn->fedCh()/FEDCH_PER_FEUNIT) && buffer->feEnabled(iconn->fedCh()/FEDCH_PER_FEUNIT)) ) {
             detids.push_back(iconn->detId()); //@@ Possible multiple entries (ok for Giovanni)
+            // std::cout << "bad channels " << iconn->detId() << std::endl;
             continue;
           }
 	}
@@ -495,6 +525,18 @@ namespace sistrip {
 
     // bad channels warning
     unsigned int detIdsSize = detids.size();
+
+
+    int run2012dList[] = { 369120549, 369120550, 369120553, 369120554, 369120557, 369120558, 369120613, 369120614, 369120617, 369120618, 369120621, 369120622, 369121450, 369125733, 369125737, 369125738, 369125786, 369125790, 369141286, 369141862, 369142206, 369154580, 369154692, 369157324, 369158324, 369169532, 369173868, 369175032, 402664213, 402666270, 402677416, 402677424, 402677432, 436229305, 436229306, 436232805, 436261348, 436261352, 436261356, 436261360, 436261364, 436261368, 436261380, 436261384, 436261388, 436261392, 436261396, 436261400, 436261416, 436261424, 436261432, 436261444, 436261448, 436261452, 436261456, 436261460, 436261464, 436261476, 436261480, 436261484, 436261488, 436261492, 436261496, 436261508, 436261512, 436261516, 436261520, 436261524, 436261528, 436261540, 436261544, 436261548, 436261552, 436261556, 436261560, 436261572, 436261576, 436261580, 436261584, 436261588, 436261592, 436265956, 436265960, 436265964, 436265968, 436265972, 436265976, 436265988, 436265992, 436265996, 436266000, 436266004, 436266008, 436266020, 436266024, 436266028, 436266032, 436266036, 436266040, 436266052, 436266056, 436266060, 436266064, 436266068, 436266072, 436266084, 436266088, 436266092, 436266096, 436266100, 436266104, 436266116, 436266120, 436266124, 436266128, 436266132, 436266136, 436266148, 436266152, 436266156, 436266160, 436266164, 436266168, 436266180, 436266184, 436266188, 436266192, 436266196, 436266200, 436310244, 436310248, 436310252, 436310256, 436310260, 436310264, 470046245, 470062629, 470062630, 470062661, 470062662, 470062692, 470062696, 470062724, 470062728, 470062732, 470116592, 470148304, 470163848, 470176396, 470181868, 470308596, 470309029, 470309030, 470309033, 470309034, 470309037, 470309038, 470309092, 470309096, 470309100, 470309104, 470309108, 470329381, 470361765, 470373038, 470373446, 470376869, 470393674, 470395108, 470405550, 470407086, 470407156, 470439044, 470439048, 470439052, 470439108, 470439112, 470439116, 470439556, 470443748};
+    for (auto bid : run2012dList) detids.push_back(bid);
+    std::set<DetId> aset(detids.begin(),detids.end());
+    DetIdCollection sorted; sorted.reserve(aset.size());
+    for (auto bid : aset) sorted.push_back(bid);
+    detids = sorted;
+    //std::sort(detids.begin(),detids.end());
+    //detids.erase( std::unique(detids.begin(), detids.end() ), detids.end() );
+    // for (auto bid : detids) std::cout << bid << ", "; std::cout << std::endl;
+
     if ( edm::isDebugEnabled() && detIdsSize ) {
       std::ostringstream ss;
       ss << "[sistrip::RawToDigiUnpacker::" << __func__ << "]"

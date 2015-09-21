@@ -22,7 +22,7 @@ GroupedCkfTrajectoryBuilder = cms.PSet(
     MeasurementTrackerName = cms.string(''),
     lockHits = cms.bool(True),
     TTRHBuilder = cms.string('WithTrackAngle'),
-    foundHitBonus = cms.double(5.0),
+    foundHitBonus = cms.double(10.0),
     updator = cms.string('KFUpdator'),
     # If true, track building will allow for possibility of no hit
     # in a given layer, even if it finds compatible hits there.

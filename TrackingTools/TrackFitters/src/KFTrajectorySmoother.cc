@@ -270,8 +270,8 @@ KFTrajectorySmoother::trajectory(const Trajectory& aTraj) const {
       else combTsos = combiner(predTsos, itm->forwardPredictedState());
       
       if unlikely(!combTsos.isValid()) {
-    	LogDebug("TrackFitters") << 
-    	  "KFTrajectorySmoother: combined tsos not valid!";
+    	// LogDebug("TrackFitters") << 
+    	std::cout <<  "KFTrajectorySmoother: combined tsos not valid at invalid hit! " << hit->geographicalId() << std::endl;
         return Trajectory();
 	}
       assert( (hit->det()==nullptr) || hit->geographicalId()!=0U);
