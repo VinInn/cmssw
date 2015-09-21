@@ -835,7 +835,7 @@ void SiStripMonitorTrack::trackStudyFromTrajectory(edm::Handle<TrajTrackAssociat
     // Trajectory Map, extract Trajectory for this track
     reco::TrackRef track = it->val;
 
-    if (track->pt()<1. || track->algo()!=reco::Track::initialStep || track->quality(reco::Track::highPurity) ) continue;
+    if (track->pt()<1. || track->algo()!=reco::Track::initialStep || !track->quality(reco::Track::highPurity) ) continue;
 
     LogDebug("SiStripMonitorTrack")
       << "Track number "<< i+1 << std::endl;
