@@ -22,7 +22,8 @@ public:
 protected:
 
   template<class T> bool TBC(const T& traj) const {
-    return (traj.foundHits()>int(traj.seedNHits())+theExtention) | (0==traj.lostHits());
+    // return (traj.foundHits()
+    return (int(traj.measurements().size())>int(traj.seedNHits())+theExtention) | (0==traj.lostHits());
   }
 
  int theExtention = 0;
