@@ -12,48 +12,48 @@ initialStepSeedLayers = RecoTracker.TkSeedingLayers.PixelLayerTriplets_cfi.Pixel
 
 
 
-# SEEDS
-from RecoPixelVertexing.PixelTriplets.PixelTripletLargeTipGenerator_cfi import *
-PixelTripletLargeTipGenerator.extraHitRZtolerance = 0.0
-PixelTripletLargeTipGenerator.extraHitRPhitolerance = 0.0
-import RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff
-initialStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.globalSeedsFromTriplets.clone()
-initialStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'initialStepSeedLayers'
-initialStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet = cms.PSet(PixelTripletLargeTipGenerator)
-initialStepSeeds.SeedCreatorPSet.ComponentName = 'SeedFromConsecutiveHitsTripletOnlyCreator'
-initialStepSeeds.RegionFactoryPSet.RegionPSet.ptMin = 0.6
-initialStepSeeds.RegionFactoryPSet.RegionPSet.originHalfLength = 15.0
-initialStepSeeds.RegionFactoryPSet.RegionPSet.originRadius = 1.5
-
-initialStepSeeds.SeedComparitorPSet = cms.PSet(
-        ComponentName = cms.string('PixelClusterShapeSeedComparitor'),
-        FilterAtHelixStage = cms.bool(False),
-        FilterPixelHits = cms.bool(True),
-        FilterStripHits = cms.bool(False),
-        ClusterShapeHitFilterName = cms.string('ClusterShapeHitFilter'),
-        ClusterShapeCacheSrc = cms.InputTag('siPixelClusterShapeCache')
-    )
+# SEEDS (a la detacthed)
+#from RecoPixelVertexing.PixelTriplets.PixelTripletLargeTipGenerator_cfi import *
+#PixelTripletLargeTipGenerator.extraHitRZtolerance = 0.0
+#PixelTripletLargeTipGenerator.extraHitRPhitolerance = 0.0
+#import RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff
+#initialStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.globalSeedsFromTriplets.clone()
+#initialStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'initialStepSeedLayers'
+#initialStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet = cms.PSet(PixelTripletLargeTipGenerator)
+#initialStepSeeds.SeedCreatorPSet.ComponentName = 'SeedFromConsecutiveHitsTripletOnlyCreator'
+#initialStepSeeds.RegionFactoryPSet.RegionPSet.ptMin = 0.6
+#initialStepSeeds.RegionFactoryPSet.RegionPSet.originHalfLength = 15.0
+#initialStepSeeds.RegionFactoryPSet.RegionPSet.originRadius = 1.5
+#
+#initialStepSeeds.SeedComparitorPSet = cms.PSet(
+#        ComponentName = cms.string('PixelClusterShapeSeedComparitor'),
+#        FilterAtHelixStage = cms.bool(False),
+#        FilterPixelHits = cms.bool(True),
+#        FilterStripHits = cms.bool(False),
+#        ClusterShapeHitFilterName = cms.string('ClusterShapeHitFilter'),
+#        ClusterShapeCacheSrc = cms.InputTag('siPixelClusterShapeCache')
+#    )
 
 
 # seeding
-#from RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff import *
-#from RecoTracker.TkTrackingRegions.GlobalTrackingRegionFromBeamSpot_cfi import RegionPsetFomBeamSpotBlock
-#initialStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.globalSeedsFromTriplets.clone(
-#    RegionFactoryPSet = RegionPsetFomBeamSpotBlock.clone(
-#    ComponentName = cms.string('GlobalRegionProducerFromBeamSpot'),
-#    RegionPSet = RegionPsetFomBeamSpotBlock.RegionPSet.clone(
-#    ptMin = 0.6,
-#    originRadius = 0.02,
-#    nSigmaZ = 4.0
-#    )
-#    )
-#    )
-#initialStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'initialStepSeedLayers'
-#
-#from RecoPixelVertexing.PixelLowPtUtilities.ClusterShapeHitFilterESProducer_cfi import *
-#import RecoPixelVertexing.PixelLowPtUtilities.LowPtClusterShapeSeedComparitor_cfi
-#initialStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet.SeedComparitorPSet = 
-#RecoPixelVertexing.PixelLowPtUtilities.LowPtClusterShapeSeedComparitor_cfi.LowPtClusterShapeSeedComparitor
+from RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff import *
+from RecoTracker.TkTrackingRegions.GlobalTrackingRegionFromBeamSpot_cfi import RegionPsetFomBeamSpotBlock
+initialStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.globalSeedsFromTriplets.clone(
+    RegionFactoryPSet = RegionPsetFomBeamSpotBlock.clone(
+    ComponentName = cms.string('GlobalRegionProducerFromBeamSpot'),
+    RegionPSet = RegionPsetFomBeamSpotBlock.RegionPSet.clone(
+    ptMin = 0.6,
+    originRadius = 0.02,
+    nSigmaZ = 4.0
+    )
+    )
+    )
+initialStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'initialStepSeedLayers'
+
+from RecoPixelVertexing.PixelLowPtUtilities.ClusterShapeHitFilterESProducer_cfi import *
+import RecoPixelVertexing.PixelLowPtUtilities.LowPtClusterShapeSeedComparitor_cfi
+initialStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet.SeedComparitorPSet = 
+RecoPixelVertexing.PixelLowPtUtilities.LowPtClusterShapeSeedComparitor_cfi.LowPtClusterShapeSeedComparitor
 
 
 
