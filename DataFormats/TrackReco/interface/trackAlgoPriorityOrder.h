@@ -24,7 +24,7 @@ namespace impl {
   constexpr reco::TrackBase::TrackAlgorithm algoPriorityOrder[] ={
     reco::TrackBase::undefAlgorithm,
     reco::TrackBase::ctf,
-    reco::TrackBase::rs,
+    reco::TrackBase::quadrupletStep,
     reco::TrackBase::cosmics,
     reco::TrackBase::initialStep,
     reco::TrackBase::detachedTripletStep,

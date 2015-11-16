@@ -9,6 +9,7 @@ public:
   explicit SeedExtentionTrajectoryFilter() {} 
   
   explicit SeedExtentionTrajectoryFilter(edm::ParameterSet const & pset, edm::ConsumesCollector&) :
+     theStrict( pset.getParameter<bool>("strictSeedExtention")),
      theExtention( pset.getParameter<int>("seedExtention")) {}
 
   virtual bool qualityFilter( const Trajectory& traj) const { return TrajectoryFilter::qualityFilterIfNotContributing; }
@@ -19,16 +20,32 @@ public:
 
   virtual std::string name() const{return "LostHitsFractionTrajectoryFilter";}
 
-protected:
+private:
 
   template<class T> bool TBC(const T& traj) const {
-    // return (traj.foundHits()
-    return (int(traj.measurements().size())>int(traj.seedNHits())+theExtention) | (0==traj.lostHits());
+     return theStrict? strictTBC(traj) : looseTBC(traj);
   }
+  template<class T> bool looseTBC(const T& traj) const;
+  template<class T> bool strictTBC(const T& traj) const;
 
- int theExtention = 0;
+
+   bool theStrict=false;
+   int theExtention = 0;
 
 
 };
+
+template<class T> bool SeedExtentionTrajectoryFilter::looseTBC(const T& traj) const {
+    return (int(traj.measurements().size())>int(traj.seedNHits())+theExtention) | (0==traj.lostHits());
+}
+
+
+// strict case as a real seeding: do not allow even inactive
+template<class T> bool SeedExtentionTrajectoryFilter::strictTBC(const T& traj) const {
+    return traj.foundHits()>=int(traj.seedNHits())+theExtention;
+}
+
+
+
 
 #endif

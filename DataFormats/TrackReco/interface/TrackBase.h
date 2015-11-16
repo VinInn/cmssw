@@ -97,7 +97,7 @@ public:
 
     /// track algorithm
     enum TrackAlgorithm {
-        undefAlgorithm = 0, ctf = 1, rs = 2, cosmics = 3,
+        undefAlgorithm = 0, ctf = 1, quadrupletStep = 2, cosmics = 3,
         initialStep = 4,
         lowPtTripletStep = 5,
         pixelPairStep = 6,

@@ -288,10 +288,10 @@ PFDisplacedVertexFinder::fitVertexFromSeed(PFDisplacedVertexSeed& displacedVerte
     switch((*ie)->algo()) {
     case reco::TrackBase::undefAlgorithm:
     case reco::TrackBase::ctf:
-    case reco::TrackBase::rs:
     case reco::TrackBase::cosmics:
       nNotIterative++;
       break;
+    case reco::TrackBase::quadrupletStep:
     case reco::TrackBase::initialStep:
     case reco::TrackBase::lowPtTripletStep:
     case reco::TrackBase::pixelPairStep:
