@@ -106,7 +106,7 @@ QuadrupletStepTrackCandidates = RecoTracker.CkfPattern.CkfTrackCandidates_cfi.ck
 import RecoTracker.TrackProducer.TrackProducer_cfi
 QuadrupletStepTracks = RecoTracker.TrackProducer.TrackProducer_cfi.TrackProducer.clone(
     src = 'QuadrupletStepTrackCandidates',
-    AlgorithmName = cms.string('QuadrupletStep'),
+    AlgorithmName = cms.string('quadrupletStep'),
     Fitter = cms.string('FlexibleKFFittingSmoother')
     )
 

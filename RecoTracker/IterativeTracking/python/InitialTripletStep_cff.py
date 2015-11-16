@@ -126,21 +126,6 @@ initialStepTracks = RecoTracker.TrackProducer.TrackProducer_cfi.TrackProducer.cl
     )
 
 
-#vertices
-import RecoVertex.PrimaryVertexProducer.OfflinePrimaryVertices_cfi
-firstStepPrimaryVertices=RecoVertex.PrimaryVertexProducer.OfflinePrimaryVertices_cfi.offlinePrimaryVertices.clone()
-firstStepPrimaryVertices.TrackLabel = cms.InputTag("initialStepTracks")
-firstStepPrimaryVertices.vertexCollections = cms.VPSet(
-     [cms.PSet(label=cms.string(""),
-               algorithm=cms.string("AdaptiveVertexFitter"),
-               minNdof=cms.double(0.0),
-               useBeamConstraint = cms.bool(False),
-               maxDistanceToBeam = cms.double(1.0)
-               )
-      ]
-    )
- 
-
 # Final selection
 from RecoTracker.FinalTrackSelectors.TrackMVAClassifierPrompt_cfi import *
 from RecoTracker.FinalTrackSelectors.TrackMVAClassifierDetached_cfi import *
@@ -170,6 +155,5 @@ InitialStep = cms.Sequence(initialStepSeedLayers*
                            initialStepSeeds*
                            initialStepTrackCandidates*
                            initialStepTracks*
-                           firstStepPrimaryVertices*
                            initialStepClassifier1*initialStepClassifier2*initialStepClassifier3*
                            initialStep)
