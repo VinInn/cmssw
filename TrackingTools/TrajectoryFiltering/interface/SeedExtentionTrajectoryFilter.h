@@ -9,8 +9,8 @@ public:
   explicit SeedExtentionTrajectoryFilter() {} 
   
   explicit SeedExtentionTrajectoryFilter(edm::ParameterSet const & pset, edm::ConsumesCollector&) :
-     theStrict( pset.getParameter<bool>("strictSeedExtention")),
-     theExtention( pset.getParameter<int>("seedExtention")) {}
+     theStrict(pset.existsAs<bool>("strictSeedExtention") ? pset.getParameter<bool>("strictSeedExtention"):false),
+     theExtention(pset.existsAs<int>("seedExtention") ? pset.getParameter<int>("seedExtention"):0) {}
 
   virtual bool qualityFilter( const Trajectory& traj) const { return TrajectoryFilter::qualityFilterIfNotContributing; }
   virtual bool qualityFilter( const TempTrajectory& traj) const { return TrajectoryFilter::qualityFilterIfNotContributing; }
