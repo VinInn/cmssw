@@ -3,7 +3,9 @@ from RecoTracker.FinalTrackSelectors.TrackCollectionMerger_cfi import *
 
 import RecoTracker.FinalTrackSelectors.trackListMerger_cfi
 earlyGeneralTracks =  TrackCollectionMerger.clone()
-earlyGeneralTracks.trackProducers = ['initialStepTracks',
+earlyGeneralTracks.trackProducers = [
+                                     'quadrupletStepTracks',
+                                     'initialStepTracks',
                                      'jetCoreRegionalStepTracks',
                                      'lowPtTripletStepTracks',
                                      'pixelPairStepTracks',
@@ -12,7 +14,9 @@ earlyGeneralTracks.trackProducers = ['initialStepTracks',
                                      'pixelLessStepTracks',
                                      'tobTecStepTracks'
                                      ]
-earlyGeneralTracks.inputClassifiers =["initialStep",
+earlyGeneralTracks.inputClassifiers =[
+                                      'quadrupletStep',
+                                      "initialStep",
                                       "jetCoreRegionalStep",
                                       "lowPtTripletStep",
                                       "pixelPairStep",

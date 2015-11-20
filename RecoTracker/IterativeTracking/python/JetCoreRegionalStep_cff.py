@@ -127,7 +127,7 @@ jetCoreRegionalStepTracks = RecoTracker.TrackProducer.TrackProducer_cfi.TrackPro
     )
 
 # Final selection
-from RecoTracker.IterativeTracking.InitialStep_cff import initialStepClassifier1
+from RecoTracker.IterativeTracking.InitialTripletStep_cff import initialStepClassifier1
 #from RecoTracker.IterativeTracking.DetachedTripletStep_cff import detachedTripletStepClassifier1
 
 #jetCoreRegionalStep = initialStepClassifier1.clone()

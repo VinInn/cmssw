@@ -151,7 +151,8 @@ initialStep.inputClassifiers=['initialStepClassifier1','initialStepClassifier2',
 
 
 # Final sequence
-InitialStep = cms.Sequence(initialStepSeedLayers*
+InitialStep = cms.Sequence(initialTripletStepClusters*
+                           initialStepSeedLayers*
                            initialStepSeeds*
                            initialStepTrackCandidates*
                            initialStepTracks*

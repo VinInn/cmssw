@@ -8,7 +8,7 @@ from RecoTracker.TransientTrackingRecHit.TTRHBuilders_cff import *
 
 # SEEDING LAYERS
 import RecoTracker.TkSeedingLayers.PixelLayerTriplets_cfi
-QuadrupletStepSeedLayers = RecoTracker.TkSeedingLayers.PixelLayerTriplets_cfi.PixelLayerTriplets.clone()
+quadrupletStepSeedLayers = RecoTracker.TkSeedingLayers.PixelLayerTriplets_cfi.PixelLayerTriplets.clone()
 
 
 
@@ -17,15 +17,15 @@ QuadrupletStepSeedLayers = RecoTracker.TkSeedingLayers.PixelLayerTriplets_cfi.Pi
 #PixelTripletLargeTipGenerator.extraHitRZtolerance = 0.0
 #PixelTripletLargeTipGenerator.extraHitRPhitolerance = 0.0
 #import RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff
-#QuadrupletStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.globalSeedsFromTriplets.clone()
-#QuadrupletStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'QuadrupletStepSeedLayers'
-#QuadrupletStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet = cms.PSet(PixelTripletLargeTipGenerator)
-#QuadrupletStepSeeds.SeedCreatorPSet.ComponentName = 'SeedFromConsecutiveHitsTripletOnlyCreator'
-#QuadrupletStepSeeds.RegionFactoryPSet.RegionPSet.ptMin = 0.6
-#QuadrupletStepSeeds.RegionFactoryPSet.RegionPSet.originHalfLength = 15.0
-#QuadrupletStepSeeds.RegionFactoryPSet.RegionPSet.originRadius = 1.5
+#quadrupletStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.globalSeedsFromTriplets.clone()
+#quadrupletStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'quadrupletStepSeedLayers'
+#quadrupletStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet = cms.PSet(PixelTripletLargeTipGenerator)
+#quadrupletStepSeeds.SeedCreatorPSet.ComponentName = 'SeedFromConsecutiveHitsTripletOnlyCreator'
+#quadrupletStepSeeds.RegionFactoryPSet.RegionPSet.ptMin = 0.6
+#quadrupletStepSeeds.RegionFactoryPSet.RegionPSet.originHalfLength = 15.0
+#quadrupletStepSeeds.RegionFactoryPSet.RegionPSet.originRadius = 1.5
 #
-#QuadrupletStepSeeds.SeedComparitorPSet = cms.PSet(
+#quadrupletStepSeeds.SeedComparitorPSet = cms.PSet(
 #        ComponentName = cms.string('PixelClusterShapeSeedComparitor'),
 #        FilterAtHelixStage = cms.bool(False),
 #        FilterPixelHits = cms.bool(True),
@@ -38,7 +38,7 @@ QuadrupletStepSeedLayers = RecoTracker.TkSeedingLayers.PixelLayerTriplets_cfi.Pi
 # seeding
 from RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff import *
 from RecoTracker.TkTrackingRegions.GlobalTrackingRegionFromBeamSpot_cfi import RegionPsetFomBeamSpotBlock
-QuadrupletStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.globalSeedsFromTriplets.clone(
+quadrupletStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.globalSeedsFromTriplets.clone(
     RegionFactoryPSet = RegionPsetFomBeamSpotBlock.clone(
     ComponentName = cms.string('GlobalRegionProducerFromBeamSpot'),
     RegionPSet = RegionPsetFomBeamSpotBlock.RegionPSet.clone(
@@ -48,33 +48,35 @@ QuadrupletStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.gl
     )
     )
     )
-QuadrupletStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'QuadrupletStepSeedLayers'
+quadrupletStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'quadrupletStepSeedLayers'
 
 from RecoPixelVertexing.PixelLowPtUtilities.ClusterShapeHitFilterESProducer_cfi import *
 import RecoPixelVertexing.PixelLowPtUtilities.LowPtClusterShapeSeedComparitor_cfi
-QuadrupletStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet.SeedComparitorPSet = RecoPixelVertexing.PixelLowPtUtilities.LowPtClusterShapeSeedComparitor_cfi.LowPtClusterShapeSeedComparitor
+quadrupletStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet.SeedComparitorPSet = RecoPixelVertexing.PixelLowPtUtilities.LowPtClusterShapeSeedComparitor_cfi.LowPtClusterShapeSeedComparitor
 
 
 
 # building
 import TrackingTools.TrajectoryFiltering.TrajectoryFilter_cff
-QuadrupletStepTrajectoryFilterBase = TrackingTools.TrajectoryFiltering.TrajectoryFilter_cff.CkfBaseTrajectoryFilter_block.clone(
+quadrupletStepTrajectoryFilterBase = TrackingTools.TrajectoryFiltering.TrajectoryFilter_cff.CkfBaseTrajectoryFilter_block.clone(
+#    seedExtention=1,
     minimumNumberOfHits = 3,
     minPt = 0.2
     )
+
 import RecoPixelVertexing.PixelLowPtUtilities.StripSubClusterShapeTrajectoryFilter_cfi
-QuadrupletStepTrajectoryFilterShape = RecoPixelVertexing.PixelLowPtUtilities.StripSubClusterShapeTrajectoryFilter_cfi.StripSubClusterShapeTrajectoryFilterTIX12.clone()
-QuadrupletStepTrajectoryFilter = cms.PSet(
+quadrupletStepTrajectoryFilterShape = RecoPixelVertexing.PixelLowPtUtilities.StripSubClusterShapeTrajectoryFilter_cfi.StripSubClusterShapeTrajectoryFilterTIX12.clone()
+quadrupletStepTrajectoryFilter = cms.PSet(
     ComponentType = cms.string('CompositeTrajectoryFilter'),
     filters = cms.VPSet(
-        cms.PSet( refToPSet_ = cms.string('QuadrupletStepTrajectoryFilterBase')),
-    #    cms.PSet( refToPSet_ = cms.string('QuadrupletStepTrajectoryFilterShape'))
+        cms.PSet( refToPSet_ = cms.string('quadrupletStepTrajectoryFilterBase')),
+    #    cms.PSet( refToPSet_ = cms.string('quadrupletStepTrajectoryFilterShape'))
     ),
 )
 
 import RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimatorESProducer_cfi
-QuadrupletStepChi2Est = RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimatorESProducer_cfi.Chi2ChargeMeasurementEstimator.clone(
-    ComponentName = cms.string('QuadrupletStepChi2Est'),
+quadrupletStepChi2Est = RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimatorESProducer_cfi.Chi2ChargeMeasurementEstimator.clone(
+    ComponentName = cms.string('quadrupletStepChi2Est'),
     nSigma = cms.double(3.0),
     MaxChi2 = cms.double(30.0),
     clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutLoose')),
@@ -82,30 +84,30 @@ QuadrupletStepChi2Est = RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimato
 )
 
 import RecoTracker.CkfPattern.GroupedCkfTrajectoryBuilder_cfi
-QuadrupletStepTrajectoryBuilder = RecoTracker.CkfPattern.GroupedCkfTrajectoryBuilder_cfi.GroupedCkfTrajectoryBuilder.clone(
-    trajectoryFilter = cms.PSet(refToPSet_ = cms.string('QuadrupletStepTrajectoryFilter')),
+quadrupletStepTrajectoryBuilder = RecoTracker.CkfPattern.GroupedCkfTrajectoryBuilder_cfi.GroupedCkfTrajectoryBuilder.clone(
+    trajectoryFilter = cms.PSet(refToPSet_ = cms.string('quadrupletStepTrajectoryFilter')),
     alwaysUseInvalidHits = True,
     maxCand = 3,
-    estimator = cms.string('QuadrupletStepChi2Est'),
+    estimator = cms.string('quadrupletStepChi2Est'),
     maxDPhiForLooperReconstruction = cms.double(2.0),
     maxPtForLooperReconstruction = cms.double(0.7)
     )
 
 import RecoTracker.CkfPattern.CkfTrackCandidates_cfi
-QuadrupletStepTrackCandidates = RecoTracker.CkfPattern.CkfTrackCandidates_cfi.ckfTrackCandidates.clone(
-    src = cms.InputTag('QuadrupletStepSeeds'),
+quadrupletStepTrackCandidates = RecoTracker.CkfPattern.CkfTrackCandidates_cfi.ckfTrackCandidates.clone(
+    src = cms.InputTag('quadrupletStepSeeds'),
     ### these two parameters are relevant only for the CachingSeedCleanerBySharedInput
     numHitsForSeedCleaner = cms.int32(50),
     onlyPixelHitsForSeedCleaner = cms.bool(True),
-    TrajectoryBuilderPSet = cms.PSet(refToPSet_ = cms.string('QuadrupletStepTrajectoryBuilder')),
+    TrajectoryBuilderPSet = cms.PSet(refToPSet_ = cms.string('quadrupletStepTrajectoryBuilder')),
     doSeedingRegionRebuilding = True,
     useHitsSplitting = True
     )
 
 # fitting
 import RecoTracker.TrackProducer.TrackProducer_cfi
-QuadrupletStepTracks = RecoTracker.TrackProducer.TrackProducer_cfi.TrackProducer.clone(
-    src = 'QuadrupletStepTrackCandidates',
+quadrupletStepTracks = RecoTracker.TrackProducer.TrackProducer_cfi.TrackProducer.clone(
+    src = 'quadrupletStepTrackCandidates',
     AlgorithmName = cms.string('quadrupletStep'),
     Fitter = cms.string('FlexibleKFFittingSmoother')
     )
@@ -114,7 +116,7 @@ QuadrupletStepTracks = RecoTracker.TrackProducer.TrackProducer_cfi.TrackProducer
 #vertices
 import RecoVertex.PrimaryVertexProducer.OfflinePrimaryVertices_cfi
 firstStepPrimaryVertices=RecoVertex.PrimaryVertexProducer.OfflinePrimaryVertices_cfi.offlinePrimaryVertices.clone()
-firstStepPrimaryVertices.TrackLabel = cms.InputTag("QuadrupletStepTracks")
+firstStepPrimaryVertices.TrackLabel = cms.InputTag("quadrupletStepTracks")
 firstStepPrimaryVertices.vertexCollections = cms.VPSet(
      [cms.PSet(label=cms.string(""),
                algorithm=cms.string("AdaptiveVertexFitter"),
@@ -130,31 +132,31 @@ firstStepPrimaryVertices.vertexCollections = cms.VPSet(
 from RecoTracker.FinalTrackSelectors.TrackMVAClassifierPrompt_cfi import *
 from RecoTracker.FinalTrackSelectors.TrackMVAClassifierDetached_cfi import *
 
-QuadrupletStepClassifier1 = TrackMVAClassifierPrompt.clone()
-QuadrupletStepClassifier1.src = 'QuadrupletStepTracks'
-QuadrupletStepClassifier1.GBRForestLabel = 'MVASelectorIter0_13TeV'
-QuadrupletStepClassifier1.qualityCuts = [-0.9,-0.8,-0.7]
+quadrupletStepClassifier1 = TrackMVAClassifierPrompt.clone()
+quadrupletStepClassifier1.src = 'quadrupletStepTracks'
+quadrupletStepClassifier1.GBRForestLabel = 'MVASelectorIter0_13TeV'
+quadrupletStepClassifier1.qualityCuts = [-0.9,-0.8,-0.7]
 
 from RecoTracker.IterativeTracking.DetachedTripletStep_cff import detachedTripletStepClassifier1
 from RecoTracker.IterativeTracking.LowPtTripletStep_cff import lowPtTripletStep
-QuadrupletStepClassifier2 = detachedTripletStepClassifier1.clone()
-QuadrupletStepClassifier2.src = 'QuadrupletStepTracks'
-QuadrupletStepClassifier3 = lowPtTripletStep.clone()
-QuadrupletStepClassifier3.src = 'QuadrupletStepTracks'
+quadrupletStepClassifier2 = detachedTripletStepClassifier1.clone()
+quadrupletStepClassifier2.src = 'quadrupletStepTracks'
+quadrupletStepClassifier3 = lowPtTripletStep.clone()
+quadrupletStepClassifier3.src = 'quadrupletStepTracks'
 
 
 
 from RecoTracker.FinalTrackSelectors.ClassifierMerger_cfi import *
-QuadrupletStep = ClassifierMerger.clone()
-QuadrupletStep.inputClassifiers=['QuadrupletStepClassifier1','QuadrupletStepClassifier2','QuadrupletStepClassifier3']
+quadrupletStep = ClassifierMerger.clone()
+quadrupletStep.inputClassifiers=['quadrupletStepClassifier1','quadrupletStepClassifier2','quadrupletStepClassifier3']
 
 
 
 # Final sequence
-InitialStep = cms.Sequence(QuadrupletStepSeedLayers*
-                           QuadrupletStepSeeds*
-                           QuadrupletStepTrackCandidates*
-                           QuadrupletStepTracks*
+QuadrupletStep = cms.Sequence(quadrupletStepSeedLayers*
+                           quadrupletStepSeeds*
+                           quadrupletStepTrackCandidates*
+                           quadrupletStepTracks*
                            firstStepPrimaryVertices*
-                           QuadrupletStepClassifier1*QuadrupletStepClassifier2*QuadrupletStepClassifier3*
-                           QuadrupletStep)
+                           quadrupletStepClassifier1*quadrupletStepClassifier2*quadrupletStepClassifier3*
+                           quadrupletStep)
