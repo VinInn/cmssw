@@ -168,6 +168,22 @@ pass_frame_change_test(const TkRadialStripTopology* t, const float strip, const 
   const MeasurementPoint newmp = t->measurementPosition(newlp);
   const MeasurementError newme = t->measurementError(newlp, newle);
 
+  const MeasurementPoint mp2(strip,0.25);
+  auto  lp2 = t->localPosition(mp2);
+  Topology::LocalTrackPred tkp(lp2.x(),lp2.y(),0,0);
+  auto  nlp2 = t->localPosition(strip,tkp);
+  auto  nmp2 = t->measurementPosition(nlp2);
+  auto  ns2 = t->strip(nlp2);
+
+  bool passtk = fabs(strip-ns2) < 0.001 &&
+                fabs(strip-nmp2.x())	< 0.001	&&
+                fabs(0.25-nmp2.y())    < 0.001 &&
+                fabs(lp2.x()-nlp2.x())    < 0.001 &&
+                fabs(lp2.y()-nlp2.y())    < 0.001;
+
+  if (!passtk)
+    std::cout << "FAILED tkp " << strip << " " << lp2 << ' ' << nlp2 << ' ' << nmp2 << ' ' << ns2 << std::endl;
+
   maxerrU = std::max(maxerrU,std::abs(me.uu()-stripErr2)/stripErr2);
   maxerrUV = std::max(maxerrUV,std::abs(me.uv()));
 
@@ -191,7 +207,7 @@ pass_frame_change_test(const TkRadialStripTopology* t, const float strip, const 
      std::cout << "FAILED "<< "(" << strip << ", " << newstrip << ", " << mp.x() << ")\t"
      << "(" << stripErr2 << ", " << me.uu() << ")\t\t"
      << ( me.uv() ) << std::endl;
-  return passp&passe;
+  return passtk&passp&passe;
 }
 
 DEFINE_FWK_MODULE(ValidateRadial);

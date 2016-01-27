@@ -57,7 +57,8 @@ class TkRadialStripTopology final : public RadialStripTopology {
    * LocalPoint on x axis for given 'strip'
    * 'strip' is a float in units of the strip (angular) width
    */
-  LocalPoint localPosition(float strip) const;
+   LocalPoint localPosition(float strip, const LocalTrackPred & trkPred) const override;
+   LocalPoint localPosition(float strip) const override;
 
   /** 
    * LocalPoint for a given MeasurementPoint <BR>

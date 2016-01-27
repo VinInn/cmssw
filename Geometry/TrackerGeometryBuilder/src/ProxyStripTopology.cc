@@ -29,10 +29,10 @@ LocalPoint ProxyStripTopology::localPosition( const MeasurementPoint& mp ) const
 LocalPoint ProxyStripTopology::localPosition( const MeasurementPoint& mp, 
 					      const Topology::LocalTrackPred &trkPred ) const
 {
-  if (!this->surfaceDeformation()) return specificTopology().localPosition(mp);
+  if (!this->surfaceDeformation()) return specificTopology().localPosition(mp, trkPred);
   
   // add correction from SurfaceDeformation
-  const LocalPoint posOld(specificTopology().localPosition(mp)); // 'original position'
+  const LocalPoint posOld(specificTopology().localPosition(mp,trkPred)); // 'original position'
   const SurfaceDeformation::Local2DVector corr(this->positionCorrection(trkPred));
 
   return LocalPoint(posOld.x()+corr.x(), posOld.y()+corr.y(), posOld.z());
@@ -56,10 +56,10 @@ LocalPoint ProxyStripTopology::localPosition( float strip ) const
 ////////////////////////////////////////////////////////////////////////////////
 LocalPoint ProxyStripTopology::localPosition(float strip, const Topology::LocalTrackPred &trkPred) const
 {
-  if (!this->surfaceDeformation()) return specificTopology().localPosition(strip);
+  if (!this->surfaceDeformation()) return specificTopology().localPosition(strip, trkPred);
   
   // add correction from SurfaceDeformation
-  const LocalPoint posOld(specificTopology().localPosition(strip));
+  const LocalPoint posOld(specificTopology().localPosition(strip,trkPred));
 
   const SurfaceDeformation::Local2DVector corr(this->positionCorrection(trkPred));
   return LocalPoint(posOld.x()+corr.x(), posOld.y()+corr.y(), posOld.z());
@@ -79,7 +79,7 @@ LocalError ProxyStripTopology::localError(float strip, float stripErr2,
   
   // In case of TwoBowedSurfacesDeformation one could add corrections here due to 
   // relative rotations of the sensors...
-  return specificTopology().localError(strip, stripErr2);
+  return specificTopology().localError(strip, stripErr2, trkPred);
 }
 
 
@@ -90,7 +90,7 @@ LocalError ProxyStripTopology::localError( const MeasurementPoint& mp,
 {
   // See comment in localError(float strip, float stripErr2,
   //                           const Topology::LocalTrackPred &trkPred)!
-  return specificTopology().localError(mp, me);
+  return specificTopology().localError(mp, me, trkPred);
 }
 
 
@@ -98,13 +98,13 @@ LocalError ProxyStripTopology::localError( const MeasurementPoint& mp,
 MeasurementPoint ProxyStripTopology::measurementPosition( const LocalPoint& lp, 
 							  const Topology::LocalTrackAngles &dir) const
 {
-  if (!this->surfaceDeformation()) return specificTopology().measurementPosition(lp);
+  if (!this->surfaceDeformation()) return specificTopology().measurementPosition(lp, dir);
 
   // subtract correction from SurfaceDeformation
   const SurfaceDeformation::Local2DVector corr(this->positionCorrection(lp, dir));
   const LocalPoint posOrig(lp.x() - corr.x(), lp.y() - corr.y(), lp.z());
 
-  return specificTopology().measurementPosition(posOrig);
+  return specificTopology().measurementPosition(posOrig, dir);
 }
 
 
@@ -112,7 +112,7 @@ MeasurementPoint ProxyStripTopology::measurementPosition( const LocalPoint& lp,
 MeasurementError ProxyStripTopology::measurementError( const LocalPoint &lp, const LocalError &le,
 						       const Topology::LocalTrackAngles &dir) const
 {
-  if (!this->surfaceDeformation()) return specificTopology().measurementError(lp, le);
+  if (!this->surfaceDeformation()) return specificTopology().measurementError(lp, le, dir);
 
   // assuming 'lp' comes from a track prediction
   // (i.e. where the track thinks it hits the surface)
@@ -120,59 +120,59 @@ MeasurementError ProxyStripTopology::measurementError( const LocalPoint &lp, con
   const SurfaceDeformation::Local2DVector corr(this->positionCorrection(lp, dir));
   const LocalPoint posOrig(lp.x() - corr.x(), lp.y() - corr.y(), lp.z());
 
-  return specificTopology().measurementError(posOrig, le);
+  return specificTopology().measurementError(posOrig, le, dir);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 int ProxyStripTopology::channel( const LocalPoint &lp, const Topology::LocalTrackAngles &dir) const
 {
-   if (!this->surfaceDeformation()) return specificTopology().channel(lp);
+   if (!this->surfaceDeformation()) return specificTopology().channel(lp,dir);
 
   // subtract correction from SurfaceDeformation
   const SurfaceDeformation::Local2DVector corr(this->positionCorrection(lp, dir));
   const LocalPoint posOrig(lp.x() - corr.x(), lp.y() - corr.y(), lp.z());
     
-  return specificTopology().channel(posOrig);
+  return specificTopology().channel(posOrig,dir);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 float ProxyStripTopology::strip( const LocalPoint& lp, const Topology::LocalTrackAngles &dir ) const
 {
-  if (!this->surfaceDeformation()) return specificTopology().strip(lp);
+  if (!this->surfaceDeformation()) return specificTopology().strip(lp,dir);
 
   // subtract correction from SurfaceDeformation
   const SurfaceDeformation::Local2DVector corr(this->positionCorrection(lp, dir));
   const LocalPoint posOrig(lp.x() - corr.x(), lp.y() - corr.y(), lp.z());
 
-  return specificTopology().strip(posOrig);
+  return specificTopology().strip(posOrig,dir);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 float ProxyStripTopology::localPitch( const LocalPoint& lp, const Topology::LocalTrackAngles &dir ) const
 {
-  if (!this->surfaceDeformation()) return specificTopology().localPitch(lp);
+  if (!this->surfaceDeformation()) return specificTopology().localPitch(lp,dir);
 
   // subtract correction from SurfaceDeformation
   const SurfaceDeformation::Local2DVector corr(this->positionCorrection(lp, dir));
   const LocalPoint posOrig(lp.x() - corr.x(), lp.y() - corr.y(), lp.z());
 
-  return specificTopology().localPitch(posOrig);
+  return specificTopology().localPitch(posOrig,dir);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 float ProxyStripTopology::localStripLength( const LocalPoint& lp, const Topology::LocalTrackAngles &dir ) const
 {
-  if (!this->surfaceDeformation()) return specificTopology().localStripLength(lp);
+  if (!this->surfaceDeformation()) return specificTopology().localStripLength(lp,dir);
 
   // subtract correction from SurfaceDeformation
   const SurfaceDeformation::Local2DVector corr(this->positionCorrection(lp, dir));
   const LocalPoint posOrig(lp.x() - corr.x(), lp.y() - corr.y(), lp.z());
 
-  return specificTopology().localStripLength(posOrig);
+  return specificTopology().localStripLength(posOrig,dir);
 }
 
 

@@ -144,6 +144,14 @@ LocalPoint TkRadialStripTopology::localPosition(float strip) const {
   return LocalPoint( yAxisOrientation() * originToIntersection() * std::tan( stripAngle(strip) ), 0 );
 }
 
+LocalPoint TkRadialStripTopology::localPosition(float strip, const LocalTrackPred & trkPred) const {
+  auto yl =   trkPred.point().y();
+  auto yg = yl+ yCentreOfStripPlane();
+  return LocalPoint(yAxisOrientation() * yDistanceToIntersection(yg)  * std::tan( stripAngle(strip) ), yl );
+}
+
+
+
 LocalPoint TkRadialStripTopology::localPosition(const MeasurementPoint& mp) const {
   const float  // y = (L/cos(phi))*mp.y()*cos(phi) 
     y( mp.y()*detHeight()  +  yCentreOfStripPlane() ),
