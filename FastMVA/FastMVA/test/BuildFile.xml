@@ -1,0 +1,4 @@
+<flags   CXXFLAGS="-Ofast -msse4.2 -mf16c -Wno-error=maybe-uninitialized"/>
+<bin name="testMVA" file="testMVA.cpp GBRTreeFast.cc GBRForestFast.cc">
+   <use   name="CondFormats/EgammaObjects"/>
+</bin>
