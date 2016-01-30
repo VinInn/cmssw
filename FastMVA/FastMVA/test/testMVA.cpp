@@ -169,8 +169,8 @@ void go(const char * fname) {
 
        ++ntot;
    }}
-   std::cout << sum1/ntot << ' ' << double(t1)/ntot << std::endl;
-   std::cout << sum2/ntot << ' ' << double(t2)/ntot << std::endl;
+   std::cout << "old " << sum1/ntot << ' ' << double(t1)/ntot << std::endl;
+   std::cout << "new " << sum2/ntot << ' ' << double(t2)/ntot << std::endl;
 }
 
 

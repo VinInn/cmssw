@@ -94,7 +94,7 @@ void tof32(short f16, float & f32) {
        virtual ~GBRTreeFast();
        
        short GetResponse(const short * array) const;
-       int TerminalIndex(const short  *array) const;
+       short TerminalIndex(const short  *array) const;
        
        std::array<short,NMAX> &Responses() { return fResponses; }       
        const std::array<short,NMAX> &Responses() const { return fResponses; }
@@ -161,13 +161,26 @@ inline short GBRTreeFast::GetResponse(const short * array) const {
 }
 
 //_______________________________________________________________________
-inline int GBRTreeFast::TerminalIndex(const short * array) const {
+inline short GBRTreeFast::TerminalIndex(const short * array) const {
   
+  short index = 0;
+  
+  do {
+    short c = array[fCutIndices[index]] > fCutVals[index]; c=-c;
+    index =  (c&fRightIndices[index]) | ((~c)&fLeftIndices[index]);
+  } while (index>0);
+  return -index;
+
+}
+
+/*
+inline int GBRTreeFast::oldTerminalIndex(const short * array) const {
+
   int index = 0;
-  
+
   unsigned char cutindex = fCutIndices[0];
   short cutval = fCutVals[0];
-  
+
   while (true) {
     if (array[cutindex] > cutval) {
       index = fRightIndices[index];
@@ -175,7 +188,7 @@ inline int GBRTreeFast::TerminalIndex(const short * array) const {
     else {
       index = fLeftIndices[index];
     }
-    
+
     if (index>0) {
       cutindex = fCutIndices[index];
       cutval = fCutVals[index];
@@ -183,10 +196,11 @@ inline int GBRTreeFast::TerminalIndex(const short * array) const {
     else {
       return (-index);
     }
-    
+
   }
-  
+
 
 }
+*/
   
 #endif
