@@ -27,6 +27,8 @@
 
 #include <vector>
 #include <map>
+#include<nativeVector.h>
+using namespace nativeVector;
 
   namespace TMVA {
     class DecisionTree;
@@ -41,6 +43,7 @@
        explicit GBRTree(const TMVA::DecisionTree *tree, double scale, bool useyesnoleaf, bool adjustboundary);
        virtual ~GBRTree();
        
+       FVect GetResponseV(const Fvect* vector) const;
        double GetResponse(const float* vector) const;
        int TerminalIndex(const float *vector) const;
        
@@ -76,6 +79,30 @@
   
   COND_SERIALIZABLE;
 };
+
+
+//_______________________________________________________________________
+inline FVect GBRTree::GetResponseV(const FVect * vector) const {
+   IVect index = {0};
+   IVect rindex = {0}; rindex+10000;
+   IVect zero = {0};
+   IVect cindex = {0};
+
+  do {
+    auto ci = gather(&fCutIndices.front(),index);
+    for (int i=0; i<8; ++i) v[i]  = vector[ci[i]][i];
+    auto c = gather(&fCutVals.front(),index);
+    auto r = gather(&fRightIndices.front(),index);
+    auto l = gather(&fLeftIndices.front(),index);
+    index = v>c ? r : l;
+    rindex = rindex<=0 ? rindex : index;
+    index = rindex<0 ? zero : rindex;  
+  } while(testz(rindex>0));
+  
+
+   return gather(&fResponses.front(),-index};
+
+}
 
 //_______________________________________________________________________
 inline double GBRTree::GetResponse(const float* vector) const {

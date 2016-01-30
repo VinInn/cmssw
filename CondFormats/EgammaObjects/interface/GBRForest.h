@@ -34,7 +34,8 @@
        GBRForest();
        explicit GBRForest(const TMVA::MethodBDT *bdt);
        virtual ~GBRForest();
-       
+
+       FVect GetResponseV(const Fvect* vector) const;
        double GetResponse(const float* vector) const;
        double GetGradBoostClassifier(const float* vector) const;
        double GetAdaBoostClassifier(const float* vector) const { return GetResponse(vector); }
@@ -56,6 +57,14 @@
 };
 
 //_______________________________________________________________________
+inline FVect GetResponseV(const Fvect* vector) const {
+   FVect response = {0.}; response+=fInitialResponse;
+    for (std::vector<GBRTree>::const_iterator it=fTrees.begin(); it!=fTrees.end(); ++it) {
+    response += it->GetResponseV(vector);
+   }
+  return response;
+}
+
 inline double GBRForest::GetResponse(const float* vector) const {
   double response = fInitialResponse;
   for (std::vector<GBRTree>::const_iterator it=fTrees.begin(); it!=fTrees.end(); ++it) {
