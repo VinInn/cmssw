@@ -92,24 +92,25 @@ using TMVA_in = std::array<float const *,8>;
 #ifdef VECTOR_TMVA
 inline  TMVA_out GBRTree::GetResponseV(TMVA_in const & vector) const {
    IVect index = {0};
-   IVect rindex = {0}; rindex+=10000;
+   // IVect rindex = {0}; rindex+=10000;
    IVect zero = {0};
+   FVect fzero = {0};
+   auto mask = zero-1;
 
   do {
     // for (int i=0; i<8; ++i) assert(index[i]>=0);
-    auto ci = gather(&fCutIndices.front(),index);
+    auto ci = mask_gather(zero, &fCutIndices.front(),index,mask);
     FVect v;
     for (int i=0; i<8; ++i) v[i]  = vector[i][ci[i]]; // not obvious how to use gather here
-    auto c = gather(&fCutVals.front(),index);
-    auto r = gather(&fRightIndices.front(),index);
-    auto l = gather(&fLeftIndices.front(),index);
+    auto c = mask_gather(fzero,&fCutVals.front(),index,mask);
+    auto r = mask_gather(index,&fRightIndices.front(),index,mask);
+    auto l = mask_gather(index,&fLeftIndices.front(),index,mask);
     index = v>c ? r : l;
-    rindex = rindex<=0 ? rindex : index; // mask out results from lanes already converged
-    index = rindex<0 ? zero : rindex;  // avoid negative index in gather
-  } while(!testz(0<rindex)); // wait till all 8 lanes converged
+    mask = index>0; // zero do not mask
+  } while(!testz(0<index)); // wait till all 8 lanes converged
   // std::cout << rindex << std::endl;
-  // for (int i=0; i<8; ++i) assert(rindex[i]<=0);
-  return gather(&fResponses.front(),-rindex);
+  // for (int i=0; i<8; ++i) assert(index[i]<=0);
+  return gather(&fResponses.front(),-index);
 
 }
 #endif
