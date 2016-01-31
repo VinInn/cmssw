@@ -32,7 +32,7 @@
 #include "nativeVector.h"
 using namespace nativeVector;
 using TMVA_out = FVect;
-using TMVA_in = std::array<float const *,8>;
+using TMVA_in = std::array<float,8>;
 #endif
 
   namespace TMVA {
@@ -49,7 +49,7 @@ using TMVA_in = std::array<float const *,8>;
        virtual ~GBRTree();
 
 #ifdef VECTOR_TMVA       
-       TMVA_out GetResponseV(TMVA_in const & vector) const;
+       TMVA_out GetResponseV(TMVA_in const * vector) const;
 #endif
        double GetResponse(const float* vector) const;
        int TerminalIndex(const float *vector) const;
@@ -90,18 +90,20 @@ using TMVA_in = std::array<float const *,8>;
 #include<cassert>
 //_______________________________________________________________________
 #ifdef VECTOR_TMVA
-inline  TMVA_out GBRTree::GetResponseV(TMVA_in const & vector) const {
+inline  TMVA_out GBRTree::GetResponseV(TMVA_in const * vector) const {
    IVect index = {0};
    // IVect rindex = {0}; rindex+=10000;
    IVect zero = {0};
    FVect fzero = {0};
    auto mask = zero-1;
 
+   constexpr IVect off={0,1,2,3,4,5,6,7};
+  auto vi = &vector[0][0];
   do {
     // for (int i=0; i<8; ++i) assert(index[i]>=0);
-    auto ci = mask_gather(zero, &fCutIndices.front(),index,mask);
-    FVect v;
-    for (int i=0; i<8; ++i) v[i]  = vector[i][ci[i]]; // not obvious how to use gather here
+    auto ci = 8*mask_gather(zero, &fCutIndices.front(),index,mask)+off;
+    FVect v = mask_gather(fzero,vi,ci,mask);
+    //for (int i=0; i<8; ++i) v[i]  = vector[i][ci[i]]; // not obvious how to use gather here
     auto c = mask_gather(fzero,&fCutVals.front(),index,mask);
     auto r = mask_gather(index,&fRightIndices.front(),index,mask);
     auto l = mask_gather(index,&fLeftIndices.front(),index,mask);

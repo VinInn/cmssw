@@ -1,7 +1,7 @@
 #define VECTOR_TMVA
 #include "CondFormats/EgammaObjects/interface/GBRForest.h"
 #include "GBRForestFast.h"
-using Vin = TMVA_in;
+using Vin = std::array<const float *,8>;
 
 #include "TFile.h"
 #include<memory>
@@ -64,30 +64,29 @@ long long t3=0;
 template<typename FF>
 float eval(FF const & forest, Vin const & x, long long & t1) {
 
-    Vin gbr;
-    std::array<std::array<float,16>,8> gbrVals_;
+    
+    std::array<float,8> gbrVals_[16];
     for (int i=0; i<8; ++i) {
-    gbrVals_[i][0] = 0.2f + 20.f*x[i][0];
-    gbrVals_[i][1] = x[i][1];
-    gbrVals_[i][2] = int(3.f*x[i][2]);
-    gbrVals_[i][3] = int(20.f*x[i][3]);
-    gbrVals_[i][4] = 0.1f*x[i][4];
-    gbrVals_[i][5] = 2.4f+4.8d*x[i][5];
-    gbrVals_[i][6] = 8.f*x[i][6];
-    gbrVals_[i][7] = 8.f*x[i][6];
-    gbrVals_[i][8] = int(3.f*x[i][7]);
-    gbrVals_[i][9] = int(7.f*x[i][3]);
-    gbrVals_[i][10] = int(12.f*x[i][3]);
-    gbrVals_[i][11] = int(20.f*x[i][3])-5;
-    gbrVals_[i][12] = 0.01*x[i][8];
-    gbrVals_[i][13] = 15.f*x[i][9];
-    gbrVals_[i][14] = x[i][10];
-    gbrVals_[i][15] = 0.01*x[i][8];;
-    gbr[i] = &gbrVals_[i][0];
+    gbrVals_[0][i] = 0.2f + 20.f*x[i][0];
+    gbrVals_[1][i] = x[i][1];
+    gbrVals_[2][i] = int(3.f*x[i][2]);
+    gbrVals_[3][i] = int(20.f*x[i][3]);
+    gbrVals_[4][i] = 0.1f*x[i][4];
+    gbrVals_[5][i] = 2.4f+4.8d*x[i][5];
+    gbrVals_[6][i] = 8.f*x[i][6];
+    gbrVals_[7][i] = 8.f*x[i][6];
+    gbrVals_[8][i] = int(3.f*x[i][7]);
+    gbrVals_[9][i] = int(7.f*x[i][3]);
+    gbrVals_[10][i] = int(12.f*x[i][3]);
+    gbrVals_[11][i] = int(20.f*x[i][3])-5;
+    gbrVals_[12][i] = 0.01*x[i][8];
+    gbrVals_[13][i] = 15.f*x[i][9];
+    gbrVals_[14][i] = x[i][10];
+    gbrVals_[15][i] = 0.01*x[i][8];;
     }
     t3 -= rdtsc();
 //    auto ret = forest.GetClassifier(gbrVals_);
-    auto ret = forest.GetResponseV(gbr);
+    auto ret = forest.GetResponseV(gbrVals_);
     float out=0;
     for (int i=0; i<8; ++i) out+=ret[i];
     t3 += rdtsc();

@@ -36,7 +36,7 @@
        virtual ~GBRForest();
 
 #ifdef VECTOR_TMVA
-       TMVA_out GetResponseV(TMVA_in const & vector) const;
+       TMVA_out GetResponseV(TMVA_in const * vector) const;
 #endif
        double GetResponse(const float* vector) const;
        double GetGradBoostClassifier(const float* vector) const;
@@ -60,7 +60,7 @@
 
 //_______________________________________________________________________
 #ifdef VECTOR_TMVA
-inline TMVA_out GBRForest::GetResponseV(TMVA_in const & vector) const {
+inline TMVA_out GBRForest::GetResponseV(TMVA_in const * vector) const {
    FVect response = {0.}; response+=float(fInitialResponse);
     for (std::vector<GBRTree>::const_iterator it=fTrees.begin(); it!=fTrees.end(); ++it) {
     response += it->GetResponseV(vector);
