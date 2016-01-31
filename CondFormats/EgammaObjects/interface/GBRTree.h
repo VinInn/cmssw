@@ -99,14 +99,14 @@ inline  TMVA_out GBRTree::GetResponseV(TMVA_in const & vector) const {
     // for (int i=0; i<8; ++i) assert(index[i]>=0);
     auto ci = gather(&fCutIndices.front(),index);
     FVect v;
-    for (int i=0; i<8; ++i) v[i]  = vector[i][ci[i]];
+    for (int i=0; i<8; ++i) v[i]  = vector[i][ci[i]]; // not obvious how to use gather here
     auto c = gather(&fCutVals.front(),index);
     auto r = gather(&fRightIndices.front(),index);
     auto l = gather(&fLeftIndices.front(),index);
     index = v>c ? r : l;
-    rindex = rindex<=0 ? rindex : index;
-    index = rindex<0 ? zero : rindex;  
-  } while(!testz(0<rindex));
+    rindex = rindex<=0 ? rindex : index; // mask out results from lanes already converged
+    index = rindex<0 ? zero : rindex;  // avoid negative index in gather
+  } while(!testz(0<rindex)); // wait till all 8 lanes converged
   // std::cout << rindex << std::endl;
   // for (int i=0; i<8; ++i) assert(rindex[i]<=0);
   return gather(&fResponses.front(),-rindex);
