@@ -27,8 +27,13 @@
 
 #include <vector>
 #include <map>
-#include<nativeVector.h>
+#ifdef VECTOR_TMVA
+#include<array>
+#include "nativeVector.h"
 using namespace nativeVector;
+using TMVA_out = FVect;
+using TMVA_in = std::array<float const *,8>;
+#endif
 
   namespace TMVA {
     class DecisionTree;
@@ -42,16 +47,18 @@ using namespace nativeVector;
        GBRTree();
        explicit GBRTree(const TMVA::DecisionTree *tree, double scale, bool useyesnoleaf, bool adjustboundary);
        virtual ~GBRTree();
-       
-       FVect GetResponseV(const Fvect* vector) const;
+
+#ifdef VECTOR_TMVA       
+       TMVA_out GetResponseV(TMVA_in const & vector) const;
+#endif
        double GetResponse(const float* vector) const;
        int TerminalIndex(const float *vector) const;
        
        std::vector<float> &Responses() { return fResponses; }       
        const std::vector<float> &Responses() const { return fResponses; }
        
-       std::vector<unsigned char> &CutIndices() { return fCutIndices; }
-       const std::vector<unsigned char> &CutIndices() const { return fCutIndices; }
+       std::vector<int> &CutIndices() { return fCutIndices; }
+       const std::vector<int> &CutIndices() const { return fCutIndices; }
        
        std::vector<float> &CutVals() { return fCutVals; }
        const std::vector<float> &CutVals() const { return fCutVals; }
@@ -70,7 +77,7 @@ using namespace nativeVector;
       
         void AddNode(const TMVA::DecisionTreeNode *node, double scale, bool isregression, bool useyesnoleaf, bool adjustboundary);
         
-	std::vector<unsigned char> fCutIndices;
+	std::vector<int> fCutIndices;
 	std::vector<float> fCutVals;
 	std::vector<int> fLeftIndices;
 	std::vector<int> fRightIndices;
@@ -80,29 +87,32 @@ using namespace nativeVector;
   COND_SERIALIZABLE;
 };
 
-
+#include<cassert>
 //_______________________________________________________________________
-inline FVect GBRTree::GetResponseV(const FVect * vector) const {
+#ifdef VECTOR_TMVA
+inline  TMVA_out GBRTree::GetResponseV(TMVA_in const & vector) const {
    IVect index = {0};
-   IVect rindex = {0}; rindex+10000;
+   IVect rindex = {0}; rindex+=10000;
    IVect zero = {0};
-   IVect cindex = {0};
 
   do {
+    // for (int i=0; i<8; ++i) assert(index[i]>=0);
     auto ci = gather(&fCutIndices.front(),index);
-    for (int i=0; i<8; ++i) v[i]  = vector[ci[i]][i];
+    FVect v;
+    for (int i=0; i<8; ++i) v[i]  = vector[i][ci[i]];
     auto c = gather(&fCutVals.front(),index);
     auto r = gather(&fRightIndices.front(),index);
     auto l = gather(&fLeftIndices.front(),index);
     index = v>c ? r : l;
     rindex = rindex<=0 ? rindex : index;
     index = rindex<0 ? zero : rindex;  
-  } while(testz(rindex>0));
-  
-
-   return gather(&fResponses.front(),-index};
+  } while(!testz(0<rindex));
+  // std::cout << rindex << std::endl;
+  // for (int i=0; i<8; ++i) assert(rindex[i]<=0);
+  return gather(&fResponses.front(),-rindex);
 
 }
+#endif
 
 //_______________________________________________________________________
 inline double GBRTree::GetResponse(const float* vector) const {

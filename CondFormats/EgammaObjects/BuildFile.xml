@@ -1,3 +1,4 @@
+<flags   CXXFLAGS="-Ofast -mavx2 -mfma -mf16c -Wno-error=maybe-uninitialized"/>
 <use   name="FWCore/Utilities"/>
 <use   name="CondFormats/Common"/>
 <use   name="CondFormats/Serialization"/>
