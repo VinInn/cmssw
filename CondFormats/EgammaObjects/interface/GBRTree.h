@@ -94,13 +94,13 @@ inline  TMVA_out GBRTree::GetResponseV(TMVA_in const * vector) const {
   IVect index = {0};
   IVect zero = {0};
   FVect fzero = {0};
-  auto mask = zero-1;
+  auto mask = zero<1;
 
   constexpr IVect off={0,1,2,3,4,5,6,7};
-  auto vi = &vector[0][0];
+  float const * vi = &vector[0][0];
   do {
     auto ci = 8*mask_gather(zero, &fCutIndices.front(),index,mask)+off;
-    FVect v = mask_gather(fzero,vi,ci,mask);
+    auto v = mask_gather(fzero,vi,ci,mask);
     auto c = mask_gather(fzero,&fCutVals.front(),index,mask);
     auto r = mask_gather(index,&fRightIndices.front(),index,mask);
     auto l = mask_gather(index,&fLeftIndices.front(),index,mask);
@@ -116,10 +116,12 @@ inline  TMVA_out GBRTree::GetResponseV(TMVA_in const * vector) const {
 
 //_______________________________________________________________________
 inline double GBRTree::GetResponse(const float* vector) const {
-  return fResponses[TerminalIndex(vector)];
+    return fResponses[TerminalIndex(vector)];
+}
 
-/*
-  int index = 0;
+  /* old code, for reference
+inline double GBRTree::GetResponse(const float* vector) const {
+   int index = 0;
   
   unsigned char cutindex = fCutIndices[0];
   float cutval = fCutVals[0];
@@ -140,29 +142,23 @@ inline double GBRTree::GetResponse(const float* vector) const {
     else {
       return fResponses[-index];
     }
-    
+   
   }
+}
   */
 
-}
+
 
 //_______________________________________________________________________
 inline int GBRTree::TerminalIndex(const float* vector) const {
   
-  
-
   int index = 0;
-  
   do {
-   int v,c;
-   memcpy(&v,&vector[fCutIndices[index]],4);
-   memcpy(&c,&fCutVals[index],4);
-   c = v>c; c=-c;
-   index = (c&int(fRightIndices[index])) | ((~c)&int(fLeftIndices[index]));
-
-  } while(index>0);
-  return -index;  
-
+     auto r = fRightIndices[index];
+     auto l = fLeftIndices[index];
+    index =  vector[fCutIndices[index]] > fCutVals[index] ? r : l;
+  } while (index>0);
+  return -index;
 }
   
 #endif

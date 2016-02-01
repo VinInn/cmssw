@@ -37,6 +37,7 @@
 
 #ifdef VECTOR_TMVA
        TMVA_out GetResponseV(TMVA_in const * vector) const;
+       TMVA_out GetGradBoostClassifierV(TMVA_in const * vector) const;
 #endif
        double GetResponse(const float* vector) const;
        double GetGradBoostClassifier(const float* vector) const;
@@ -78,6 +79,14 @@ inline double GBRForest::GetResponse(const float* vector) const {
 }
 
 //_______________________________________________________________________
+
+#ifdef VECTOR_TMVA
+inline TMVA_out GBRForest::GetGradBoostClassifierV(TMVA_in const * vector) const {
+  auto response = GetResponseV(vector);
+  for (int i=0; i<8; ++i) response[i] = 2.0f/(1.0f+expf(-2.0f*response[i]))-1.0f;  
+  return response;
+}
+#endif
 inline double GBRForest::GetGradBoostClassifier(const float* vector) const {
   double response = GetResponse(vector);
   return 2.0/(1.0+exp(-2.0*response))-1; //MVA output between -1 and 1

@@ -166,8 +166,9 @@ inline short GBRTreeFast::TerminalIndex(const short * array) const {
   short index = 0;
   
   do {
-    short c = array[fCutIndices[index]] > fCutVals[index]; c=-c;
-    index =  (c&fRightIndices[index]) | ((~c)&fLeftIndices[index]);
+     auto r = fRightIndices[index];
+     auto l = fLeftIndices[index];
+    index =  array[fCutIndices[index]] > fCutVals[index] ? r : l;
   } while (index>0);
   return -index;
 
