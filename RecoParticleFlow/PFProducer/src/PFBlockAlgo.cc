@@ -7,6 +7,10 @@
 
 #include "DataFormats/ParticleFlowReco/interface/PFRecHit.h"
 
+#include "RecoParticleFlow/PFProducer/interface/BlockElementLinkers.h"
+
+
+
 #include <stdexcept>
 #include "TMath.h"
 
@@ -252,7 +256,7 @@ PFBlockAlgo::linkPrefilter(const reco::PFBlockElement* last,
   const unsigned index = rowsize*std::max(type1,type2) + std::min(type1,type2);
   bool result = false;
   if( index < _linkTests.size() && _linkTests[index] ) {
-    result = _linkTests[index]->linkPrefilter(last,next);
+    result = blockElementLinker::linkPrefilter(*_linkTests[index],last,next);
   }
   return result;  
 }
@@ -276,7 +280,8 @@ PFBlockAlgo::link( const reco::PFBlockElement* el1,
   }
   
   // index is always checked in the preFilter above, no need to check here
-  dist = _linkTests[index]->testLink(el1,el2);
+  // dist = _linkTests[index]->testLink(el1,el2);
+  dist = blockElementLinker::testLink(*_linkTests[index],el1,el2);
 }
 
 void PFBlockAlgo::updateEventSetup(const edm::EventSetup& es) {

@@ -1,24 +1,8 @@
-#include "RecoParticleFlow/PFProducer/interface/BlockElementLinkerBase.h"
+#include "RecoParticleFlow/PFProducer/interface/BlockElementLinkers.h"
 #include "DataFormats/ParticleFlowReco/interface/PFCluster.h"
 #include "DataFormats/ParticleFlowReco/interface/PFBlockElementCluster.h"
 #include "RecoParticleFlow/PFClusterTools/interface/LinkByRecHit.h"
 
-class PreshowerAndECALLinker : public BlockElementLinkerBase {
-public:
-  PreshowerAndECALLinker(const edm::ParameterSet& conf) :
-    BlockElementLinkerBase(conf),
-    _useKDTree(conf.getParameter<bool>("useKDTree")),
-    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
-  
-  bool linkPrefilter( const reco::PFBlockElement*,
-		      const reco::PFBlockElement* ) const override;
-
-  double testLink( const reco::PFBlockElement*,
-		   const reco::PFBlockElement* ) const override;
-
-private:
-  bool _useKDTree,_debug;
-};
 
 DEFINE_EDM_PLUGIN(BlockElementLinkerFactory, 
 		  PreshowerAndECALLinker, 

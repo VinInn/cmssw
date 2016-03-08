@@ -8,8 +8,17 @@
 #include <string>
 
 class BlockElementLinkerBase {
- public:
- BlockElementLinkerBase(const edm::ParameterSet& conf):
+public:
+
+   enum Type { PreshowerAndECALLinker
+                 , HFEMAndHFHADLinker
+                 , ECALAndHCALLinker
+                 , TrackAndHCALLinker
+                 , TrackAndECALLinker
+                 , DefaultType };
+
+ BlockElementLinkerBase(const edm::ParameterSet& conf, Type itype=DefaultType):
+  m_type(itype),
   _linkerName( conf.getParameter<std::string>("linkerName") ) { }
   BlockElementLinkerBase(const BlockElementLinkerBase& ) = delete;
   BlockElementLinkerBase& operator=(const BlockElementLinkerBase&) = delete;
@@ -21,9 +30,12 @@ class BlockElementLinkerBase {
   virtual double testLink( const reco::PFBlockElement*,
 			   const reco::PFBlockElement* ) const = 0;
 
+  Type type() const{ return m_type;}
+
   const std::string& name() const { return _linkerName; }
   
  private:
+  Type m_type;
   const std::string _linkerName;
 };
 
