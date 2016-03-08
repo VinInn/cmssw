@@ -145,9 +145,6 @@ PFBlockAlgo::associate( PFBlockAlgo::ElementList& elems,
   ElementList::iterator scan_upper(elems.begin()), search_lower(elems.begin()), 
     scan_lower(elems.begin());
   ++scan_upper; ++search_lower;
-  double dist = -1;
-  PFBlockLink::Type linktype = PFBlockLink::NONE;
-  PFBlock::LinkTest linktest = PFBlock::LINKTEST_RECHIT;
   block.addElement(scan_lower->get()); // seed the block
   // the terminating condition of this loop is when the next range 
   // to scan has zero length (i.e. you have found no more nearest neighbours)
@@ -163,27 +160,25 @@ PFBlockAlgo::associate( PFBlockAlgo::ElementList& elems,
       search_lower = 
 	std::partition(search_lower,elems.end(),
 		       [&](ElementList::value_type& a){	
-			 dist = -1.0;			 
+			 double dist = -1.0;			 
+                         PFBlockLink::Type linktype = PFBlockLink::NONE;
+                         PFBlock::LinkTest linktest = PFBlock::LINKTEST_RECHIT;
 			 // compute linking info if it is possible
 			 if( linkPrefilter(comp->get(), a.get()) ) {
 			   link( comp->get(), a.get(), 
 				 linktype, linktest, dist ); 
 			 }
 			 if( dist >= -0.5 ) {
-			   const unsigned lidx = ((*comp)->type() < a->type() ? 
-						  (*comp)->index() :
-						  a->index() );
-			   const unsigned uidx = ((*comp)->type() >= a->type() ?
-						  (*comp)->index() :
-						  a->index() );
+			   auto lidx = (*comp)->index();
+			   auto uidx = a->index();
+                           if ((*comp)->type() >= a->type() ) std::swap(lidx,uidx);
 			   block.addElement( a.get() ); 
 			   links.emplace( std::make_pair(lidx,uidx),
 					  PFBlockLink(linktype, linktest, dist,
 						      lidx, uidx ) );
 			   return true;
-			 } else {
-			   return false;
-			 }
+			 } 
+			 return false;
 		       });
     }
     // we then update the scan range lower boundary to point to the
