@@ -3,10 +3,6 @@
 #include "DataFormats/ParticleFlowReco/interface/PFBlockElementCluster.h"
 #include "RecoParticleFlow/PFClusterTools/interface/LinkByRecHit.h"
 
-DEFINE_EDM_PLUGIN(BlockElementLinkerFactory, 
-		  ECALAndHCALLinker, 
-		  "ECALAndHCALLinker");
-
 double ECALAndHCALLinker::testLink
   ( const reco::PFBlockElement* elem1,
     const reco::PFBlockElement* elem2) const {  

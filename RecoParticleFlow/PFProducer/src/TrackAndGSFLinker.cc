@@ -1,28 +1,8 @@
-#include "RecoParticleFlow/PFProducer/interface/BlockElementLinkerBase.h"
+#include "RecoParticleFlow/PFProducer/interface/BlockElementLinkers.h"
 #include "DataFormats/ParticleFlowReco/interface/PFRecTrack.h"
 #include "DataFormats/ParticleFlowReco/interface/PFBlockElementGsfTrack.h"
 #include "DataFormats/ParticleFlowReco/interface/PFBlockElementTrack.h"
 #include "RecoParticleFlow/PFClusterTools/interface/LinkByRecHit.h"
-
-class TrackAndGSFLinker : public BlockElementLinkerBase {
-public:
-  TrackAndGSFLinker(const edm::ParameterSet& conf) :
-    BlockElementLinkerBase(conf),
-    _useKDTree(conf.getParameter<bool>("useKDTree")),
-    _useConvertedBrems(conf.getParameter<bool>("useConvertedBrems")),
-    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
-  
-  double testLink 
-  ( const reco::PFBlockElement*,
-    const reco::PFBlockElement* ) const override;
-
-private:
-  bool _useKDTree,_useConvertedBrems,_debug;
-};
-
-DEFINE_EDM_PLUGIN(BlockElementLinkerFactory, 
-		  TrackAndGSFLinker, 
-		  "TrackAndGSFLinker");
 
 double TrackAndGSFLinker::testLink
   ( const reco::PFBlockElement* elem1,

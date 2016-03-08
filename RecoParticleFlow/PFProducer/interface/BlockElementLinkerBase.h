@@ -42,4 +42,5 @@ public:
 #include "FWCore/PluginManager/interface/PluginFactory.h"
 typedef edmplugin::PluginFactory< BlockElementLinkerBase* (const edm::ParameterSet&) > BlockElementLinkerFactory;
 
+
 #endif

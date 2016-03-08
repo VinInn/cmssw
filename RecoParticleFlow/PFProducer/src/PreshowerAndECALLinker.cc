@@ -4,10 +4,6 @@
 #include "RecoParticleFlow/PFClusterTools/interface/LinkByRecHit.h"
 
 
-DEFINE_EDM_PLUGIN(BlockElementLinkerFactory, 
-		  PreshowerAndECALLinker, 
-		  "PreshowerAndECALLinker");
-
 bool PreshowerAndECALLinker::
 linkPrefilter( const reco::PFBlockElement* elem1,
 	       const reco::PFBlockElement* elem2 ) const {  

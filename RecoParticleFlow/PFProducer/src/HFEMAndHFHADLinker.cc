@@ -4,10 +4,6 @@
 #include "RecoParticleFlow/PFClusterTools/interface/LinkByRecHit.h"
 
 
-DEFINE_EDM_PLUGIN(BlockElementLinkerFactory, 
-		  HFEMAndHFHADLinker, 
-		  "HFEMAndHFHADLinker");
-
 double HFEMAndHFHADLinker::testLink
   ( const reco::PFBlockElement* elem1,
     const reco::PFBlockElement* elem2) const {  

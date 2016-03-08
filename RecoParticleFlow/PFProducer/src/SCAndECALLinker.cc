@@ -1,29 +1,9 @@
-#include "RecoParticleFlow/PFProducer/interface/BlockElementLinkerBase.h"
+#include "RecoParticleFlow/PFProducer/interface/BlockElementLinkers.h"
 #include "DataFormats/ParticleFlowReco/interface/PFCluster.h"
 #include "DataFormats/ParticleFlowReco/interface/PFBlockElementCluster.h"
 #include "DataFormats/ParticleFlowReco/interface/PFBlockElementSuperCluster.h"
 #include "RecoParticleFlow/PFClusterTools/interface/LinkByRecHit.h"
 #include "RecoParticleFlow/PFClusterTools/interface/ClusterClusterMapping.h"
-
-class SCAndECALLinker : public BlockElementLinkerBase {
-public:
-  SCAndECALLinker(const edm::ParameterSet& conf) :
-    BlockElementLinkerBase(conf),
-    _useKDTree(conf.getParameter<bool>("useKDTree")),
-    _debug(conf.getUntrackedParameter<bool>("debug",false)),
-    _superClusterMatchByRef(conf.getParameter<bool>("SuperClusterMatchByRef")){}
-  
-  double testLink 
-  ( const reco::PFBlockElement*,
-    const reco::PFBlockElement* ) const override;
-
-private:
-  bool _useKDTree,_debug,_superClusterMatchByRef;
-};
-
-DEFINE_EDM_PLUGIN(BlockElementLinkerFactory, 
-		  SCAndECALLinker, 
-		  "SCAndECALLinker");
 
 double SCAndECALLinker::testLink
   ( const reco::PFBlockElement* elem1,

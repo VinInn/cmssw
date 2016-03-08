@@ -6,10 +6,6 @@
 #include "DataFormats/Math/interface/deltaPhi.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
-DEFINE_EDM_PLUGIN(BlockElementLinkerFactory, 
-		  TrackAndHCALLinker, 
-		  "TrackAndHCALLinker");
-
 double TrackAndHCALLinker::testLink
   ( const reco::PFBlockElement* elem1,
     const reco::PFBlockElement* elem2) const {  

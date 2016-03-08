@@ -42,7 +42,6 @@ private:
   bool _useKDTree,_debug;
 };
 
-
 class PreshowerAndECALLinker final : public BlockElementLinkerBase {
 public:
   PreshowerAndECALLinker(const edm::ParameterSet& conf) :
@@ -94,6 +93,220 @@ private:
   bool _useKDTree,_debug;
 };
 
+
+
+
+
+class ECALAndBREMLinker : public BlockElementLinkerBase {
+public:
+  ECALAndBREMLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+
+  double testLink
+  ( const reco::PFBlockElement*,
+    const reco::PFBlockElement* ) const override;
+
+private:
+  bool _useKDTree,_debug;
+};
+
+class ECALAndECALLinker : public BlockElementLinkerBase {
+public:
+  ECALAndECALLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+    
+  bool linkPrefilter( const reco::PFBlockElement*,  
+                      const reco::PFBlockElement* ) const override;
+  
+  double testLink( const reco::PFBlockElement*,
+                   const reco::PFBlockElement* ) const override;
+    
+private:  
+  bool _useKDTree,_debug;
+};
+ 
+class ECALAndHCALCaloJetLinker : public BlockElementLinkerBase {
+public:
+  ECALAndHCALCaloJetLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+    
+  double testLink
+  ( const reco::PFBlockElement*,
+    const reco::PFBlockElement* ) const override;
+
+private:
+  bool _useKDTree,_debug;
+};
+
+class GSFAndBREMLinker : public BlockElementLinkerBase {
+public:
+  GSFAndBREMLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+    
+  double testLink
+  ( const reco::PFBlockElement*,
+    const reco::PFBlockElement* ) const override;
+   
+private:
+  bool _useKDTree,_debug;
+};
+ 
+class GSFAndECALLinker : public BlockElementLinkerBase {
+public:
+  GSFAndECALLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+  
+  double testLink
+  ( const reco::PFBlockElement*,
+    const reco::PFBlockElement* ) const override;
+    
+private:
+  bool _useKDTree,_debug;
+};
+
+class GSFAndGSFLinker : public BlockElementLinkerBase {
+public:
+  GSFAndGSFLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+  
+  double testLink   
+  ( const reco::PFBlockElement*,
+    const reco::PFBlockElement* ) const override;
+    
+private:                                         
+  bool _useKDTree,_debug;
+};
+
+class GSFAndHCALLinker : public BlockElementLinkerBase {
+public:
+  GSFAndHCALLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+  
+  double testLink
+  ( const reco::PFBlockElement*,
+    const reco::PFBlockElement* ) const override;
+  
+private:
+  bool _useKDTree,_debug;
+};
+
+class HCALAndBREMLinker : public BlockElementLinkerBase {
+public:
+  HCALAndBREMLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+  
+  double testLink   
+  ( const reco::PFBlockElement*,
+    const reco::PFBlockElement* ) const override;
+    
+private:  
+  bool _useKDTree,_debug;
+};
+
+class HCALAndHOLinker : public BlockElementLinkerBase {
+public:
+  HCALAndHOLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),   
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+  
+  double testLink
+  ( const reco::PFBlockElement*,
+    const reco::PFBlockElement* ) const override;
+    
+private:
+  bool _useKDTree,_debug;
+};
+
+class SCAndECALLinker : public BlockElementLinkerBase {
+public:
+  SCAndECALLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)),
+    _superClusterMatchByRef(conf.getParameter<bool>("SuperClusterMatchByRef")){}
+               
+  double testLink
+  ( const reco::PFBlockElement*,  
+    const reco::PFBlockElement* ) const override;
+               
+private:  
+  bool _useKDTree,_debug,_superClusterMatchByRef;
+};
+
+
+class TrackAndGSFLinker : public BlockElementLinkerBase {
+public:
+  TrackAndGSFLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _useConvertedBrems(conf.getParameter<bool>("useConvertedBrems")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+    
+  double testLink
+  ( const reco::PFBlockElement*,
+    const reco::PFBlockElement* ) const override;
+    
+private:
+  bool _useKDTree,_useConvertedBrems,_debug;
+};
+
+class TrackAndHOLinker : public BlockElementLinkerBase { 
+public:
+  TrackAndHOLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+    
+  double testLink
+  ( const reco::PFBlockElement*,
+    const reco::PFBlockElement* ) const override;
+  
+private:
+  bool _useKDTree,_debug;
+};
+
+class TrackAndTrackLinker : public BlockElementLinkerBase {
+public:
+  TrackAndTrackLinker(const edm::ParameterSet& conf) :
+    BlockElementLinkerBase(conf),
+    _useKDTree(conf.getParameter<bool>("useKDTree")),
+    _debug(conf.getUntrackedParameter<bool>("debug",false)) {}
+  
+  bool linkPrefilter( const reco::PFBlockElement*,
+                      const reco::PFBlockElement* ) const override;
+    
+  double testLink( const reco::PFBlockElement*,
+                   const reco::PFBlockElement* ) const override;
+    
+private:
+  bool _useKDTree,_debug;
+};
+
+
+
+
+
+
+//----------------------------------
+
+
 namespace blockElementLinker {
 
   inline double testLink(BlockElementLinkerBase const & linker,
@@ -140,6 +353,10 @@ namespace blockElementLinker {
 
   
 }
+
+
+
+
 
 
 #endif // BlockElementLinkers_H
