@@ -70,10 +70,10 @@ Chi2MeasurementEstimatorESProducer::fillDescriptions(edm::ConfigurationDescripti
   //  edm::ParameterSetDescription desc = Chi2MeasurementEstimatorESProducer::getFilledConfigurationDescription();
   edm::ParameterSetDescription desc;
   desc.add<double>("MaxChi2",30);
-  desc.add<double>("nSigma",3);
-  desc.add<double>("MaxDisplacement",0.5); 
-  desc.add<double>("MaxSagitta",2.);
-  desc.add<double>("MinimalTolerance",0.5);
+  desc.add<double>("nSigma",4);
+  desc.add<double>("MaxDisplacement",100.); 
+  desc.add<double>("MaxSagitta",-1);
+  desc.add<double>("MinimalTolerance",100.);
   desc.add<std::string>("ComponentName","Chi2");
   descriptions.add("Chi2MeasurementEstimator", desc);
 }

@@ -123,10 +123,10 @@ Chi2ChargeMeasurementEstimatorESProducer::fillDescriptions(edm::ConfigurationDes
   //  edm::ParameterSetDescription desc = Chi2MeasurementEstimatorESProducer::getFilledConfigurationDescription();
   edm::ParameterSetDescription desc;
   desc.add<double>("MaxChi2",30);
-  desc.add<double>("nSigma",3);
-  desc.add<double>("MaxDisplacement",0.5); 
-  desc.add<double>("MaxSagitta",2.);
-  desc.add<double>("MinimalTolerance",0.5);
+  desc.add<double>("nSigma",4);
+  desc.add<double>("MaxDisplacement",100.); 
+  desc.add<double>("MaxSagitta",-1.);
+  desc.add<double>("MinimalTolerance",100.);
   desc.add<std::string>("ComponentName","Chi2Charge");
   desc.add<double>("pTChargeCutThreshold",-1.);
   edm::ParameterSetDescription descCCC = getFilledConfigurationDescription4CCC();

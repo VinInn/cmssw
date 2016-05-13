@@ -63,7 +63,7 @@ detachedTripletStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_c
 detachedTripletStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'detachedTripletStepSeedLayers'
 detachedTripletStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet = cms.PSet(PixelTripletLargeTipGenerator)
 detachedTripletStepSeeds.SeedCreatorPSet.ComponentName = 'SeedFromConsecutiveHitsTripletOnlyCreator'
-detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.ptMin = 0.3
+detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.ptMin = 0.1
 detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.originHalfLength = 15.0
 detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.originRadius = 1.5
 
@@ -82,7 +82,7 @@ _detachedTripletStepTrajectoryFilterBase = TrackingTools.TrajectoryFiltering.Tra
 #    maxLostHitsFraction = cms.double(1./10.),
 #    constantValueForLostHitsFractionFilter = cms.double(0.701),
     minimumNumberOfHits = 3,
-    minPt = 0.075,
+    minPt = 0.050,
 )
 detachedTripletStepTrajectoryFilterBase = _detachedTripletStepTrajectoryFilterBase.clone(
     maxCCCLostHits = 2,
@@ -106,8 +106,8 @@ detachedTripletStepTrajectoryFilter = cms.PSet(
 import RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimator_cfi
 detachedTripletStepChi2Est = RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimator_cfi.Chi2ChargeMeasurementEstimator.clone(
     ComponentName = cms.string('detachedTripletStepChi2Est'),
-    nSigma = cms.double(3.0),
-    MaxChi2 = cms.double(9.0),
+#    nSigma = cms.double(3.0),
+    MaxChi2 = cms.double(16.0),
     clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTiny')),
 )
 
@@ -166,11 +166,11 @@ from RecoTracker.FinalTrackSelectors.TrackMVAClassifierDetached_cfi import *
 detachedTripletStepClassifier1 = TrackMVAClassifierDetached.clone()
 detachedTripletStepClassifier1.src = 'detachedTripletStepTracks'
 detachedTripletStepClassifier1.GBRForestLabel = 'MVASelectorIter3_13TeV'
-detachedTripletStepClassifier1.qualityCuts = [-0.5,0.0,0.5]
+detachedTripletStepClassifier1.qualityCuts = [-0.7,0.0,0.5]
 detachedTripletStepClassifier2 = TrackMVAClassifierPrompt.clone()
 detachedTripletStepClassifier2.src = 'detachedTripletStepTracks'
 detachedTripletStepClassifier2.GBRForestLabel = 'MVASelectorIter0_13TeV'
-detachedTripletStepClassifier2.qualityCuts = [-0.2,0.0,0.4]
+detachedTripletStepClassifier2.qualityCuts = [-0.4,0.0,0.4]
 
 from RecoTracker.FinalTrackSelectors.ClassifierMerger_cfi import *
 detachedTripletStep = ClassifierMerger.clone()

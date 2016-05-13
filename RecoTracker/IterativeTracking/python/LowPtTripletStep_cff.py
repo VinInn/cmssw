@@ -58,8 +58,8 @@ lowPtTripletStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.
     RegionFactoryPSet = RegionPsetFomBeamSpotBlock.clone(
     ComponentName = cms.string('GlobalRegionProducerFromBeamSpot'),
     RegionPSet = RegionPsetFomBeamSpotBlock.RegionPSet.clone(
-    ptMin = 0.2,
-    originRadius = 0.02,
+    ptMin = 0.05,
+    originRadius = 0.2,
     nSigmaZ = 4.0
     )
     )
@@ -86,7 +86,7 @@ lowPtTripletStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet.SeedComparitorPSet = 
 import TrackingTools.TrajectoryFiltering.TrajectoryFilter_cff as _TrajectoryFilter_cff
 _lowPtTripletStepStandardTrajectoryFilterBase = _TrajectoryFilter_cff.CkfBaseTrajectoryFilter_block.clone(
     minimumNumberOfHits = 3,
-    minPt = 0.075,
+    minPt = 0.050,
 )
 lowPtTripletStepStandardTrajectoryFilter = _lowPtTripletStepStandardTrajectoryFilterBase.clone(
     maxCCCLostHits = 1,
@@ -109,8 +109,8 @@ eras.trackingPhase1PU70.toModify(lowPtTripletStepTrajectoryFilter,
 import RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimator_cfi
 lowPtTripletStepChi2Est = RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimator_cfi.Chi2ChargeMeasurementEstimator.clone(
     ComponentName = cms.string('lowPtTripletStepChi2Est'),
-    nSigma = cms.double(3.0),
-    MaxChi2 = cms.double(9.0),
+#    nSigma = cms.double(3.0),
+#    MaxChi2 = cms.double(9.0),
     clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTiny')),
 )
 eras.trackingPhase1PU70.toModify(lowPtTripletStepChi2Est,
@@ -171,7 +171,7 @@ from RecoTracker.FinalTrackSelectors.TrackMVAClassifierPrompt_cfi import *
 lowPtTripletStep =  TrackMVAClassifierPrompt.clone()
 lowPtTripletStep.src = 'lowPtTripletStepTracks'
 lowPtTripletStep.GBRForestLabel = 'MVASelectorIter1_13TeV'
-lowPtTripletStep.qualityCuts = [-0.6,-0.3,-0.1]
+lowPtTripletStep.qualityCuts = [-0.8,-0.3,-0.1]
 
 # For Phase1
 # MVA selection to be enabled after re-training, for time being we go with cut-based selector
