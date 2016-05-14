@@ -22,6 +22,9 @@
 #include "RecoTracker/TkSeedGenerator/interface/SeedGeneratorFromRegionHits.h"
 #include "RecoPixelVertexing/PixelTriplets/interface/QuadrupletSeedMerger.h"
 
+namespace {
+  thread_local std::vector<unsigned long long> oldHash;
+}
 
 SeedGeneratorFromRegionHitsEDProducer::SeedGeneratorFromRegionHitsEDProducer(
     const edm::ParameterSet& cfg) 
@@ -102,6 +105,42 @@ void SeedGeneratorFromRegionHitsEDProducer::produce(edm::Event& ev, const edm::E
     theGenerator->run(*triplets, region, ev,es);
     // std::cout << "created seeds for " << moduleName << " " << triplets->size() << std::endl;
 
+    static const std::string step0 = "initialStepSeeds";
+
+
+    bool strips=false;
+    std::vector<unsigned long long> hash(triplets->size(),0);
+    unsigned int k=0;
+    for (auto const& seed : *triplets) {
+      if (strips) break;
+      assert(seed.nHits()<5);
+      auto hits = seed.recHits();
+      int shift=0;
+      for (auto hi = hits.first; hi!=hits.second; ++hi) { auto const & hit = *hi;
+        auto const & thit = reinterpret_cast<BaseTrackerRecHit const&>(hit);
+        auto const & cluster = thit.firstClusterRef();
+	if (cluster.isStrip()) { strips=true; break; }
+          if (cluster.key() > std::numeric_limits<unsigned short>::max()) {hash[k]=0; break;}
+          hash[k] |= (unsigned long long)(cluster.key()) << shift;
+          shift+=16;
+      }
+      ++k;
+    }
+    if (!strips) assert(k==triplets->size());
+    
+
+    if (moduleName==step0) { oldHash = std::move(hash); std::sort(oldHash.begin(),oldHash.end()); }
+    else if (moduleName=="detachedTripletStepSeeds" || moduleName=="lowPtTripletStepSeeds") {
+     std::vector<unsigned int> kill;
+     for (unsigned int k=0; k<hash.size(); ++k) {
+       if (hash[k]!=0 && std::binary_search(oldHash.begin(),oldHash.end(),hash[k])) {kill.push_back(k);hash[k]=std::numeric_limits<unsigned long long>::max();}
+     }
+     // std::cout << "ready to kill " << kill.size() << " seed in " << moduleName << std::endl;
+     triplets->erase(std::remove_if(triplets->begin(),triplets->end(),
+           [&](const TrajectorySeed & seed) { auto k = &seed - &triplets->front(); return hash[k]==std::numeric_limits<unsigned long long>::max();}),triplets->end()); 
+     // std::cout << "left seeds for " << moduleName << " " << triplets->size() << std::endl;
+     oldHash.insert(oldHash.end(),hash.begin(),hash.end());std::sort(oldHash.begin(),oldHash.end());
+    }
 
     // make quadruplets
     // (TODO: can partly be propagated to the merger)
