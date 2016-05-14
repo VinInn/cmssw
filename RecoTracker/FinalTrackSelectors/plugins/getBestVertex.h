@@ -2,11 +2,10 @@
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include <limits>
 
-namespace {
 
   using Point = math::XYZPoint;
 
-
+  inline
   Point getBestVertex(reco::Track const & trk, reco::VertexCollection const & vertices, const size_t minNtracks = 2) {
 
     Point p_dz(0,0,-99999);
@@ -27,6 +26,7 @@ namespace {
 
   }
 
+  inline
   Point getBestVertex_withError(reco::Track const & trk, reco::VertexCollection const & vertices, Point& error, const size_t minNtracks = 2) {
 
     Point p_dz(0,0,-99999);
@@ -74,4 +74,3 @@ namespace {
 
   }
   */
-}

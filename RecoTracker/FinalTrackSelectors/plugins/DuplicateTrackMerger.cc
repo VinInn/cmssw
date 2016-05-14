@@ -107,8 +107,8 @@ DuplicateTrackMerger::fillDescriptions(edm::ConfigurationDescriptions& descripti
      desc.add<edm::InputTag>("source",edm::InputTag());
      desc.add<double>("minDeltaR3d",-4.0);
      desc.add<double>("minBDTG",-0.1);
-     desc.add<double>("minpT",0.2);
-     desc.add<double>("minP",0.4);
+     desc.add<double>("minpT",0.1);
+     desc.add<double>("minP",0.1);
      desc.add<double>("maxDCA",30.0);
      desc.add<double>("maxDPhi",0.30);
      desc.add<double>("maxDLambda",0.30);
@@ -252,7 +252,7 @@ void DuplicateTrackMerger::produce(edm::Event& iEvent, const edm::EventSetup& iS
       auto deltaR3d2 = (t1->outerPosition() - t2->innerPosition()).mag2();
       
       if(t1->outerPosition().perp2() > t2->innerPosition().perp2()) deltaR3d2 *= -1.0;
-      if(deltaR3d2 < minDeltaR3d2_)continue;
+      if(deltaR3d2 < minDeltaR3d2_) continue;
       
       FreeTrajectoryState fts1 = trajectoryStateTransform::outerFreeState(*t1, &*magfield_,false);
       FreeTrajectoryState fts2 = trajectoryStateTransform::innerFreeState(*t2, &*magfield_,false);

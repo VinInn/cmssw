@@ -58,8 +58,8 @@ lowPtTripletStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_cff.
     RegionFactoryPSet = RegionPsetFomBeamSpotBlock.clone(
     ComponentName = cms.string('GlobalRegionProducerFromBeamSpot'),
     RegionPSet = RegionPsetFomBeamSpotBlock.RegionPSet.clone(
-    ptMin = 0.2,
-    originRadius = 0.02,
+    ptMin = 0.15,
+    originRadius = 0.03,
     nSigmaZ = 4.0
     )
     )

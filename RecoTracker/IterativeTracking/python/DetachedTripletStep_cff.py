@@ -63,7 +63,7 @@ detachedTripletStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_c
 detachedTripletStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'detachedTripletStepSeedLayers'
 detachedTripletStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet = cms.PSet(PixelTripletLargeTipGenerator)
 detachedTripletStepSeeds.SeedCreatorPSet.ComponentName = 'SeedFromConsecutiveHitsTripletOnlyCreator'
-detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.ptMin = 0.3
+detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.ptMin = 0.25
 detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.originHalfLength = 15.0
 detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.originRadius = 1.5
 
