@@ -63,7 +63,7 @@ detachedTripletStepSeeds = RecoTracker.TkSeedGenerator.GlobalSeedsFromTriplets_c
 detachedTripletStepSeeds.OrderedHitsFactoryPSet.SeedingLayers = 'detachedTripletStepSeedLayers'
 detachedTripletStepSeeds.OrderedHitsFactoryPSet.GeneratorPSet = cms.PSet(PixelTripletLargeTipGenerator)
 detachedTripletStepSeeds.SeedCreatorPSet.ComponentName = 'SeedFromConsecutiveHitsTripletOnlyCreator'
-detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.ptMin = 0.25
+detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.ptMin = 0.3
 detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.originHalfLength = 15.0
 detachedTripletStepSeeds.RegionFactoryPSet.RegionPSet.originRadius = 1.5
 
@@ -172,9 +172,25 @@ detachedTripletStepClassifier2.src = 'detachedTripletStepTracks'
 detachedTripletStepClassifier2.GBRForestLabel = 'MVASelectorIter0_13TeV'
 detachedTripletStepClassifier2.qualityCuts = [-0.2,0.0,0.4]
 
+# from jetcore, tigther at vertex
+from RecoTracker.FinalTrackSelectors.TrackCutClassifier_cff import *
+detachedTripletStepClassifier3 = TrackCutClassifier.clone()
+detachedTripletStepClassifier3.src='detachedTripletStepTracks'
+detachedTripletStepClassifier3.mva.minPixelHits = [1,1,2]
+detachedTripletStepClassifier3.mva.maxChi2 = [9999.,9999.,9999.]
+detachedTripletStepClassifier3.mva.maxChi2n = [1.6,1.0,0.7]
+detachedTripletStepClassifier3.mva.minLayers = [3,5,5]
+detachedTripletStepClassifier3.mva.min3DLayers = [2,2,3]
+detachedTripletStepClassifier3.mva.maxLostLayers = [4,3,2]
+detachedTripletStepClassifier3.mva.maxDz = [0.3,0.2,0.1];
+detachedTripletStepClassifier3.mva.maxDr = [0.1,0.05,0.03];
+detachedTripletStepClassifier3.vertices = 'firstStepPrimaryVertices'
+
+
+
 from RecoTracker.FinalTrackSelectors.ClassifierMerger_cfi import *
 detachedTripletStep = ClassifierMerger.clone()
-detachedTripletStep.inputClassifiers=['detachedTripletStepClassifier1','detachedTripletStepClassifier2']
+detachedTripletStep.inputClassifiers=['detachedTripletStepClassifier1','detachedTripletStepClassifier2','detachedTripletStepClassifier3']
 
 # For LowPU
 import RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi
@@ -278,7 +294,7 @@ DetachedTripletStep = cms.Sequence(detachedTripletStepClusters*
                                    detachedTripletStepSeeds*
                                    detachedTripletStepTrackCandidates*
                                    detachedTripletStepTracks*
-                                   detachedTripletStepClassifier1*detachedTripletStepClassifier2*
+                                   detachedTripletStepClassifier1*detachedTripletStepClassifier2*detachedTripletStepClassifier3*
                                    detachedTripletStep)
 _DetachedTripletStep_LowPU = DetachedTripletStep.copyAndExclude([detachedTripletStepClassifier2])
 _DetachedTripletStep_LowPU.replace(detachedTripletStepClassifier1, detachedTripletStepSelector)
