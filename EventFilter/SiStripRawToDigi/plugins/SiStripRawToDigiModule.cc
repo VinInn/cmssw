@@ -45,7 +45,7 @@ public:
     ++nEv;
     if (maxEv==nEv) {
       for ( auto & val : toFill()) val /=nEv;
-      for ( auto & val : noiseFill()) val /=nEv;
+      for ( auto & val : noiseFill()) {val /=nEv; val=std::max(int(std::sqrt(float(val))),1)+1;}
 
       if (init)
       for (auto k=0U; k<ave().size(); ++k) {
@@ -215,7 +215,10 @@ namespace sistrip {
       unsigned int nc=0;
       for (auto const & ds : (*cm_dsv)) {
         int k=0;
-        for (auto const & cm : ds) { m_cmave.toFill()[nc+k]+=cm.adc(); m_cmave.noiseFill()[nc+k]+=std::abs(cm.adc()-m_cmave.ave()[nc+k]);++k;}
+        for (auto const & cm : ds) { 
+          m_cmave.toFill()[nc+k]+=cm.adc(); 
+          auto d = std::abs(cm.adc()-m_cmave.ave()[nc+k]);
+          m_cmave.noiseFill()[nc+k]+=d*d;++k;}
         nc+=6;
       }
       std::cout << " cms " << nc << std::endl;
@@ -224,18 +227,22 @@ namespace sistrip {
 
      if (m_cmave.init) {
       unsigned int nc=0;
+      int nHip=0; int nZero=0;
       for (auto const & ds : (*cm_dsv)) {
         int k=0;
-        for (auto const & cm : ds) { 
+        for (auto const & cm : ds) {
+          if ( cm.adc() ==0 && m_cmave.ave()[nc+k]!=0 ) ++nZero; 
           if ( cm.adc() < m_cmave.ave()[nc+k]-5*m_cmave.noise()[nc+k]){
            std::cout << "HIP " << ds.detId() << ' ' << k 
                << ": " << cm.adc() << ' ' <<  m_cmave.ave()[nc+k] << ' ' << m_cmave.noise()[nc+k]
                << std::endl;
+           ++nHip;
           }
 
         ++k;}
         nc+=6;
       }
+      std::cout << "nHIP " << nHip << ' ' << nZero << std::endl;
      }
 
       m_cmave.finalize();
