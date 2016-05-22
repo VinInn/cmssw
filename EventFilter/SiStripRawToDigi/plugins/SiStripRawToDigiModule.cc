@@ -15,6 +15,86 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include <cstdlib>
 
+
+class SwapAverage {
+public:
+  using Container = std::vector<unsigned short>;
+  
+  Container & toFill() { return m_ave[0];}
+  Container const & ave() const { return m_ave[1];}
+  Container & noiseFill() { return m_noise[0];}
+  Container const & noise() const { return m_noise[1];}
+
+
+ void reset(int n) {
+   m_ave[0].clear();
+   m_ave[1].clear();
+   m_ave[0].resize(n,0);
+   m_ave[1].resize(n,0);
+   m_noise[0].clear();
+   m_noise[1].clear();
+   m_noise[0].resize(n,0);
+   m_noise[1].resize(n,0);
+
+   first=false;
+   init=false;
+   nEv=0;
+ }
+
+  void finalize() {
+    ++nEv;
+    if (maxEv==nEv) {
+      for ( auto & val : toFill()) val /=nEv;
+      for ( auto & val : noiseFill()) val /=nEv;
+
+      if (init)
+      for (auto k=0U; k<ave().size(); ++k) {
+        if ( std::abs(toFill()[k]-ave()[k]) > noiseFill()[k]) 
+          std::cout << "cm dif " << k << ' ' << toFill()[k] << ' ' << ave()[k] << ' ' << noiseFill()[k]<<std::endl;
+      } 
+   
+      std::swap(m_ave[0],m_ave[1]);
+      std::swap(m_noise[0],m_noise[1]);
+      for ( auto & val : toFill()) val=0;
+      for ( auto & val : noiseFill()) val=0;
+      nEv=0;
+      init=true;
+     {
+      unsigned short mi=6000; unsigned short ma=0; int s=0; int n=0;
+      for (auto val : ave()) {
+        if (val<10) continue;
+        ++n; s+=val;
+        mi=std::min(mi,val); ma=std::max(ma,val);
+      }
+      std::cout << "cm mn " << mi << ' ' << ma <<' '<< s/n << std::endl;
+     }
+     {
+      unsigned short mi=6000; unsigned short ma=0; int s=0; int n=0;
+      for (auto val : noise()) {
+        if (0==val || val>50) continue;
+        ++n; s+=val;
+        mi=std::min(mi,val); ma=std::max(ma,val);
+      }
+      std::cout << "noise mn " << mi << ' ' << ma <<' '<< s/n << std::endl;
+     }
+
+   }
+  }
+
+  const int maxEv=100;
+  int nEv=0;
+  bool init=false;
+  bool first=true;
+
+  Container m_ave[2];
+  Container m_noise[2];
+
+};
+
+
+thread_local SwapAverage m_cmave;
+thread_local std::unique_ptr< edm::DetSetVector<SiStripRawDigi> > cm_prev; // previous ev
+
 namespace sistrip {
 
   RawToDigiModule::RawToDigiModule( const edm::ParameterSet& pset ) :
@@ -117,7 +197,51 @@ namespace sistrip {
     std::auto_ptr< edm::DetSetVector<SiStripDigi> > zs_dsv(zs);
     std::auto_ptr< DetIdCollection > det_ids(ids);
     std::auto_ptr< edm::DetSetVector<SiStripRawDigi> > cm_dsv(cm);
-  
+
+   
+     unsigned int nn=0;
+     decltype((*cm_dsv).begin()) prev;
+     if (cm_prev) prev = (*cm_prev).begin();
+     for (auto const & ds : (*cm_dsv)) {
+        nn+=ds.size();
+        if (ds.empty()) std::cout << "cm empty " << ds.detId() << std::endl;
+        if (cm_prev && ds.size()!= (*prev).size() ) std::cout << "cm differs " << ds.detId() << ' ' << ds.size() <<"!=" <<(*prev).size() << std::endl;
+        ++prev;
+     }
+     if (m_cmave.first) m_cmave.reset(6*cm_dsv->size());
+     std::cout << " cms0 " << nn << std::endl;
+    
+      std::cout << " cm " << cm_dsv->size() << std::endl;
+      unsigned int nc=0;
+      for (auto const & ds : (*cm_dsv)) {
+        int k=0;
+        for (auto const & cm : ds) { m_cmave.toFill()[nc+k]+=cm.adc(); m_cmave.noiseFill()[nc+k]+=std::abs(cm.adc()-m_cmave.ave()[nc+k]);++k;}
+        nc+=6;
+      }
+      std::cout << " cms " << nc << std::endl;
+      assert(nc==m_cmave.toFill().size());
+
+
+     if (m_cmave.init) {
+      unsigned int nc=0;
+      for (auto const & ds : (*cm_dsv)) {
+        int k=0;
+        for (auto const & cm : ds) { 
+          if ( cm.adc() < m_cmave.ave()[nc+k]-5*m_cmave.noise()[nc+k]){
+           std::cout << "HIP " << ds.detId() << ' ' << k 
+               << ": " << cm.adc() << ' ' <<  m_cmave.ave()[nc+k] << ' ' << m_cmave.noise()[nc+k]
+               << std::endl;
+          }
+
+        ++k;}
+        nc+=6;
+      }
+     }
+
+      m_cmave.finalize();
+
+      cm_prev = std::make_unique<edm::DetSetVector<SiStripRawDigi>>(*cm);
+
     // Add to event
     event.put( summary );
     event.put( sm_dsv, "ScopeMode" );
