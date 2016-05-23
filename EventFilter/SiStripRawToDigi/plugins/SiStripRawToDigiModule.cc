@@ -198,7 +198,7 @@ namespace sistrip {
     std::auto_ptr< DetIdCollection > det_ids(ids);
     std::auto_ptr< edm::DetSetVector<SiStripRawDigi> > cm_dsv(cm);
 
-   
+     /*
      unsigned int nn=0;
      decltype((*cm_dsv).begin()) prev;
      if (cm_prev) prev = (*cm_prev).begin();
@@ -246,8 +246,17 @@ namespace sistrip {
      }
 
       m_cmave.finalize();
-
       cm_prev = std::make_unique<edm::DetSetVector<SiStripRawDigi>>(*cm);
+
+      */
+
+    std::cout << "bad det " << det_ids->size() << std::endl;
+    for (auto const & ds : (*cm_dsv)) 
+      for (auto const & cm : ds)
+        if ( cm.adc() < 40 ) { det_ids->push_back(ds.detId()); break;}
+    std::cout << "bad det after cm " << det_ids->size() << std::endl;
+
+
 
     // Add to event
     event.put( summary );
