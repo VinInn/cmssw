@@ -188,7 +188,7 @@ MeasurementTrackerEventProducer::updateStrips( const edm::Event& event, StMeasur
   edm::Handle<CMContainer> cms;
   event.getByToken(theCommonMode,cms);
   auto const & cm_dsv = *cms;
-  std::cout << "updating hips " <<  cm_dsv.size() << std::endl;
+  // std::cout << "updating hips " <<  cm_dsv.size() << std::endl;
   i=0;  // reset to restart limited search
   for (auto const & ds : cm_dsv) { 
     std::bitset<6> hips; int k=0;

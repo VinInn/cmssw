@@ -154,7 +154,7 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
    } 
    result.add(theInactiveHit, 0.F);
    //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " glued empty after search, and inactive ";
-   std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " glued empty after search, and inactive " << std::endl;;
+   // std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " glued empty after search, and inactive " << std::endl;;
    return true;
    
 }

@@ -196,7 +196,7 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
   }
 
   //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " empty after search, and inactive ";
-  std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " empty after search, and inactive " << std::endl;;
+  // std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " empty after search, and inactive " << std::endl;;
   result.add(theInactiveHit, 0.F);
   return true;
 
@@ -280,7 +280,7 @@ TkStripMeasurementDet::testStrips(float utraj, float uerr, const MeasurementTrac
     auto const & hips = inactiveAPVs(data);
     auto b = start/128; auto e = std::min(end/128,5);
     // std::cout << "testing hip "<< b << ' ' << e << std::endl;
-    for (;b<=e; ++b) if (hips[b]) { std::cout << "hip "<< rawId() << std::endl; return false; }
+    for (;b<=e; ++b) if (hips[b])return false;
 
     
     typedef std::vector<BadStripBlock>::const_iterator BSBIT;
