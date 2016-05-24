@@ -250,12 +250,13 @@ namespace sistrip {
 
       */
 
+    /*
     std::cout << "bad det " << det_ids->size() << std::endl;
     for (auto const & ds : (*cm_dsv)) 
       for (auto const & cm : ds)
         if ( cm.adc() < 40 ) { det_ids->push_back(ds.detId()); break;}
     std::cout << "bad det after cm " << det_ids->size() << std::endl;
-
+    */
 
 
     // Add to event

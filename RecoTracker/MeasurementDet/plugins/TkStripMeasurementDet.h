@@ -118,6 +118,9 @@ public:
   
   /** \brief Is this module active in reconstruction? It must be both 'setActiveThisEvent' and 'setActive'. */
   bool isActive(const MeasurementTrackerEvent & data) const { return data.stripData().isActive(index()); }
+
+
+  std::bitset<6> const & inactiveAPVs(const MeasurementTrackerEvent & data) const { return data.stripData().inactiveAPVs(index());}
   
   //TO BE IMPLEMENTED
   bool hasBadComponents( const TrajectoryStateOnSurface &tsos, const MeasurementTrackerEvent & data ) const {return false;}
@@ -226,7 +229,7 @@ public:
   typedef StMeasurementConditionSet::BadStripCuts BadStripCuts;
   
   /** \brief return true if there are 'enough' good strips in the utraj +/- 3 uerr range.*/
-  bool testStrips(float utraj, float uerr) const;
+  bool testStrips(float utraj, float uerr, const MeasurementTrackerEvent & data) const;
   
   typedef StMeasurementConditionSet::BadStripBlock BadStripBlock;
   

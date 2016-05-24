@@ -5,6 +5,7 @@
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 
 #include "FWCore/Framework/interface/Event.h"
+#include "DataFormats/SiStripDigi/interface/SiStripRawDigi.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "RecoTracker/MeasurementDet/src/TkMeasurementDetSet.h"
@@ -34,6 +35,10 @@ protected:
       std::vector<edm::EDGetTokenT<DetIdCollection>>      theInactivePixelDetectorLabels;
       std::vector<edm::EDGetTokenT<DetIdCollection>>      theInactiveStripDetectorLabels;
 
+      // Common Mode for HIP detection
+      using CMContainer=edm::DetSetVector<SiStripRawDigi>;
+      edm::EDGetTokenT<CMContainer> theCommonMode;
+      
       bool selfUpdateSkipClusters_;
 };
 

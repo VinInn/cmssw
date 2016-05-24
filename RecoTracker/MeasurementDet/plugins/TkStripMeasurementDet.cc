@@ -183,19 +183,21 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
   // create a TrajectoryMeasurement with an invalid RecHit and zero estimate
 
   if (!stateOnThisDet.hasError()) {
+    std::cout << "No error!!! " << std::endl;
     result.add(theMissingHit, 0.F);
     return false;
   }
 
   float utraj =  specificGeomDet().specificTopology().measurementPosition( stateOnThisDet.localPosition()).x();
   float uerr= sqrt(specificGeomDet().specificTopology().measurementError(stateOnThisDet.localPosition(),stateOnThisDet.localError().positionError()).uu());
-  if (testStrips(utraj,uerr)) {
-    //LogDebug("TkStripMeasurementDet") << " DetID " << id_ << " empty after search, but active ";
+  if (testStrips(utraj,uerr,data)) {
+    //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " empty after search, but active ";
     result.add(theMissingHit, 0.F);
     return false;
   }
 
-  //LogDebug("TkStripMeasurementDet") << " DetID " << id_ << " empty after search, and inactive ";
+  //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " empty after search, and inactive ";
+  std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " empty after search, and inactive " << std::endl;;
   result.add(theInactiveHit, 0.F);
   return true;
 
@@ -260,7 +262,7 @@ SiStripRecHit2D TkStripMeasurementDet::hit(TkStripRecHitIter const & hi ) const 
 }
 
 bool
-TkStripMeasurementDet::testStrips(float utraj, float uerr) const {
+TkStripMeasurementDet::testStrips(float utraj, float uerr, const MeasurementTrackerEvent & data) const {
     int16_t start = (int16_t) std::max<float>(utraj - 3.f*uerr, 0);
     int16_t end   = (int16_t) std::min<float>(utraj + 3.f*uerr, totalStrips());
 
@@ -274,6 +276,13 @@ TkStripMeasurementDet::testStrips(float utraj, float uerr) const {
                       // and solves some problems with grouped ckf
     } 
 
+
+    // check hips first
+    auto const & hips = inactiveAPVs(data);
+    auto b = start/128; auto e = end/128;
+    for (;b!=e; ++b) if (hips[b]) return false;
+
+    
     typedef std::vector<BadStripBlock>::const_iterator BSBIT;
 
     int16_t bad = 0, largestBadBlock = 0;

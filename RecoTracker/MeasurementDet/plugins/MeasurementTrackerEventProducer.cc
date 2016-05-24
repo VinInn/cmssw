@@ -35,6 +35,10 @@ MeasurementTrackerEventProducer::MeasurementTrackerEventProducer(const edm::Para
         if (selfUpdateSkipClusters_) thePixelClusterMask = consumes<edm::ContainerMask<edmNew::DetSetVector<SiPixelCluster>>>(iConfig.getParameter<edm::InputTag>("skipClusters"));
     }
 
+
+    // FIXME
+    theCommonMode = consumes<CMContainer>(edm::InputTag("siStripDigis","CommonMode"));
+    
     produces<MeasurementTrackerEvent>();
 }
 
@@ -179,6 +183,21 @@ MeasurementTrackerEventProducer::updateStrips( const edm::Event& event, StMeasur
     theStDets.setActiveThisEvent(i,false);
   }
 
+
+  // mark inactive APVs affected by HIPS
+  edm::Handle<CMContainer> cms;
+  event.getByToken(theCommonMode,cms);
+  auto const & cm_dsv = *cms;
+  for (auto const & ds : cm_dsv) { 
+    std::bitset<6> hips; int k=0;
+    for (auto const & cm : ds) hips[k++] = cm.adc() < 40;
+    auto id = ds.detId();
+    i=theStDets.find(id,i);
+    theStDets.setInactiveAPVs(i,hips);
+  }
+
+
+  
   //=========  actually load cluster =============
   {
     edm::Handle<edmNew::DetSetVector<SiStripCluster> > clusterHandle;
