@@ -219,7 +219,7 @@ public:
   void setActiveThisEvent(StMeasurementDetSet & theDets, bool active) const {  theDets.setActiveThisEvent(index(),active); }
   
   /** \brief does this module have at least one bad strip, APV or channel? */
-  bool hasAllGoodChannels() const { return (!hasAny128StripBad()) && badStripBlocks().empty(); }
+  bool hasAllGoodChannels(const MeasurementTrackerEvent & data) const { return (!hasAny128StripBad()) && badStripBlocks().empty() && inactiveAPVs(data).none(); }
   
   /** \brief Sets the status of a block of 128 strips (or all blocks if idx=-1) */
   void set128StripStatus(bool good, int idx=-1) {

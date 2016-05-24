@@ -188,11 +188,16 @@ MeasurementTrackerEventProducer::updateStrips( const edm::Event& event, StMeasur
   edm::Handle<CMContainer> cms;
   event.getByToken(theCommonMode,cms);
   auto const & cm_dsv = *cms;
+  std::cout << "updating hips " <<  cm_dsv.size() << std::endl;
+  i=0;  // reset to restart limited search
   for (auto const & ds : cm_dsv) { 
     std::bitset<6> hips; int k=0;
     for (auto const & cm : ds) hips[k++] = cm.adc() < 40;
     auto id = ds.detId();
     i=theStDets.find(id,i);
+    //    if (i==endDet) { std::cout << id << " not found" << std::endl; continue;}
+    assert(i!=endDet && id == theStDets.id(i));
+    // if (hips.any()) std::cout << "hip in " << id << std::endl;
     theStDets.setInactiveAPVs(i,hips);
   }
 

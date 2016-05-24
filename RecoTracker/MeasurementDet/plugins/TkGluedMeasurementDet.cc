@@ -136,21 +136,25 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
        stateOnThisDet.hasError() && ( /* do this only if the state has uncertainties, otherwise it will throw 
 					 (states without uncertainties are passed to this code from seeding */
 				     (theMonoDet->isActive(data) && 
-				      (theMonoDet->hasAllGoodChannels() || 
+				      (theMonoDet->hasAllGoodChannels(data) || 
 				       testStrips(stateOnThisDet,gluedPlane,*theMonoDet,data)
 				       )
 				      ) /*Mono OK*/ || 
 				     (theStereoDet->isActive(data) && 
-				      (theStereoDet->hasAllGoodChannels() || 
-				       testStrips(stateOnThisDet,gluedPlane,*theStereoDet,data)
+				      (theStereoDet->hasAllGoodChannels(data)  
+				       || testStrips(stateOnThisDet,gluedPlane,*theStereoDet,data)
 				       )
 				      ) /*Stereo OK*/ 
 				      ) /* State has errors */
 	 ) {
      result.add(theMissingHit, 0.F);
+     //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " glued empty after search, but active ";
+     // std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " glued empty after search, but active " << std::endl;;
      return false;
    } 
    result.add(theInactiveHit, 0.F);
+   //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " glued empty after search, and inactive ";
+   std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " glued empty after search, and inactive " << std::endl;;
    return true;
    
 }

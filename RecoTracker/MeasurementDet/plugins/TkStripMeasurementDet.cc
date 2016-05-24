@@ -183,7 +183,6 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
   // create a TrajectoryMeasurement with an invalid RecHit and zero estimate
 
   if (!stateOnThisDet.hasError()) {
-    std::cout << "No error!!! " << std::endl;
     result.add(theMissingHit, 0.F);
     return false;
   }
@@ -279,8 +278,9 @@ TkStripMeasurementDet::testStrips(float utraj, float uerr, const MeasurementTrac
 
     // check hips first
     auto const & hips = inactiveAPVs(data);
-    auto b = start/128; auto e = end/128;
-    for (;b!=e; ++b) if (hips[b]) return false;
+    auto b = start/128; auto e = std::min(end/128,5);
+    // std::cout << "testing hip "<< b << ' ' << e << std::endl;
+    for (;b<=e; ++b) if (hips[b]) { std::cout << "hip "<< rawId() << std::endl; return false; }
 
     
     typedef std::vector<BadStripBlock>::const_iterator BSBIT;
