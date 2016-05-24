@@ -192,7 +192,7 @@ MeasurementTrackerEventProducer::updateStrips( const edm::Event& event, StMeasur
   i=0;  // reset to restart limited search
   for (auto const & ds : cm_dsv) { 
     std::bitset<6> hips; int k=0;
-    for (auto const & cm : ds) hips[k++] = cm.adc() < 40;
+    for (auto const & cm : ds) hips[k++] = cm.adc() < 80;
     auto id = ds.detId();
     i=theStDets.find(id,i);
     //    if (i==endDet) { std::cout << id << " not found" << std::endl; continue;}

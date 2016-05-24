@@ -171,7 +171,7 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
      result.add(theInactiveHit, 0.F);
     return true;
   }
-  
+
   if (!isEmpty(data.stripData())){
     LogDebug("TkStripMeasurementDet")<<" found hit on this module "<<rawId();
     RecHitContainer rechits;
@@ -190,6 +190,7 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
   float utraj =  specificGeomDet().specificTopology().measurementPosition( stateOnThisDet.localPosition()).x();
   float uerr= sqrt(specificGeomDet().specificTopology().measurementError(stateOnThisDet.localPosition(),stateOnThisDet.localError().positionError()).uu());
   if (testStrips(utraj,uerr,data)) {
+    //if (hasAllGoodChannels(data)) {
     //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " empty after search, but active ";
     result.add(theMissingHit, 0.F);
     return false;

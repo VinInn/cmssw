@@ -136,8 +136,8 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
        stateOnThisDet.hasError() && ( /* do this only if the state has uncertainties, otherwise it will throw 
 					 (states without uncertainties are passed to this code from seeding */
 				     (theMonoDet->isActive(data) && 
-				      (theMonoDet->hasAllGoodChannels(data) || 
-				       testStrips(stateOnThisDet,gluedPlane,*theMonoDet,data)
+				      (theMonoDet->hasAllGoodChannels(data) 
+				       || testStrips(stateOnThisDet,gluedPlane,*theMonoDet,data)
 				       )
 				      ) /*Mono OK*/ || 
 				     (theStereoDet->isActive(data) && 
