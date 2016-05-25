@@ -7,6 +7,9 @@
 #include "RecoTracker/MeasurementDet/interface/MeasurementTrackerEvent.h"
 #include "RecoTracker/Record/interface/CkfComponentsRecord.h"
 
+
+
+
 MeasurementTrackerEventProducer::MeasurementTrackerEventProducer(const edm::ParameterSet &iConfig) :
     measurementTrackerLabel_(iConfig.getParameter<std::string>("measurementTracker")),
     pset_(iConfig)
@@ -153,6 +156,28 @@ MeasurementTrackerEventProducer::updatePixels( const edm::Event& event, PxMeasur
 
 }
 
+
+// #define RANDOMCM
+
+
+#ifdef RANDOMCM
+#include<random>
+namespace {
+
+  struct RandomCM {
+
+    static constexpr float frac = 1000./50000.;
+    bool operator()() { return rgen(eng) < frac; }
+    std::mt19937 eng;
+    std::uniform_real_distribution<float> rgen = std::uniform_real_distribution<float>(0.,1.);
+
+  };
+
+  thread_local RandomCM randomCM;
+
+}
+#endif
+
 void 
 MeasurementTrackerEventProducer::updateStrips( const edm::Event& event, StMeasurementDetSet & theStDets, std::vector<bool> & stripClustersToSkip ) const
 {
@@ -184,6 +209,13 @@ MeasurementTrackerEventProducer::updateStrips( const edm::Event& event, StMeasur
   }
 
 
+#ifdef RANDOMCM
+  for (int k=0; k<endDet; ++k) {
+    std::bitset<6> hips;
+    for (int j=0; j<6; ++j) hips[j]=randomCM();
+    theStDets.setInactiveAPVs(k,hips);
+  }
+#else
   // mark inactive APVs affected by HIPS
   edm::Handle<CMContainer> cms;
   event.getByToken(theCommonMode,cms);
@@ -200,7 +232,7 @@ MeasurementTrackerEventProducer::updateStrips( const edm::Event& event, StMeasur
     // if (hips.any()) std::cout << "hip in " << id << std::endl;
     theStDets.setInactiveAPVs(i,hips);
   }
-
+#endif
 
   
   //=========  actually load cluster =============
