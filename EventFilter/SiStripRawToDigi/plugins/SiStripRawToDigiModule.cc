@@ -95,6 +95,29 @@ public:
 thread_local SwapAverage m_cmave;
 thread_local std::unique_ptr< edm::DetSetVector<SiStripRawDigi> > cm_prev; // previous ev
 
+
+// #define RANDOMCM
+
+
+#ifdef RANDOMCM
+#include<random>
+namespace {
+
+  struct RandomCM {
+
+    static constexpr float frac = 1000./50000.;
+    bool operator()() { return rgen(eng) < frac; }
+    std::mt19937 eng;
+    std::uniform_real_distribution<float> rgen = std::uniform_real_distribution<float>(0.,1.);
+
+  };
+
+  thread_local RandomCM randomCM;
+
+}
+#endif
+
+
 namespace sistrip {
 
   RawToDigiModule::RawToDigiModule( const edm::ParameterSet& pset ) :
@@ -198,6 +221,13 @@ namespace sistrip {
     std::auto_ptr< DetIdCollection > det_ids(ids);
     std::auto_ptr< edm::DetSetVector<SiStripRawDigi> > cm_dsv(cm);
 
+
+#ifdef RANDOMCM
+    for (auto & ds : (*cm_dsv))
+      for (auto & cm : ds) cm = SiStripRawDigi(randomCM() ? 0 : 128);
+#endif
+
+    
      /*
      unsigned int nn=0;
      decltype((*cm_dsv).begin()) prev;
