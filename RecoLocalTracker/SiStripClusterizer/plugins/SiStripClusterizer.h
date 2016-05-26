@@ -7,6 +7,9 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 
+#include "DataFormats/SiStripDigi/interface/SiStripRawDigi.h"
+
+
 #include <vector>
 #include <memory>
 
@@ -26,6 +29,11 @@ private:
   typedef std::vector<token_t> token_v;
   token_v inputTokens;
 
+  // Common Mode for HIP detection
+  using CMContainer=edm::DetSetVector<SiStripRawDigi>;
+  edm::EDGetTokenT<CMContainer> theCommonMode;
+
+  
 };
 
 #endif

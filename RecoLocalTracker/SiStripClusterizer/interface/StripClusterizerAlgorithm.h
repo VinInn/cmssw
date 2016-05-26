@@ -13,6 +13,8 @@ class SiStripDigi;
 #include "EventFilter/SiStripRawToDigi/interface/SiStripFEDBuffer.h"
 #include <limits>
 
+#include "DataFormats/SiStripDigi/interface/SiStripRawDigi.h"
+
 
 class FedChannelConnection;
 
@@ -20,13 +22,22 @@ class StripClusterizerAlgorithm {
   
  public:
   static constexpr unsigned short invalidI = std::numeric_limits<unsigned short>::max();
+
+  using CMContainer=edm::DetSetVector<SiStripRawDigi>;
+
   
   // state of detID
   struct Det {
     bool valid() const { return ind!=invalidI; }
     float noise(const uint16_t& strip) const { return SiStripNoises::getNoise( strip, noiseRange ); }
     float gain(const uint16_t& strip)  const { return SiStripGain::getStripGain( strip, gainRange ); }
-    bool bad(const uint16_t& strip)    const { return quality->IsStripBad( qualityRange, strip ); }
+    bool bad(const uint16_t& strip)    const {
+      return
+#ifdef RANDOMCM
+	hip(strip) ||
+#endif
+	quality->IsStripBad( qualityRange, strip );
+    }
     bool allBadBetween(uint16_t L, const uint16_t& R) const { while( ++L < R  &&  bad(L) ); return L == R; }
     SiStripQuality const * quality;
     SiStripApvGain::Range gainRange;
@@ -34,6 +45,9 @@ class StripClusterizerAlgorithm {
     SiStripQuality::Range qualityRange;
     uint32_t detId=0;
     unsigned short ind=invalidI;
+
+    edm::DetSet<SiStripRawDigi> commonMode;  //by value for the time being...
+    bool hip(const uint16_t& strip) const { auto n=strip/128; return n<int(commonMode.size()) && commonMode[n]<80; }
   };
   
   //state of the candidate cluster
@@ -52,6 +66,7 @@ class StripClusterizerAlgorithm {
   virtual ~StripClusterizerAlgorithm() {}
   virtual void initialize(const edm::EventSetup&);
 
+  void setCommonMode(CMContainer const & cm) { commonMode = &cm;}
 
   //Offline DetSet interface
   typedef edmNew::DetSetVector<SiStripCluster> output_t;
@@ -90,6 +105,10 @@ class StripClusterizerAlgorithm {
 
   std::string qualityLabel;
 
+
+ // Common Mode for HIP detection
+  CMContainer const * commonMode=nullptr;
+  
  private:
 
   template<class T> void clusterize_(const T& input, output_t& output) const {

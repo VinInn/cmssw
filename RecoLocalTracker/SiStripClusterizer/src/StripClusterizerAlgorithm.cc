@@ -148,6 +148,8 @@ findDetId(const uint32_t id) const {
   det.qualityRange = qualityHandle->getRangeByPos(indices[det.ind].qi);
   det.quality =   qualityHandle.product();
 
+  if (commonMode) det.commonMode = (*commonMode)[id];
+
 #ifdef EDM_ML_DEBUG
   assert(detIds[det.ind]==det.detId); 
   auto oldg =  gainHandle->getRange(id);
