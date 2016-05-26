@@ -171,10 +171,11 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
     result.add(theInactiveHit, 0.F);
     return true;
   }
-  
+
+  bool found = false;
   if (!isEmpty(data.stripData())){
     LogDebug("TkStripMeasurementDet")<<" found hit on this module "<<rawId();
-    if (recHits(stateOnThisDet,est,data,result.hits,result.distances)) return true;
+    found = recHits(stateOnThisDet,est,data,result.hits,result.distances);
   }
 
 
@@ -185,17 +186,26 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
     return false;
   }
 
+
+  
   float utraj =  specificGeomDet().specificTopology().measurementPosition( stateOnThisDet.localPosition()).x();
   float uerr= std::sqrt(specificGeomDet().specificTopology().measurementError(stateOnThisDet.localPosition(),stateOnThisDet.localError().positionError()).uu());
-  if (testStrips(utraj,uerr,data)) {
+
+  bool act = testStrips(utraj,uerr,data);
+
+  if (!act) {
+    //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " empty after search, and inactive ";
+    // std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " empty after search, and inactive " << std::endl;;
+    result.add(theInactiveHit, 0.F);
+    return true;
+  }
+  
+  if (!found) {
     //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " empty after search, but active ";
     result.add(theMissingHit, 0.F);
     return false;
   }
 
-  //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " empty after search, and inactive ";
-  // std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " empty after search, and inactive " << std::endl;;
-  result.add(theInactiveHit, 0.F);
   return true;
 
 }

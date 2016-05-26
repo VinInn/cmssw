@@ -128,33 +128,39 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
    collectRecHits(stateOnThisDet, data, collector);
    
    
-   if (result.size()>oldSize) return true;
-   
+   bool found = result.size()>oldSize;
+
    //LogDebug("TkStripMeasurementDet") << "No hit found on TkGlued. Testing strips...  ";
    const BoundPlane &gluedPlane = geomDet().surface();
-   if (  // sorry for the big IF, but I want to exploit short-circuiting of logic
-       stateOnThisDet.hasError() && ( /* do this only if the state has uncertainties, otherwise it will throw 
-					 (states without uncertainties are passed to this code from seeding */
-				     (theMonoDet->isActive(data) && 
-				      (theMonoDet->hasAllGoodChannels(data) 
-				       || testStrips(stateOnThisDet,gluedPlane,*theMonoDet,data)
-				       )
-				      ) /*Mono OK*/ || 
-				     (theStereoDet->isActive(data) && 
-				      (theStereoDet->hasAllGoodChannels(data)  
-				       || testStrips(stateOnThisDet,gluedPlane,*theStereoDet,data)
-				       )
-				      ) /*Stereo OK*/ 
-				      ) /* State has errors */
-	 ) {
+   bool act =   // sorry for the big IF, but I want to exploit short-circuiting of logic
+     stateOnThisDet.hasError() && ( /* do this only if the state has uncertainties, otherwise it will throw 
+				       (states without uncertainties are passed to this code from seeding */
+				   (theMonoDet->isActive(data) && 
+				    (theMonoDet->hasAllGoodChannels(data) 
+				     || testStrips(stateOnThisDet,gluedPlane,*theMonoDet,data)
+				     )
+				    ) /*Mono OK*/ || 
+				   (theStereoDet->isActive(data) && 
+				    (theStereoDet->hasAllGoodChannels(data)  
+				     || testStrips(stateOnThisDet,gluedPlane,*theStereoDet,data)
+				     )
+				    ) /*Stereo OK*/ 
+				    ) /* State has errors */
+     ; 
+
+   if (!act) {
+     //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << "  glued empty after search, and inactive ";
+     // std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << "  glued empty after search, and inactive " << std::endl;;
+     result.add(theInactiveHit, 0.F);
+     return true;
+   }
+  
+   if (!found) {
+     //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << "  glued empty after search, but active ";
      result.add(theMissingHit, 0.F);
-     //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " glued empty after search, but active ";
-     // std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " glued empty after search, but active " << std::endl;;
      return false;
-   } 
-   result.add(theInactiveHit, 0.F);
-   //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " glued empty after search, and inactive ";
-   // std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " glued empty after search, and inactive " << std::endl;;
+   }
+
    return true;
    
 }

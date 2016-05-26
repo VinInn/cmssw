@@ -156,7 +156,6 @@ MeasurementTrackerEventProducer::updatePixels( const edm::Event& event, PxMeasur
 
 }
 
-
 // #define RANDOMCM
 
 
