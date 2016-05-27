@@ -118,6 +118,9 @@ public:
   
   /** \brief Is this module active in reconstruction? It must be both 'setActiveThisEvent' and 'setActive'. */
   bool isActive(const MeasurementTrackerEvent & data) const { return data.stripData().isActive(index()); }
+
+
+  std::bitset<6> const & inactiveAPVs(const MeasurementTrackerEvent & data) const { return data.stripData().inactiveAPVs(index());}
   
   //TO BE IMPLEMENTED
   bool hasBadComponents( const TrajectoryStateOnSurface &tsos, const MeasurementTrackerEvent & data ) const {return false;}
@@ -216,7 +219,7 @@ public:
   void setActiveThisEvent(StMeasurementDetSet & theDets, bool active) const {  theDets.setActiveThisEvent(index(),active); }
   
   /** \brief does this module have at least one bad strip, APV or channel? */
-  bool hasAllGoodChannels() const { return (!hasAny128StripBad()) && badStripBlocks().empty(); }
+  bool hasAllGoodChannels(const MeasurementTrackerEvent & data) const { return (!hasAny128StripBad()) && badStripBlocks().empty() && inactiveAPVs(data).none(); }
   
   /** \brief Sets the status of a block of 128 strips (or all blocks if idx=-1) */
   void set128StripStatus(bool good, int idx=-1) {
@@ -226,7 +229,7 @@ public:
   typedef StMeasurementConditionSet::BadStripCuts BadStripCuts;
   
   /** \brief return true if there are 'enough' good strips in the utraj +/- 3 uerr range.*/
-  bool testStrips(float utraj, float uerr) const;
+  bool testStrips(float utraj, float uerr, const MeasurementTrackerEvent & data) const;
   
   typedef StMeasurementConditionSet::BadStripBlock BadStripBlock;
   

@@ -12,6 +12,11 @@ SiStripClusterizer(const edm::ParameterSet& conf)
     algorithm( StripClusterizerAlgorithmFactory::create(conf.getParameter<edm::ParameterSet>("Clusterizer")) ) {
   produces< edmNew::DetSetVector<SiStripCluster> > ();
   inputTokens = edm::vector_transform( inputTags, [this](edm::InputTag const & tag) { return consumes< edm::DetSetVector<SiStripDigi> >(tag);} );
+
+  // FIXME
+  theCommonMode = consumes<CMContainer>(edm::InputTag("siStripDigis","CommonMode"));
+ 
+
 }
 
 void SiStripClusterizer::
@@ -23,8 +28,15 @@ produce(edm::Event& event, const edm::EventSetup& es)  {
   edm::Handle< edm::DetSetVector<SiStripDigi> >     inputOld;  
 //   edm::Handle< edmNew::DetSetVector<SiStripDigi> >  inputNew;  
 
+
+  edm::Handle<CMContainer> cms;
+  event.getByToken(theCommonMode,cms);
+  auto const & cm_dsv = *cms;
+  
   algorithm->initialize(es);  
 
+  algorithm->setCommonMode(cm_dsv);
+  
   BOOST_FOREACH( const edm::EDGetTokenT< edm::DetSetVector<SiStripDigi> >& token, inputTokens) {
     if(      findInput( token, inputOld, event) ) algorithm->clusterize(*inputOld, *output); 
 //     else if( findInput( tag, inputNew, event) ) algorithm->clusterize(*inputNew, *output);

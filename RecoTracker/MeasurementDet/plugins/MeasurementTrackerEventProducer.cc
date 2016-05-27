@@ -7,6 +7,9 @@
 #include "RecoTracker/MeasurementDet/interface/MeasurementTrackerEvent.h"
 #include "RecoTracker/Record/interface/CkfComponentsRecord.h"
 
+
+
+
 MeasurementTrackerEventProducer::MeasurementTrackerEventProducer(const edm::ParameterSet &iConfig) :
     measurementTrackerLabel_(iConfig.getParameter<std::string>("measurementTracker")),
     pset_(iConfig)
@@ -40,6 +43,10 @@ MeasurementTrackerEventProducer::MeasurementTrackerEventProducer(const edm::Para
         isPhase2 = true;
     }
 
+
+    // FIXME
+    theCommonMode = consumes<CMContainer>(edm::InputTag("siStripDigis","CommonMode"));
+    
     produces<MeasurementTrackerEvent>();
 }
 
@@ -158,6 +165,7 @@ MeasurementTrackerEventProducer::updatePixels( const edm::Event& event, PxMeasur
 
 }
 
+
 void 
 MeasurementTrackerEventProducer::updateStrips( const edm::Event& event, StMeasurementDetSet & theStDets, std::vector<bool> & stripClustersToSkip ) const
 {
@@ -188,6 +196,27 @@ MeasurementTrackerEventProducer::updateStrips( const edm::Event& event, StMeasur
     theStDets.setActiveThisEvent(i,false);
   }
 
+
+
+  // mark inactive APVs affected by HIPS
+  edm::Handle<CMContainer> cms;
+  event.getByToken(theCommonMode,cms);
+  auto const & cm_dsv = *cms;
+  // std::cout << "updating hips " <<  cm_dsv.size() << std::endl;
+  i=0;  // reset to restart limited search
+  for (auto const & ds : cm_dsv) { 
+    std::bitset<6> hips; int k=0;
+    for (auto const & cm : ds) hips[k++] = cm.adc() < 80;
+    auto id = ds.detId();
+    i=theStDets.find(id,i);
+    //    if (i==endDet) { std::cout << id << " not found" << std::endl; continue;}
+    assert(i!=endDet && id == theStDets.id(i));
+    // if (hips.any()) std::cout << "hip in " << id << std::endl;
+    theStDets.setInactiveAPVs(i,hips);
+  }
+
+
+  
   //=========  actually load cluster =============
   {
     edm::Handle<edmNew::DetSetVector<SiStripCluster> > clusterHandle;

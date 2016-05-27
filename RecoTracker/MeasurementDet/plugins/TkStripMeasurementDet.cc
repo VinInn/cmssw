@@ -168,15 +168,14 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
 
   if (!isActive(data)) {
     LogDebug("TkStripMeasurementDet")<<" found an inactive module "<<rawId();
-     result.add(theInactiveHit, 0.F);
+    result.add(theInactiveHit, 0.F);
     return true;
   }
-  
+
+  bool found = false;
   if (!isEmpty(data.stripData())){
     LogDebug("TkStripMeasurementDet")<<" found hit on this module "<<rawId();
-    RecHitContainer rechits;
-    std::vector<float>  diffs;
-    if (recHits(stateOnThisDet,est,data,result.hits,result.distances)) return true;
+    found = recHits(stateOnThisDet,est,data,result.hits,result.distances);
   }
 
 
@@ -187,16 +186,26 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
     return false;
   }
 
+
+  
   float utraj =  specificGeomDet().specificTopology().measurementPosition( stateOnThisDet.localPosition()).x();
-  float uerr= sqrt(specificGeomDet().specificTopology().measurementError(stateOnThisDet.localPosition(),stateOnThisDet.localError().positionError()).uu());
-  if (testStrips(utraj,uerr)) {
-    //LogDebug("TkStripMeasurementDet") << " DetID " << id_ << " empty after search, but active ";
+  float uerr= std::sqrt(specificGeomDet().specificTopology().measurementError(stateOnThisDet.localPosition(),stateOnThisDet.localError().positionError()).uu());
+
+  bool act = testStrips(utraj,uerr,data);
+
+  if (!act) {
+    //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " empty after search, and inactive ";
+    // std::cout << "TkStripMeasurementDet" << " DetID " << rawId() << " empty after search, and inactive " << std::endl;;
+    result.add(theInactiveHit, 0.F);
+    return true;
+  }
+  
+  if (!found) {
+    //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << " empty after search, but active ";
     result.add(theMissingHit, 0.F);
     return false;
   }
 
-  //LogDebug("TkStripMeasurementDet") << " DetID " << id_ << " empty after search, and inactive ";
-  result.add(theInactiveHit, 0.F);
   return true;
 
 }
@@ -260,43 +269,56 @@ SiStripRecHit2D TkStripMeasurementDet::hit(TkStripRecHitIter const & hi ) const 
 }
 
 bool
-TkStripMeasurementDet::testStrips(float utraj, float uerr) const {
-    int16_t start = (int16_t) std::max<float>(utraj - 3.f*uerr, 0);
-    int16_t end   = (int16_t) std::min<float>(utraj + 3.f*uerr, totalStrips());
+TkStripMeasurementDet::testStrips(float utraj, float uerr, const MeasurementTrackerEvent & data) const {
 
-    if (start >= end) { // which means either end <=0 or start >= totalStrips_
-        /* LogDebug("TkStripMeasurementDet") << "Testing module " << id_ <<","<<
-            " U = " << utraj << " +/- " << uerr << 
-            "; Range [" << (utraj - 3*uerr) << ", " << (utraj + 3*uerr) << "] " << 
-            ": YOU'RE COMPLETELY OFF THE MODULE."; */
-        //return false; 
-        return true;  // Wolfgang thinks this way is better
-                      // and solves some problems with grouped ckf
-    } 
+  // shortcut
+  // return hasAllGoodChannels(data);
 
-    typedef std::vector<BadStripBlock>::const_iterator BSBIT;
+  
 
-    int16_t bad = 0, largestBadBlock = 0;
-    for (BSBIT bsbc = badStripBlocks().begin(), bsbe = badStripBlocks().end(); bsbc != bsbe; ++bsbc) {
-        if (bsbc->last  < start) continue;
-        if (bsbc->first > end)   break;
-        int16_t thisBad = std::min(bsbc->last, end) - std::max(bsbc->first, start);
-        if (thisBad > largestBadBlock) largestBadBlock = thisBad;
-        bad += thisBad;
-    }
-
-    bool ok = (bad < (end-start)) && 
-      (uint16_t(bad) <= badStripCuts().maxBad) && 
-      (uint16_t(largestBadBlock) <= badStripCuts().maxConsecutiveBad);
-
-//    if (bad) {   
-//       edm::LogWarning("TkStripMeasurementDet") << "Testing module " << id_ <<" (subdet: "<< SiStripDetId(id_).subdetId() << ")" <<
-//            " U = " << utraj << " +/- " << uerr << 
-//            "; Range [" << (utraj - 3*uerr) << ", " << (utraj + 3*uerr) << "] " << 
-//            "= [" << start << "," << end << "]" <<
-//            " total strips:" << (end-start) << ", good:" << (end-start-bad) << ", bad:" << bad << ", largestBadBlock: " << largestBadBlock << 
-//            ". " << (ok ? "OK" : "NO"); 
-//    }
-    return ok;
+  int16_t start = (int16_t) std::max<float>(utraj - 3.f*uerr, 0);
+  int16_t end   = (int16_t) std::min<float>(utraj + 3.f*uerr, totalStrips());
+  
+  if (start >= end) { // which means either end <=0 or start >= totalStrips_
+    /* LogDebug("TkStripMeasurementDet") << "Testing module " << id_ <<","<<
+       " U = " << utraj << " +/- " << uerr << 
+       "; Range [" << (utraj - 3*uerr) << ", " << (utraj + 3*uerr) << "] " << 
+       ": YOU'RE COMPLETELY OFF THE MODULE."; */
+    //return false; 
+    return true;  // Wolfgang thinks this way is better and solves some problems with grouped ckf
+  } 
+  
+  
+  // check hips first
+  auto const & hips = inactiveAPVs(data);
+  auto b = start/128; auto e = std::min(end/128,5);
+  // std::cout << "testing hip "<< b << ' ' << e << std::endl;
+  for (;b<=e; ++b) if (hips[b])return false;
+  
+  
+  typedef std::vector<BadStripBlock>::const_iterator BSBIT;
+  
+  int16_t bad = 0, largestBadBlock = 0;
+  for (BSBIT bsbc = badStripBlocks().begin(), bsbe = badStripBlocks().end(); bsbc != bsbe; ++bsbc) {
+    if (bsbc->last  < start) continue;
+    if (bsbc->first > end)   break;
+    int16_t thisBad = std::min(bsbc->last, end) - std::max(bsbc->first, start);
+    if (thisBad > largestBadBlock) largestBadBlock = thisBad;
+    bad += thisBad;
+  }
+  
+  bool ok = (bad < (end-start)) && 
+    (uint16_t(bad) <= badStripCuts().maxBad) && 
+    (uint16_t(largestBadBlock) <= badStripCuts().maxConsecutiveBad);
+  
+  //    if (bad) {   
+  //       edm::LogWarning("TkStripMeasurementDet") << "Testing module " << id_ <<" (subdet: "<< SiStripDetId(id_).subdetId() << ")" <<
+  //            " U = " << utraj << " +/- " << uerr << 
+  //            "; Range [" << (utraj - 3*uerr) << ", " << (utraj + 3*uerr) << "] " << 
+  //            "= [" << start << "," << end << "]" <<
+  //            " total strips:" << (end-start) << ", good:" << (end-start-bad) << ", bad:" << bad << ", largestBadBlock: " << largestBadBlock << 
+  //            ". " << (ok ? "OK" : "NO"); 
+  //    }
+  return ok;
 }
 

@@ -150,6 +150,7 @@ public:
     conditionSet_(&cond),
     empty_(cond.nDet(), true),
     activeThisEvent_(cond.nDet(), true),
+    inactiveAPVs_(cond.nDet()),
     detSet_(cond.nDet()),
     detIndex_(cond.nDet(),-1),
     ready_(cond.nDet(),true),
@@ -198,6 +199,7 @@ public:
     std::fill(ready_.begin(),ready_.end(),true);
     std::fill(detIndex_.begin(),detIndex_.end(),-1);
     std::fill(activeThisEvent_.begin(), activeThisEvent_.end(),true);
+    std::fill(inactiveAPVs_.begin(),inactiveAPVs_.end(),std::bitset<6>());
     incTot(size());
   }
   
@@ -224,6 +226,10 @@ public:
     stripRegions_[i] = range; 
   }
 
+
+  void setInactiveAPVs(int i, std::bitset<6> hips) { inactiveAPVs_[i]=hips; }
+  std::bitset<6> const & inactiveAPVs(int i) const { return inactiveAPVs_[i];}
+  
 private:
 
   void getDetSet(int i) {
@@ -251,6 +257,8 @@ private:
  
   std::vector<bool> empty_;
   std::vector<bool> activeThisEvent_;
+
+  std::vector<std::bitset<6>> inactiveAPVs_;
   
   // full reco
   std::vector<StripDetset> detSet_;

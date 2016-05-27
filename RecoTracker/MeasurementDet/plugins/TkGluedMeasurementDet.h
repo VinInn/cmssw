@@ -190,7 +190,8 @@ private:
   /** \brief Test the strips on one of the two dets with projection */
   bool testStrips(const TrajectoryStateOnSurface& tsos,
                   const BoundPlane &gluedPlane,
-                  const TkStripMeasurementDet &mdet) const  dso_internal;
+                  const TkStripMeasurementDet &mdet,
+		  const MeasurementTrackerEvent & data) const  dso_internal;
 
 };
 
