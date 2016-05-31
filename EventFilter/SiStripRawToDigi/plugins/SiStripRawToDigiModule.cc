@@ -98,15 +98,17 @@ thread_local std::unique_ptr< edm::DetSetVector<SiStripRawDigi> > cm_prev; // pr
 #include<iostream>
 namespace {
   struct Stat {
-    Stat() { for (auto & x :tots) x=0;for (auto & x :zeros) x=0;for (auto & x :hips) x=0;   }
+    Stat() { for (auto & x :tots) x=0;for (auto & x :zeros) x=0;for (auto & x :hips) x=0; for (auto & x :over) x=0;  }
     std::atomic<long long> tots[4];
     std::atomic<long long> zeros[4];
     std::atomic<long long> hips[4];
+    std::atomic<long long> over[4];
 
     ~Stat() {
       std::cout << "Zeros Hips/Ev ";
       for (int i=0;i<4;++i) std::cout << zeros[i]/double(tots[i])<<'/';std::cout << ' ';
-      for (int i=0;i<4;++i) std::cout << hips[i]/double(tots[i])<<'/';
+      for (int i=0;i<4;++i) std::cout << hips[i]/double(tots[i])<<'/';std::cout << ' ';
+      for (int i=0;i<4;++i) std::cout << over[i]/double(tots[i])<<'/';
       std::cout<<std::endl;
     }
 
@@ -247,19 +249,21 @@ namespace sistrip {
 #endif
 
     // mind false sharing (and mfence storms...)
-    int tots[4]={0}, zeros[4]={0}, hips[4]={0};
+    int tots[4]={0}, zeros[4]={0}, hips[4]={0}, over[4]={0};
     for (auto & ds : (*cm_dsv)) {
       auto id = DetId(ds.detId()).subdetId()-3;
       tots[id]+=ds.size();
       for (auto & cm : ds) {
 	if (cm.adc()<1) ++zeros[id];
 	if (cm.adc()<40)++hips[id];
+        if (cm.adc()>128+40)++over[id];
       }
     }
     for (int i=0;i<4;++i) {
       stat.tots[i]+=tots[i];
       stat.zeros[i]+=zeros[i];
       stat.hips[i]+=hips[i];
+      stat.over[i]+=over[i];
     }
 
       

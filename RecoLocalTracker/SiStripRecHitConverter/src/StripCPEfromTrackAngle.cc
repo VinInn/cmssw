@@ -111,7 +111,7 @@ StripCPEfromTrackAngle::localParameters( const SiStripCluster& cluster, AlgoPara
   case Algo::chargeCK :
     {
       auto dQdx = siStripClusterTools::chargePerCM(cluster, ltp, p.invThickness);
-      uerr2 = dQdx > maxChgOneMIP ? legacyStripErrorSquared(N,afp) : stripErrorSquared( N, afp,loc );
+      uerr2 = dQdx > maxChgOneMIP || dQdx<2000.f  ? legacyStripErrorSquared(N,afp) : stripErrorSquared( N, afp,loc );
     }
     break;
   case Algo::legacy :
