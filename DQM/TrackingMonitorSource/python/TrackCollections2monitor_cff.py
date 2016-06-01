@@ -174,6 +174,36 @@ doEffFromHitPatternVsPU             ['highPurityPt1'] = cms.bool(True)
 doEffFromHitPatternVsBX             ['highPurityPt1'] = cms.bool(True)
 doStopSource                        ['highPurityPt1'] = cms.bool(True)
 
+### TEST
+highPurityPt1Eta0p8 = trackSelector.clone()
+highPurityPt1Eta0p8.cut = cms.string("quality('highPurity') & pt >= 1 & abs(eta) <= 0.8")
+
+sequenceName    ['highPurityPt1Eta0p8'] = highPurityPt1Eta0p8
+mainfolderName  ['highPurityPt1Eta0p8'] = 'Tracking/TrackParameters/highPurityTracks/pt_1_eta_0p8'
+vertexfolderName['highPurityPt1Eta0p8'] = 'Tracking/PrimaryVertices/highPurityTracks/pt_1_eta_0p8'
+trackPtN        ['highPurityPt1Eta0p8'] = cms.int32(100)
+trackPtMin      ['highPurityPt1Eta0p8'] = cms.double(0.)
+trackPtMax      ['highPurityPt1Eta0p8'] = cms.double(100.)
+doPlotsPCA      ['highPurityPt1Eta0p8'] = cms.bool(True)
+numCutString    ['highPurityPt1Eta0p8'] = cms.string("") # default: " pt >= 1 & quality('highPurity') "
+denCutString    ['highPurityPt1Eta0p8'] = cms.string(" pt >= 1 & abs(eta) <= 0.8") # it is as in the default config (just be sure)
+doGoodTracksPlots                   ['highPurityPt1Eta0p8'] = cms.bool(True)
+doTrackerSpecific                   ['highPurityPt1Eta0p8'] = cms.bool(True)
+doHitPropertiesPlots                ['highPurityPt1Eta0p8'] = cms.bool(True)
+doGeneralPropertiesPlots            ['highPurityPt1Eta0p8'] = cms.bool(True)
+doBeamSpotPlots                     ['highPurityPt1Eta0p8'] = cms.bool(True)
+doSeedParameterHistos               ['highPurityPt1Eta0p8'] = cms.bool(False)
+doRecHitVsPhiVsEtaPerTrack          ['highPurityPt1Eta0p8'] = cms.bool(True)
+doGoodTrackRecHitVsPhiVsEtaPerTrack ['highPurityPt1Eta0p8'] = cms.bool(True)
+doLayersVsPhiVsEtaPerTrack          ['highPurityPt1Eta0p8'] = cms.bool(True)
+doGoodTrackLayersVsPhiVsEtaPerTrack ['highPurityPt1Eta0p8'] = cms.bool(True)
+doPUmonitoring                      ['highPurityPt1Eta0p8'] = cms.bool(False)
+doPlotsVsBXlumi                     ['highPurityPt1Eta0p8'] = cms.bool(False)
+doPlotsVsGoodPVtx                   ['highPurityPt1Eta0p8'] = cms.bool(True)
+doEffFromHitPatternVsPU             ['highPurityPt1Eta0p8'] = cms.bool(True)
+doEffFromHitPatternVsBX             ['highPurityPt1Eta0p8'] = cms.bool(True)
+doStopSource                        ['highPurityPt1Eta0p8'] = cms.bool(True)
+
 selectedTracks.extend( ['generalTracks'] )
 #selectedTracks.extend( ['highPurityPtRange0to1']  )
 #selectedTracks.extend( ['highPurityPtRange1to10'] )
@@ -181,7 +211,8 @@ selectedTracks.extend( ['generalTracks'] )
 
 selectedTracks.extend( ['highPurityPt1'] )
 selectedTracks.extend( ['highPurityPtRange0to1'] )
-
+### TEST
+selectedTracks.extend( ['highPurityPt1Eta0p8'] )
 #selectedTracks2runSequence=cms.Sequence()
 #for tracks in selectedTracks :
 #    if tracks != 'generalTracks':
