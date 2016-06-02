@@ -15,6 +15,8 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include <cstdlib>
 
+#include "DataFormats/SiStripDetId/interface/TIBDetId.h"
+
 
 class SwapAverage {
 public:
@@ -98,14 +100,15 @@ thread_local std::unique_ptr< edm::DetSetVector<SiStripRawDigi> > cm_prev; // pr
 #include<iostream>
 namespace {
   struct Stat {
-    Stat() { for (auto & x :tots) x=0;for (auto & x :zeros) x=0;for (auto & x :hips) x=0; for (auto & x :over) x=0;  }
+    Stat(const char * idn) : dn(idn) { for (auto & x :tots) x=0;for (auto & x :zeros) x=0;for (auto & x :hips) x=0; for (auto & x :over) x=0;  }
+    const std::string dn;
     std::atomic<long long> tots[4];
     std::atomic<long long> zeros[4];
     std::atomic<long long> hips[4];
     std::atomic<long long> over[4];
 
     ~Stat() {
-      std::cout << "Zeros Hips/Ev ";
+      std::cout << dn << " Zeros Hips Sat /Ev ";
       for (int i=0;i<4;++i) std::cout << zeros[i]/double(tots[i])<<'/';std::cout << ' ';
       for (int i=0;i<4;++i) std::cout << hips[i]/double(tots[i])<<'/';std::cout << ' ';
       for (int i=0;i<4;++i) std::cout << over[i]/double(tots[i])<<'/';
@@ -113,7 +116,9 @@ namespace {
     }
 
   };
-  Stat stat;
+  Stat st1("All"), st2("TIB"), st3("TOB");
+  Stat * stat[3] {&st1,&st2,&st3};
+
 }
 
 
@@ -248,22 +253,41 @@ namespace sistrip {
       for (auto & cm : ds) cm = SiStripRawDigi(randomCM() ? 0 : 128);
 #endif
 
+struct LStat{
+  LStat(){memset(tots,0,4*4*4);}
+  int tots[4], zeros[4], hips[4], over[4];
+};
+
     // mind false sharing (and mfence storms...)
-    int tots[4]={0}, zeros[4]={0}, hips[4]={0}, over[4]={0};
+    LStat ss[3];
+    auto & s = ss[0];
     for (auto & ds : (*cm_dsv)) {
       auto id = DetId(ds.detId()).subdetId()-3;
-      tots[id]+=ds.size();
+      s.tots[id]+=ds.size();
       for (auto & cm : ds) {
-	if (cm.adc()<1) ++zeros[id];
-	if (cm.adc()<40)++hips[id];
-        if (cm.adc()>128+40)++over[id];
+	if (cm.adc()<1) ++s.zeros[id];
+	if (cm.adc()<40)++s.hips[id];
+        if (cm.adc()>128+40)++s.over[id];
+      }
+      if (id==0 || id==2) {
+        auto l = TIBDetId(ds.detId()).layer()-1;
+        if (l<4) {
+          auto & st = ss[id/2+1];
+          st.tots[l]+=ds.size();
+          for (auto & cm : ds) {
+            if (cm.adc()<1) ++st.zeros[l];
+            if (cm.adc()<80)++st.hips[l];
+            if (cm.adc()>128+40)++st.over[l];
+          }
+        } 
       }
     }
+    for (int k=0;k<3;++k)
     for (int i=0;i<4;++i) {
-      stat.tots[i]+=tots[i];
-      stat.zeros[i]+=zeros[i];
-      stat.hips[i]+=hips[i];
-      stat.over[i]+=over[i];
+      stat[k]->tots[i]+=ss[k].tots[i];
+      stat[k]->zeros[i]+=ss[k].zeros[i];
+      stat[k]->hips[i]+=ss[k].hips[i];
+      stat[k]->over[i]+=ss[k].over[i];
     }
 
       
