@@ -130,9 +130,13 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
    
    bool found = result.size()>oldSize;
 
+   auto id = geomDet().geographicalId().subdetId()-3;
+   auto barrel = 0==(id%2);
+
    //LogDebug("TkStripMeasurementDet") << "No hit found on TkGlued. Testing strips...  ";
    const BoundPlane &gluedPlane = geomDet().surface();
-   bool act =   // sorry for the big IF, but I want to exploit short-circuiting of logic
+   bool act = 
+      // sorry for the big IF, but I want to exploit short-circuiting of logic
      stateOnThisDet.hasError() && ( /* do this only if the state has uncertainties, otherwise it will throw 
 				       (states without uncertainties are passed to this code from seeding */
 				   (theMonoDet->isActive(data) && 
@@ -157,6 +161,7 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
   
    if (!found) {
      //LogDebug("TkStripMeasurementDet") << " DetID " << rawId() << "  glued empty after search, but active ";
+     if (barrel) { result.add(theInactiveHit, 0.F); return true;}
      result.add(theMissingHit, 0.F);
      return false;
    }

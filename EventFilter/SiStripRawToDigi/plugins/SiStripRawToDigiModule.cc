@@ -263,11 +263,12 @@ struct LStat{
     auto & s = ss[0];
     for (auto & ds : (*cm_dsv)) {
       auto id = DetId(ds.detId()).subdetId()-3;
+      int cmref = id==2 ? 256 : 128;
       s.tots[id]+=ds.size();
       for (auto & cm : ds) {
 	if (cm.adc()<1) ++s.zeros[id];
-	if (cm.adc()<40)++s.hips[id];
-        if (cm.adc()>128+40)++s.over[id];
+	if (cm.adc()<cmref-50)++s.hips[id];
+        if (cm.adc()>cmref+50)++s.over[id];
       }
       if (id==0 || id==2) {
         auto l = TIBDetId(ds.detId()).layer()-1;
@@ -276,8 +277,8 @@ struct LStat{
           st.tots[l]+=ds.size();
           for (auto & cm : ds) {
             if (cm.adc()<1) ++st.zeros[l];
-            if (cm.adc()<80)++st.hips[l];
-            if (cm.adc()>128+40)++st.over[l];
+            if (cm.adc()<cmref-50)++st.hips[l];
+            if (cm.adc()>cmref+50)++st.over[l];
           }
         } 
       }

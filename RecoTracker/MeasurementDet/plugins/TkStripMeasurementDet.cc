@@ -288,13 +288,13 @@ TkStripMeasurementDet::testStrips(float utraj, float uerr, const MeasurementTrac
     return true;  // Wolfgang thinks this way is better and solves some problems with grouped ckf
   } 
   
-  
+  /*
   // check hips first
   auto const & hips = inactiveAPVs(data);
   auto b = start/128; auto e = std::min(end/128,5);
   // std::cout << "testing hip "<< b << ' ' << e << std::endl;
   for (;b<=e; ++b) if (hips[b])return false;
-  
+  */
   
   typedef std::vector<BadStripBlock>::const_iterator BSBIT;
   
