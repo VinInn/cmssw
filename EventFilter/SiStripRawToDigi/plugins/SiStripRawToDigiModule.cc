@@ -154,6 +154,9 @@ namespace sistrip {
   
     // Create digis
     if ( rawToDigi_ ) { rawToDigi_->createDigis( *cabling_,*buffers,*summary,*sm,*vr,*pr,*zs,*ids,*cm ); }
+
+
+    for (auto & ds : *zs) kill(ds);
   
     // Create auto_ptr's of digi products
     std::auto_ptr< edm::DetSetVector<SiStripRawDigi> > sm_dsv(sm);
