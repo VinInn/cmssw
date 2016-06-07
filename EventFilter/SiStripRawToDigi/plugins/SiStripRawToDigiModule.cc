@@ -36,8 +36,8 @@ namespace {
      bool operator()(unsigned int i, SiStripDigi const & d) const { return i < d.strip();} 
   };
 
-  constexpr float probTIB[4] = {0.0072,0.0050,0.0041, 0.0027};
-  constexpr float probTOB[6] = {0.0185, 0.0138, 0.0101, 0.0077, 0.0040, 0.0031};  
+  constexpr float probTIB[4] = {22*0.0072,20*0.0050,20*0.0041, 20*0.0027};
+  constexpr float probTOB[6] = {18*0.0185, 16*0.0138, 10*0.0101, 10*0.0077, 10*0.0040, 10*0.0031};  
   void kill(edm::DetSet<SiStripDigi>  & ds) {
      auto id = DetId(ds.detId()).subdetId()-3;
      if (id==1 || id==3) return;
