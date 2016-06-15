@@ -16,6 +16,8 @@
 #include <cstdlib>
 
 #include "DataFormats/SiStripDetId/interface/TIBDetId.h"
+#include "DataFormats/SiStripDetId/interface/TIDDetId.h"
+#include "DataFormats/SiStripDetId/interface/TECDetId.h"
 #include<random>
 namespace {
 
@@ -37,13 +39,25 @@ namespace {
   };
 
   constexpr float probTIB[4] = {22*0.0072,20*0.0050,20*0.0041, 20*0.0027};
-  constexpr float probTOB[6] = {18*0.0185, 16*0.0138, 10*0.0101, 10*0.0077, 10*0.0040, 10*0.0031};  
+  constexpr float probTOB[6] = {18*0.0185, 16*0.0138, 10*0.0101, 10*0.0077, 10*0.0040, 10*0.0031};
+  constexpr float probTID[3] = {22*0.0072,20*0.0050,20*0.0041};
+  constexpr float probTEC[7] = {22*0.0072,20*0.0050,20*0.0041,10*0.0040,10*0.0040,10*0.0040,10*0.0040};
+  constexpr int	napvTEC[7] {6,6,4,4,6,4,4};
+
+
   void kill(edm::DetSet<SiStripDigi>  & ds) {
      auto id = DetId(ds.detId()).subdetId()-3;
-     if (id==1 || id==3) return;
-     auto l = TIBDetId(ds.detId()).layer()-1;
-     auto frac =  (id==0) ?  probTIB[l] : probTOB[l];
-     int napv = 4; if (id==2 && l>3) napv= 6; if (id==1 && l<2) napv= 6;
+     float frac=0; int napv=4;
+     if (id==1 || id==3) {
+       auto l = id==1 ? TIDDetId(ds.detId()).ring() : TECDetId(ds.detId()).ring();
+       l--;
+       frac =  (id==1) ?  probTID[l] : probTEC[l];
+       napv= napvTEC[l];
+     } else {
+       auto l = TIBDetId(ds.detId()).layer()-1;
+       frac =  (id==0) ?  probTIB[l] : probTOB[l];
+       if (id==2 && l>3) napv= 6; if (id==1 && l<2) napv= 6;
+     }
      for (int i=0; i<napv; ++i) {
         if ( !randomCM(frac) ) continue;
         auto b=i*128;
