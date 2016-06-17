@@ -15,6 +15,63 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include <cstdlib>
 
+#include "DataFormats/SiStripDetId/interface/TIBDetId.h"
+#include "DataFormats/SiStripDetId/interface/TIDDetId.h"
+#include "DataFormats/SiStripDetId/interface/TECDetId.h"
+#include<random>
+namespace {
+
+  struct RandomCM {
+
+    bool operator()(float frac) { return rgen(eng) < frac; }
+    std::mt19937 eng;
+    std::uniform_real_distribution<float> rgen = std::uniform_real_distribution<float>(0.,1.);
+
+  };
+
+  thread_local RandomCM randomCM;
+
+
+
+  struct Comp {
+     bool operator()(SiStripDigi const & d, unsigned int i) const { return d.strip()<i;}
+     bool operator()(unsigned int i, SiStripDigi const & d) const { return i < d.strip();} 
+  };
+
+  constexpr float probTIB[4] = {22*0.0072,20*0.0050,20*0.0041, 20*0.0027};
+  constexpr float probTOB[6] = {18*0.0185, 16*0.0138, 0.009, 0.007, 0.040, 0.03};
+  constexpr float probTID[3] = {0.11,0.09,0.08};
+  constexpr float probTEC[7] = {0.18,0.18,0.18,0.14,0.12,0.10,0.10};
+  constexpr int	napvTEC[7] {6,6,4,4,6,4,4};
+
+
+  void kill(edm::DetSet<SiStripDigi>  & ds) {
+     auto id = DetId(ds.detId()).subdetId()-3;
+     float frac=0; int napv=4;
+     if (id==1 || id==3) {
+       auto l = id==1 ? TIDDetId(ds.detId()).ring() : TECDetId(ds.detId()).ring();
+       l--;
+       frac =  (id==1) ?  probTID[l] : probTEC[l];
+       napv= napvTEC[l];
+     } else {
+       auto l = TIBDetId(ds.detId()).layer()-1;
+       frac =  (id==0) ?  probTIB[l] : probTOB[l];
+       if (id==2 && l>3) napv= 6; if (id==1 && l<2) napv= 6;
+     }
+     for (int i=0; i<napv; ++i) {
+        if ( !randomCM(frac) ) continue;
+        auto b=i*128;
+        auto e=b+128;
+        auto fi = std::lower_bound(ds.begin(),ds.end(),b,Comp()); 
+        auto la  = std::lower_bound(ds.begin(),ds.end(),e,Comp());
+        for (;fi!=la; ++fi) (*fi) = SiStripDigi(fi->strip(),0);       	
+     }
+
+  }
+
+}
+
+
 namespace sistrip {
 
   RawToDigiModule::RawToDigiModule( const edm::ParameterSet& pset ) :
@@ -80,6 +137,8 @@ namespace sistrip {
   void RawToDigiModule::beginRun( const edm::Run& run, const edm::EventSetup& setup ) {
     updateCabling( setup );
   }  
+
+
   
   /** 
       Retrieves cabling map from EventSetup and FEDRawDataCollection
@@ -109,6 +168,9 @@ namespace sistrip {
   
     // Create digis
     if ( rawToDigi_ ) { rawToDigi_->createDigis( *cabling_,*buffers,*summary,*sm,*vr,*pr,*zs,*ids,*cm ); }
+
+
+    for (auto & ds : *zs) kill(ds);
   
     // Create auto_ptr's of digi products
     std::auto_ptr< edm::DetSetVector<SiStripRawDigi> > sm_dsv(sm);
