@@ -23,7 +23,8 @@ namespace {
 
   struct RandomCM {
 
-    bool operator()(float frac) { return rgen(eng) < frac; }
+     static constexpr float lumfac=1.0;
+    bool operator()(float frac) { return rgen(eng) < lumfac*frac; }
     std::mt19937 eng;
     std::uniform_real_distribution<float> rgen = std::uniform_real_distribution<float>(0.,1.);
 
@@ -38,8 +39,8 @@ namespace {
      bool operator()(unsigned int i, SiStripDigi const & d) const { return i < d.strip();} 
   };
 
-  constexpr float probTIB[4] = {22*0.0072,20*0.0050,20*0.0041, 20*0.0027};
-  constexpr float probTOB[6] = {18*0.0185, 16*0.0138, 0.009, 0.007, 0.040, 0.03};
+  constexpr float probTIB[4] = {0.16, 0.10, 0.08, 0.054};
+  constexpr float probTOB[6] = {0.33, 0.22, 0.09, 0.07, 0.04, 0.03};
   constexpr float probTID[3] = {0.11,0.09,0.08};
   constexpr float probTEC[7] = {0.18,0.18,0.18,0.14,0.12,0.10,0.10};
   constexpr int	napvTEC[7] {6,6,4,4,6,4,4};
