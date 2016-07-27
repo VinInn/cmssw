@@ -104,6 +104,11 @@ PixelCPEBase::ClusterParam* PixelCPETemplateReco::createClusterParam(const SiPix
    return new ClusterParamTemplate(cl);
 }
 
+PixelCPEBase::ClusterParam * PixelCPETemplateReco::createClusterParam(const Phase2ITPixelCluster & cl) const 
+{
+  edm::LogError("PixelCPETemplateReco::PixelCPETemplateReco:") << "Not yet implemented for Phase2ITPixelCluster.\n";
+  return 0;
+}
 
 //------------------------------------------------------------------
 //  Public methods mandated by the base class.

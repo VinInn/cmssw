@@ -6,6 +6,7 @@
 #include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
 #include "DataFormats/SiPixelCluster/interface/SiPixelCluster.h"
 #include "DataFormats/Phase2TrackerCluster/interface/Phase2TrackerCluster1D.h"
+#include "DataFormats/Phase2ITPixelCluster/interface/Phase2ITPixelCluster.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 
 class OmniClusterRef {
@@ -24,11 +25,13 @@ public:
   typedef edm::Ref<edmNew::DetSetVector<SiPixelCluster>,SiPixelCluster > ClusterPixelRef;
   typedef edm::Ref<edmNew::DetSetVector<SiStripCluster>,SiStripCluster > ClusterStripRef;
   typedef edm::Ref<edmNew::DetSetVector<Phase2TrackerCluster1D>, Phase2TrackerCluster1D> Phase2Cluster1DRef;
+  typedef edm::Ref<edmNew::DetSetVector<Phase2ITPixelCluster>, Phase2ITPixelCluster> Phase2ITPixelClusterRef;
   
   OmniClusterRef() : me(edm::RefCore(),kInvalid) {}
   explicit OmniClusterRef(ClusterPixelRef const & ref, unsigned int subClus=0) : me(ref.refCore(), (ref.isNonnull() ? ref.key()                  | (subClus<<subClusShift) : kInvalid) ){  }
   explicit OmniClusterRef(ClusterStripRef const & ref, unsigned int subClus=0) : me(ref.refCore(), (ref.isNonnull() ? (ref.key()   | kIsStrip  ) | (subClus<<subClusShift) : kInvalid) ){ }
   explicit OmniClusterRef(Phase2Cluster1DRef const & ref, unsigned int subClus=0) : me(ref.refCore(), (ref.isNonnull() ? (ref.key() | kIsPhase2) | (subClus<<subClusShift) : kInvalid) ){ }
+  explicit OmniClusterRef(Phase2ITPixelClusterRef const & ref, unsigned int subClus=0) : me(ref.refCore(), (ref.isNonnull() ? (ref.key() | kIsPhase2) | (subClus<<subClusShift) : kInvalid) ){ }
   
   ClusterPixelRef cluster_pixel()  const { 
     return (isPixel() && isValid()) ?  ClusterPixelRef(me.toRefCore(),index()) : ClusterPixelRef();
@@ -41,6 +44,10 @@ public:
   Phase2Cluster1DRef cluster_phase2OT()  const { 
     return isPhase2() ? Phase2Cluster1DRef(me.toRefCore(),index()) : Phase2Cluster1DRef();
   }
+
+  Phase2ITPixelClusterRef cluster_phase2IT()  const { 
+    return isPhase2() ? Phase2ITPixelClusterRef(me.toRefCore(),index()) : Phase2ITPixelClusterRef();
+  }
  
   SiPixelCluster const & pixelCluster() const {
     return *ClusterPixelRef(me.toRefCore(),index());
@@ -50,6 +57,9 @@ public:
   }
   Phase2TrackerCluster1D const & phase2OTCluster() const {
     return *Phase2Cluster1DRef(me.toRefCore(),index());
+  }
+  Phase2ITPixelCluster const & phase2ITCluster() const {
+    return *Phase2ITPixelClusterRef(me.toRefCore(),index());
   }
   
   bool operator==(OmniClusterRef const & lh) const { 

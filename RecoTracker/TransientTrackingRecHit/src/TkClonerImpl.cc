@@ -12,6 +12,7 @@
 
 
 #include "DataFormats/SiPixelCluster/interface/SiPixelCluster.h"
+#include "DataFormats/Phase2ITPixelCluster/interface/Phase2ITPixelCluster.h"
 #include "RecoLocalTracker/ClusterParameterEstimator/interface/PixelClusterParameterEstimator.h"
 
 #include "Geometry/CommonDetUnit/interface/GluedGeomDet.h"
@@ -25,9 +26,20 @@
 #include <memory>
 
 std::unique_ptr<SiPixelRecHit>  TkClonerImpl::operator()(SiPixelRecHit const & hit, TrajectoryStateOnSurface const& tsos) const {
-  const SiPixelCluster& clust = *hit.cluster();  
-  auto && params = pixelCPE->getParameters( clust, *hit.detUnit(), tsos);
-  return std::unique_ptr<SiPixelRecHit>(new SiPixelRecHit(std::get<0>(params), std::get<1>(params), std::get<2>(params), *hit.det(), hit.cluster()));
+
+  // EM next based on 
+  // https://github.com/cms-sw/cmssw/blob/CMSSW_8_1_X/TrackingTools/PatternTools/src/Trajectory.cc#L180
+  // why cast is needed?
+  auto const * thit = static_cast<const BaseTrackerRecHit*>( hit.hit() );
+  if ( !(thit->isPhase2()) ) {
+    const SiPixelCluster& clust = *hit.cluster();  
+    auto && params = pixelCPE->getParameters( clust, *hit.detUnit(), tsos);
+    return std::unique_ptr<SiPixelRecHit>(new SiPixelRecHit(std::get<0>(params), std::get<1>(params), std::get<2>(params), *hit.det(), hit.cluster()));
+  } else {
+    const Phase2ITPixelCluster& clust = *hit.phase2ITcluster();  
+    auto && params = pixelCPE->getParameters( clust, *hit.detUnit(), tsos);
+    return std::unique_ptr<SiPixelRecHit>(new SiPixelRecHit(std::get<0>(params), std::get<1>(params), std::get<2>(params), *hit.det(), hit.phase2ITcluster()));
+  }
 }
 
 std::unique_ptr<SiStripRecHit2D> TkClonerImpl::operator()(SiStripRecHit2D const & hit, TrajectoryStateOnSurface const& tsos) const {
@@ -66,9 +78,21 @@ std::unique_ptr<Phase2TrackerRecHit1D> TkClonerImpl::operator()(Phase2TrackerRec
 
 TrackingRecHit::ConstRecHitPointer TkClonerImpl::makeShared(SiPixelRecHit const & hit, TrajectoryStateOnSurface const& tsos) const {
  // std::cout << "cloning " << typeid(hit).name() << std::endl;
-  const SiPixelCluster& clust = *hit.cluster();  
-  auto && params = pixelCPE->getParameters( clust, *hit.detUnit(), tsos);
-  return std::make_shared<SiPixelRecHit>(std::get<0>(params), std::get<1>(params), std::get<2>(params), *hit.det(), hit.cluster());
+
+  // EM next based on 
+  // https://github.com/cms-sw/cmssw/blob/CMSSW_8_1_X/TrackingTools/PatternTools/src/Trajectory.cc#L180
+  // why cast is needed?
+
+  auto const * thit = static_cast<const BaseTrackerRecHit*>( hit.hit() );
+  if ( !(thit->isPhase2()) ){
+    const SiPixelCluster& clust = *hit.cluster();  
+    auto && params = pixelCPE->getParameters( clust, *hit.detUnit(), tsos);
+    return std::make_shared<SiPixelRecHit>(std::get<0>(params), std::get<1>(params), std::get<2>(params), *hit.det(), hit.cluster());
+  } else {
+    const Phase2ITPixelCluster& clust = *hit.phase2ITcluster();  
+    auto && params = pixelCPE->getParameters( clust, *hit.detUnit(), tsos);
+    return std::make_shared<SiPixelRecHit>(std::get<0>(params), std::get<1>(params), std::get<2>(params), *hit.det(), hit.phase2ITcluster());
+  }
 }
 
 TrackingRecHit::ConstRecHitPointer TkClonerImpl::makeShared(SiStripRecHit2D const & hit, TrajectoryStateOnSurface const& tsos) const {

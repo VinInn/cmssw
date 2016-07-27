@@ -130,8 +130,28 @@ def customise_Reco(process,pileup):
     process.PixelCPEGenericESProducer.DoCosmics = False
     process.templates.DoLorentz = cms.bool(False)
     process.templates.LoadTemplatesFromDB = cms.bool(False)
-    # CPE for other steps
+
+    # CPE for other steps    
     process.siPixelRecHits.CPE = cms.string('PixelCPEGeneric')
+    # EM 2016.07 begin of the section to uncomment to produce CPE from phase2 IT pixel clusters  
+    #process.siPixelRecHits.src = cms.InputTag("phase2ITPixelClusters") 
+    # "light" version of PoolOutputModule (to be used e.g. at step3 of cmsDriver when the option "-s RAW2DIGI,L1Reco,RECO:reconstruction_trackingOnly" is choosen)
+    #process.FEVTDEBUGHLToutput.outputCommands = cms.untracked.vstring( ('drop *', 
+    #                                                                    'keep *_g4SimHits_*_*', 
+    #                                                                    'keep *_simSiPixelDigis_*_*', 
+    #                                                                    'keep *_simSiStripDigis_*_*', 
+    #                                                                    'keep DetIdedmEDCollection_siStripDigis_*_*', 
+    #                                                                    'keep DetIdedmEDCollection_siPixelDigis_*_*', 
+    #                                                                    'keep *_siPixelClusters_*_*', 
+    #                                                                    'keep *_siStripClusters_*_*', 
+    #                                                                    'keep *_siPhase2Clusters_*_*', 
+    #                                                                    'keep *_phase2ITPixelClusters_*_*',
+    #                                                                    'keep ClusterSummary_clusterSummaryProducer_*_*') )
+    # end of the section to uncomment
+
+
+
+
     # Turn of template use in tracking (iterative steps handled inside their configs)
     process.duplicateTrackCandidates.ttrhBuilderName = 'WithTrackAngle'
     process.mergedDuplicateTracks.TTRHBuilder = 'WithTrackAngle'

@@ -21,6 +21,7 @@ public:
   typedef OmniClusterRef::ClusterPixelRef ClusterPixelRef;
   typedef OmniClusterRef::ClusterStripRef ClusterStripRef;
   typedef OmniClusterRef::Phase2Cluster1DRef ClusterPhase2Ref;
+  typedef OmniClusterRef::Phase2ITPixelClusterRef ClusterPhase2ITPixelRef;
 
   // no position (as in persistent)
   TrackerSingleRecHit(DetId id,
@@ -52,6 +53,7 @@ public:
   OmniClusterRef & omniClusterRef()  { return cluster_;}
   OmniClusterRef & omniCluster()  { return cluster_;}
 
+  // refs to edmNew::DetSetVector
   ClusterPixelRef cluster_pixel()  const { 
     return cluster_.cluster_pixel();
   }
@@ -64,6 +66,11 @@ public:
     return cluster_.cluster_phase2OT();
   }
 
+  ClusterPhase2ITPixelRef cluster_phase2IT()  const { 
+    return cluster_.cluster_phase2IT();
+  }
+
+  // through OmniClusterRef 
   SiStripCluster const & stripCluster() const { 
     return cluster_.stripCluster();
   }  
@@ -76,8 +83,13 @@ public:
     return cluster_.phase2OTCluster();
   }
 
+  Phase2ITPixelCluster const & phase2ITCluster() const {
+    return cluster_.phase2ITCluster();
+  }
+
   // void setClusterRef(const &  OmniClusterRef ref) {  cluster_ =ref;}
   void setClusterPixelRef(ClusterPixelRef const & ref) {  cluster_ = OmniClusterRef(ref); }
+  void setClusterPixelRef(ClusterPhase2ITPixelRef const & ref) {  cluster_ = OmniClusterRef(ref); }
   void setClusterStripRef(ClusterStripRef const & ref) {  cluster_ = OmniClusterRef(ref); }
   void setClusterPhase2Ref(ClusterPhase2Ref const & ref) { cluster_ = OmniClusterRef(ref); }
 

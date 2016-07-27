@@ -5,7 +5,7 @@
 // change to use Lorentz angle from DB Lotte Wilke, Jan. 31st, 2008
 // Change to use Generic error & Template calibration from DB - D.Fehling 11/08
 
-
+#include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
 #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
 #include "Geometry/TrackerGeometryBuilder/interface/RectangularPixelTopology.h"
 #include "Geometry/TrackerGeometryBuilder/interface/ProxyPixelTopology.h"
@@ -126,26 +126,28 @@ PixelCPEBase::PixelCPEBase(edm::ParameterSet const & conf,
 //-----------------------------------------------------------------------------
 void PixelCPEBase::fillDetParams()
 {
-  //cout<<" in fillDetParams "<<theFlag_<<endl;
+  //  cout<<" in fillDetParams "<<theFlag_<<endl;
 
   auto const & dus = geom_.detUnits();
-  unsigned m_detectors = dus.size();
-  for(unsigned int i=1;i<7;++i) {
-    LogDebug("LookingForFirstStrip") << "Subdetector " << i 
-				     << " GeomDetEnumerator " << GeomDetEnumerators::tkDetEnum[i] 
-				     << " offset " << geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]) 
-				     << " is it strip? " << (geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]) != dus.size() ? 
-							     dus[geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i])]->type().isTrackerStrip() : false);
-    if(geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]) != dus.size() && 
-       dus[geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i])]->type().isTrackerStrip()) {
-      if(geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]) < m_detectors) m_detectors = geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]);
-    }
-  } 
-  LogDebug("LookingForFirstStrip") << " Chosen offset: " << m_detectors;
 
+  // EM 2016.07 Next fragment(L135-147) is not working for phase2 replaced with L148-153
+  //  unsigned m_detectors = dus.size();
+  // for(unsigned int i=1;i<7;++i) {
+  //   LogDebug("LookingForFirstStrip") << "Subdetector " << i 
+  // 				     << " GeomDetEnumerator " << GeomDetEnumerators::tkDetEnum[i] 
+  // 				     << " offset " << geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]) 
+  // 				     << " is it strip? " << (geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]) != dus.size() ? 
+  // 							     dus[geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i])]->type().isTrackerStrip() : false);
+  //  if(geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]) != dus.size() && 
+  //      dus[geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i])]->type().isTrackerStrip()) {
+  //     if(geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]) < m_detectors) m_detectors = geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]);
+  //   }
+  // } 
+  // LogDebug("LookingForFirstStrip") << " Chosen offset: " << m_detectors;
 
+  unsigned m_detectors = geom_.detsPXB().size() + geom_.detsPXF().size();
   m_DetParams.resize(m_detectors);
-  //cout<<"caching "<<m_detectors<<" pixel detectors"<<endl;
+  LogDebug("PixelCPEBase") << "m_detectors caching " << m_detectors << " pixel detectors";
   for (unsigned i=0; i!=m_detectors;++i) {
     auto & p=m_DetParams[i];
     p.theDet = dynamic_cast<const PixelGeomDetUnit*>(dus[i]);
@@ -234,11 +236,18 @@ PixelCPEBase::setTheClu( DetParam const & theDetParam, ClusterParam & theCluster
 
   //--- Geometric Quality Information
   int minInX,minInY,maxInX,maxInY=0;
-  minInX = theClusterParam.theCluster->minPixelRow();
-  minInY = theClusterParam.theCluster->minPixelCol();
-  maxInX = theClusterParam.theCluster->maxPixelRow();
-  maxInY = theClusterParam.theCluster->maxPixelCol();
-  
+  if ( !theClusterParam.isPhase2_ ){
+    minInX = theClusterParam.theCluster->minPixelRow();
+    minInY = theClusterParam.theCluster->minPixelCol();
+    maxInX = theClusterParam.theCluster->maxPixelRow();
+    maxInY = theClusterParam.theCluster->maxPixelCol();
+  } else {
+    minInX = theClusterParam.theClusterPhase2->minPixelRow();
+    minInY = theClusterParam.theClusterPhase2->minPixelCol();
+    maxInX = theClusterParam.theClusterPhase2->maxPixelRow();
+    maxInY = theClusterParam.theClusterPhase2->maxPixelCol();
+  }
+
   theClusterParam.isOnEdge_ = theDetParam.theRecTopol->isItEdgePixelInX(minInX) | theDetParam.theRecTopol->isItEdgePixelInX(maxInX) |
     theDetParam.theRecTopol->isItEdgePixelInY(minInY) | theDetParam.theRecTopol->isItEdgePixelInY(maxInY) ;
   
@@ -251,7 +260,6 @@ PixelCPEBase::setTheClu( DetParam const & theDetParam, ClusterParam & theCluster
   
   theClusterParam.spansTwoROCs_ = theDetParam.theRecTopol->containsBigPixelInX(minInX,maxInX) |
     theDetParam.theRecTopol->containsBigPixelInY(minInY,maxInY);
-
 }
 
 
@@ -378,7 +386,12 @@ computeAnglesFromDetPosition(DetParam const & theDetParam, ClusterParam & theClu
   */
   
   // all the above is equivalent to 
-  LocalPoint lp = theDetParam.theTopol->localPosition( MeasurementPoint(theClusterParam.theCluster->x(), theClusterParam.theCluster->y()) );
+  LocalPoint lp;
+  if ( !theClusterParam.isPhase2_ ) {
+    lp = theDetParam.theTopol->localPosition( MeasurementPoint(theClusterParam.theCluster->x(), theClusterParam.theCluster->y()) );
+  } else {
+    lp = theDetParam.theTopol->localPosition( MeasurementPoint(theClusterParam.theClusterPhase2->x(), theClusterParam.theClusterPhase2->y()) );  
+  }
   auto gvx = lp.x()-theDetParam.theOrigin.x();
   auto gvy = lp.y()-theDetParam.theOrigin.y();
   auto gvz = -1.f/theDetParam.theOrigin.z();

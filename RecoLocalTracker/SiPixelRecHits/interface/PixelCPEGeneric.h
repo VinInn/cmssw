@@ -57,6 +57,7 @@ class PixelCPEGeneric : public PixelCPEBase
   struct ClusterParamGeneric : ClusterParam
   {
     ClusterParamGeneric(const SiPixelCluster & cl) : ClusterParam(cl){}
+    ClusterParamGeneric(const Phase2ITPixelCluster & cl) : ClusterParam(cl){}
   // The truncation value pix_maximum is an angle-dependent cutoff on the
   // individual pixel signals. It should be applied to all pixels in the
   // cluster [signal_i = fminf(signal_i, pixmax)] before the column and row
@@ -80,6 +81,7 @@ class PixelCPEGeneric : public PixelCPEBase
   float dx2   ; // CPE Generic x-bias for single double-pixel cluster
   };
 
+
   PixelCPEGeneric(edm::ParameterSet const& conf, const MagneticField *, 
 		  const TrackerGeometry&, const TrackerTopology&, const SiPixelLorentzAngle *, 
 		  const SiPixelGenErrorDBObject *, const SiPixelLorentzAngle *);
@@ -90,6 +92,7 @@ class PixelCPEGeneric : public PixelCPEBase
  
 private:
   ClusterParam * createClusterParam(const SiPixelCluster & cl) const;
+  ClusterParam * createClusterParam(const Phase2ITPixelCluster & cl) const;
 
   LocalPoint localPosition (DetParam const & theDetParam, ClusterParam & theClusterParam) const; 
   LocalError localError   (DetParam const & theDetParam, ClusterParam & theClusterParam) const;

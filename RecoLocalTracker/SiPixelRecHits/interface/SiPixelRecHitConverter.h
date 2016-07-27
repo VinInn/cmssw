@@ -4,7 +4,7 @@
 //---------------------------------------------------------------------------
 //! \class SiPixelRecHitConverter
 //!
-//! \brief EDProducer to covert SiPixelClusters into SiPixelRecHits
+//! \brief EDProducer to convert SiPixelClusters or Phase2ITPixelClusters into SiPixelRecHits
 //!
 //! SiPixelRecHitConverter is an EDProducer subclass (i.e., a module)
 //! which orchestrates the conversion of SiPixelClusters into SiPixelRecHits.
@@ -29,6 +29,7 @@
 //! \version v2, May 30, 2006  
 //! change to use Lorentz angle from DB Lotte Wilke, Jan. 31st, 2008
 //!
+//! 2016.07 EM adapted for phase2 clusters Phase2ITPixelClusters
 //---------------------------------------------------------------------------
 
 //--- Base class for CPEs:
@@ -38,6 +39,7 @@
 //--- Geometry + DataFormats
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 #include "DataFormats/SiPixelCluster/interface/SiPixelCluster.h"
+#include "DataFormats/Phase2ITPixelCluster/interface/Phase2ITPixelCluster.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
 
@@ -87,14 +89,22 @@ namespace cms
 	     SiPixelRecHitCollectionNew & output,
 	     edm::ESHandle<TrackerGeometry> & geom);
 
+    void run(const edmNew::DetSetVector<Phase2ITPixelCluster>& input,
+	     SiPixelRecHitCollectionNew & output,
+	     edm::ESHandle<TrackerGeometry> & geom);
+
+    void run(edm::Handle<edmNew::DetSetVector<Phase2ITPixelCluster> >  inputhandle,
+	     SiPixelRecHitCollectionNew & output,
+	     edm::ESHandle<TrackerGeometry> & geom);
+
   private:
     edm::ParameterSet conf_;
     // TO DO: maybe allow a map of pointers?
     std::string cpeName_="None";                   // what the user said s/he wanted
     /// const PixelClusterParameterEstimator * cpe_;  // what we got (for now, one ptr to base class)
     PixelCPEBase const * cpe_=nullptr;                    // What we got (for now, one ptr to base class)
-    edm::InputTag src_;
     edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> tPixelCluster;
+    edm::EDGetTokenT<edmNew::DetSetVector<Phase2ITPixelCluster>> tPixelClusterPhase2;
     bool m_newCont; // save also in emdNew::DetSetVector
   };
 }

@@ -25,6 +25,7 @@ class SiPixelRecHit final : public TrackerSingleRecHit {
 public:
   
   typedef edm::Ref<edmNew::DetSetVector<SiPixelCluster>, SiPixelCluster > ClusterRef;
+  typedef edm::Ref<edmNew::DetSetVector<Phase2ITPixelCluster>, Phase2ITPixelCluster > ClusterPhase2ITPixelRef;
   
   SiPixelRecHit(){}
   
@@ -34,6 +35,15 @@ public:
 		 SiPixelRecHitQuality::QualWordType qual,
 		 GeomDet const & idet,
 		 ClusterRef const&  clus) : 
+
+    TrackerSingleRecHit(pos,err,idet, clus){
+    qualWord_=qual; }
+
+ SiPixelRecHit( const LocalPoint& pos , const LocalError& err,
+  		 SiPixelRecHitQuality::QualWordType qual,
+  		 GeomDet const & idet,
+  		 ClusterPhase2ITPixelRef const&  clus) :
+
     TrackerSingleRecHit(pos,err,idet, clus){
     qualWord_=qual; }
 
@@ -47,8 +57,10 @@ public:
 
   
   ClusterRef cluster()  const { return cluster_pixel(); }
+  ClusterPhase2ITPixelRef phase2ITcluster()  const { return cluster_phase2IT(); }
 
   void setClusterRef(ClusterRef const & ref)  {setClusterPixelRef(ref);}
+  void setClusterRef(ClusterPhase2ITPixelRef const & ref)  {setClusterPixelRef(ref);}
 
   virtual int dimension() const override {return 2;}
   virtual void getKfComponents( KfComponentsHolder & holder ) const override { getKfComponents2D(holder); }

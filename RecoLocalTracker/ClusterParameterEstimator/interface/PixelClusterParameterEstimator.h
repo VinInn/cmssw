@@ -8,6 +8,7 @@
 #include "DataFormats/TrajectoryState/interface/LocalTrajectoryParameters.h"
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
 
+#include "DataFormats/Phase2ITPixelCluster/interface/Phase2ITPixelCluster.h"
 #include "DataFormats/SiPixelCluster/interface/SiPixelCluster.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitQuality.h"
 #include<tuple>
@@ -52,6 +53,32 @@ class PixelClusterParameterEstimator
     return vlp;
   }
 
+  virtual ReturnType getParameters(const Phase2ITPixelCluster & cl,
+                                   const GeomDetUnit    & det) const =0;
+
+  virtual ReturnType getParameters(const Phase2ITPixelCluster & cl,
+  				   const GeomDetUnit    & det,
+  				   const LocalTrajectoryParameters & ltp ) const =0;
+
+  virtual ReturnType getParameters(const Phase2ITPixelCluster & cl,
+  				   const GeomDetUnit    & det,
+  				   const TrajectoryStateOnSurface& tsos ) const {
+    return getParameters(cl,det,tsos.localParameters());
+  }
+
+  virtual VLocalValues localParametersV(const Phase2ITPixelCluster& cluster, const GeomDetUnit& gd) const {
+    VLocalValues vlp;
+    ReturnType tuple = getParameters(cluster, gd);
+    vlp.push_back(std::make_pair(std::get<0>(tuple), std::get<1>(tuple)));
+    return vlp;
+  }
+  virtual VLocalValues localParametersV(const Phase2ITPixelCluster& cluster, const GeomDetUnit& gd, TrajectoryStateOnSurface& tsos) const {
+    VLocalValues vlp;
+    ReturnType tuple = getParameters(cluster,  gd, tsos);
+    vlp.push_back(std::make_pair(std::get<0>(tuple), std::get<1>(tuple)));
+    return vlp;
+  }
+  // --- end of the section
 
   PixelClusterParameterEstimator() : clusterProbComputationFlag_(0){}
 

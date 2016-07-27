@@ -42,8 +42,8 @@ namespace cms
   SiPixelRecHitConverter::SiPixelRecHitConverter(edm::ParameterSet const& conf) 
     : 
     conf_(conf),
-    src_( conf.getParameter<edm::InputTag>( "src" ) ),
-    tPixelCluster(consumes< edmNew::DetSetVector<SiPixelCluster> >( src_)) {
+    tPixelCluster(consumes< edmNew::DetSetVector<SiPixelCluster> >(conf.getParameter<edm::InputTag>( "src" ))),
+    tPixelClusterPhase2(consumes< edmNew::DetSetVector<Phase2ITPixelCluster> >(conf.getParameter<edm::InputTag>( "src" ))) {
     //--- Declare to the EDM what kind of collections we will be making.
     produces<SiPixelRecHitCollection>();
     
@@ -59,11 +59,8 @@ namespace cms
   //---------------------------------------------------------------------------
   void SiPixelRecHitConverter::produce(edm::Event& e, const edm::EventSetup& es)
   {
+    // Step A.1: get input data (EM: step A.1 shifted below)
 
-    // Step A.1: get input data
-    edm::Handle< edmNew::DetSetVector<SiPixelCluster> > input;
-    e.getByToken( tPixelCluster, input);
-    
     // Step A.2: get event setup
     edm::ESHandle<TrackerGeometry> geom;
     es.get<TrackerDigiGeometryRecord>().get( geom );
@@ -77,10 +74,17 @@ namespace cms
     es.get<TkPixelCPERecord>().get(cpeName_,hCPE);
     cpe_ = dynamic_cast< const PixelCPEBase* >(&(*hCPE));
     
-    // Step C: Iterate over DetIds and invoke the strip CPE algorithm
-    // on each DetUnit
+    // Step A.1: get input data
+    edm::Handle< edmNew::DetSetVector<SiPixelCluster> > input;
+    edm::Handle< edmNew::DetSetVector<Phase2ITPixelCluster> > input_phase2;
 
-    run( input, *output, geom );
+    e.getByToken( tPixelCluster, input);
+    if( !input.failedToGet() ) 
+      run( input, *output, geom );
+
+    e.getByToken( tPixelClusterPhase2, input_phase2);      
+    if( !input_phase2.failedToGet() ) 
+      run( input_phase2, *output, geom );
 
     output->shrink_to_fit();
     e.put(output);
@@ -157,4 +161,73 @@ namespace cms
     //  << std::endl;
 	
   }
+
+
+  // clone for phase2
+  void SiPixelRecHitConverter::run(edm::Handle<edmNew::DetSetVector<Phase2ITPixelCluster> >  inputhandle,
+				   SiPixelRecHitCollectionNew &output,
+				   edm::ESHandle<TrackerGeometry> & geom) {
+    if ( ! cpe_ ) 
+      {
+	edm::LogError("SiPixelRecHitConverter") << " at least one CPE is not ready -- can't run!";
+	// TO DO: throw an exception here?  The user may want to know...
+	assert(0);
+	return;   // clusterizer is invalid, bail out
+      }
+    
+    int numberOfDetUnits = 0;
+    int numberOfClusters = 0;
+    
+    const edmNew::DetSetVector<Phase2ITPixelCluster>& input = *inputhandle;
+    
+    edmNew::DetSetVector<Phase2ITPixelCluster>::const_iterator DSViter=input.begin();
+    
+    for ( ; DSViter != input.end() ; DSViter++) {
+      numberOfDetUnits++;
+      unsigned int detid = DSViter->detId();
+      DetId detIdObject( detid );  
+      const GeomDetUnit * genericDet = geom->idToDetUnit( detIdObject );
+      const PixelGeomDetUnit * pixDet = dynamic_cast<const PixelGeomDetUnit*>(genericDet);
+      assert(pixDet); 
+      SiPixelRecHitCollectionNew::FastFiller recHitsOnDetUnit(output,detid);
+      
+      edmNew::DetSet<Phase2ITPixelCluster>::const_iterator clustIt = DSViter->begin(), clustEnd = DSViter->end();
+      
+      for ( ; clustIt != clustEnd; clustIt++) {
+	numberOfClusters++;
+	std::tuple<LocalPoint, LocalError,SiPixelRecHitQuality::QualWordType> tuple = cpe_->getParameters( *clustIt, *genericDet );
+	LocalPoint lp( std::get<0>(tuple) );
+	LocalError le( std::get<1>(tuple) );
+        SiPixelRecHitQuality::QualWordType rqw( std::get<2>(tuple) );
+	// Create a persistent edm::Ref to the cluster
+	edm::Ref< edmNew::DetSetVector<Phase2ITPixelCluster>, Phase2ITPixelCluster > cluster = edmNew::makeRefTo( inputhandle, clustIt);
+	// Make a RecHit and add it to the DetSet
+	// old : recHitsOnDetUnit.push_back( new SiPixelRecHit( lp, le, detIdObject, &*clustIt) );
+	SiPixelRecHit hit( lp, le, rqw, *genericDet, cluster);
+	// 
+	// Now save it =================
+	recHitsOnDetUnit.push_back(hit);
+	// =============================
+
+//		std::cout << "SiPixelRecHitConverterVI " << numberOfClusters << ' '<< lp << " " << le << std::endl;
+      } //  <-- End loop on Clusters
+	
+
+      //  LogDebug("SiPixelRecHitConverter")
+      //std::cout << "SiPixelRecHitConverterVI "
+	//	<< " Found " << recHitsOnDetUnit.size() << " RecHits on " << detid //;
+	//	<< std::endl;
+      
+      
+    } //    <-- End loop on DetUnits
+    
+    //    LogDebug ("SiPixelRecHitConverter") 
+    //  std::cout << "SiPixelRecHitConverterVI "
+    //  << cpeName_ << " converted " << numberOfClusters 
+    //  << " Phase2ITPixelClusters into SiPixelRecHits, in " 
+    //  << numberOfDetUnits << " DetUnits." //; 
+    //  << std::endl;
+	
+  }
+
 }  // end of namespace cms

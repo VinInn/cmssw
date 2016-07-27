@@ -84,10 +84,20 @@ class PixelCPEBase : public PixelClusterParameterEstimator
 
   struct ClusterParam
   {
-    ClusterParam(const SiPixelCluster & cl) : theCluster(&cl), loc_trk_pred(0.0,0.0,0.0,0.0),
+  ClusterParam(const SiPixelCluster & cl) : theCluster(&cl), isPhase2_(false), loc_trk_pred(0.0,0.0,0.0,0.0),
       probabilityX_(0.0), probabilityY_(0.0), probabilityQ_(0.0), qBin_(0.0),
       isOnEdge_(false), hasBadPixels_(false), spansTwoROCs_(false), hasFilledProb_(false) {}
+
+
+  ClusterParam(const Phase2ITPixelCluster & cl) : theClusterPhase2(&cl), isPhase2_(true), loc_trk_pred(0.0,0.0,0.0,0.0),
+      probabilityX_(0.0), probabilityY_(0.0), probabilityQ_(0.0), qBin_(0.0),
+      isOnEdge_(false), hasBadPixels_(false), spansTwoROCs_(false), hasFilledProb_(false) {}
+
+
     const SiPixelCluster * theCluster;
+    const Phase2ITPixelCluster * theClusterPhase2;
+
+    bool isPhase2_;
 
     //--- Cluster-level quantities (may need more)
     float cotalpha;
@@ -116,6 +126,7 @@ class PixelCPEBase : public PixelClusterParameterEstimator
     bool  spansTwoROCs_ ;
     bool  hasFilledProb_ ;
   };
+
 
 public:
   PixelCPEBase(edm::ParameterSet const& conf, const MagneticField * mag, const TrackerGeometry& geom, const TrackerTopology& ttopo,
@@ -188,11 +199,62 @@ public:
     return tuple;
   } 
   
+  // EM 2016.07  Added for phase2
+  inline ReturnType getParameters(const Phase2ITPixelCluster & cl, 
+				   const GeomDetUnit    & det ) const
+    {
+#ifdef EDM_ML_DEBUG
+      nRecHitsTotal_++ ;
+      //std::cout<<" in PixelCPEBase:localParameters(all) - "<<nRecHitsTotal_<<std::endl;  //dk
+#endif 
+
+      DetParam const & theDetParam = detParam(det);
+      ClusterParam * theClusterParam = createClusterParam(cl);
+      setTheClu( theDetParam, *theClusterParam );
+      computeAnglesFromDetPosition(theDetParam, *theClusterParam);
+      
+      // localPosition( cl, det ) must be called before localError( cl, det ) !!!
+      LocalPoint lp = localPosition(theDetParam, *theClusterParam);
+      LocalError le = localError(theDetParam, *theClusterParam);        
+      SiPixelRecHitQuality::QualWordType rqw = rawQualityWord(*theClusterParam);
+      auto tuple = std::make_tuple(lp, le , rqw);
+      delete theClusterParam;
+      
+      //std::cout<<" in PixelCPEBase:localParameters(all) - "<<lp.x()<<" "<<lp.y()<<std::endl;  //dk
+      return tuple;
+    }
   
-  
+  //--------------------------------------------------------------------------
+  // In principle we could use the track too to obtain alpha and beta.
+  //--------------------------------------------------------------------------
+  inline ReturnType getParameters(const Phase2ITPixelCluster & cl, 
+				   const GeomDetUnit    & det, 
+				   const LocalTrajectoryParameters & ltp ) const
+  {
+#ifdef EDM_ML_DEBUG
+    nRecHitsTotal_++ ;
+    //std::cout<<" in PixelCPEBase:localParameters(on track) - "<<nRecHitsTotal_<<std::endl;  //dk
+#endif 
+
+    DetParam const & theDetParam = detParam(det);
+    ClusterParam *  theClusterParam = createClusterParam(cl);
+    setTheClu( theDetParam, *theClusterParam );
+    computeAnglesFromTrajectory(theDetParam, *theClusterParam, ltp);
+    
+    // localPosition( cl, det ) must be called before localError( cl, det ) !!!
+    LocalPoint lp = localPosition(theDetParam, *theClusterParam); 
+    LocalError le = localError(theDetParam, *theClusterParam);        
+    SiPixelRecHitQuality::QualWordType rqw = rawQualityWord(*theClusterParam);
+    auto tuple = std::make_tuple(lp, le , rqw);
+    delete theClusterParam;
+
+    //std::cout<<" in PixelCPEBase:localParameters(on track) - "<<lp.x()<<" "<<lp.y()<<std::endl;  //dk
+    return tuple;
+  } 
+    
 private:
   virtual ClusterParam * createClusterParam(const SiPixelCluster & cl) const = 0;
-
+  virtual ClusterParam * createClusterParam(const Phase2ITPixelCluster & cl) const = 0;
   //--------------------------------------------------------------------------
   // This is where the action happens.
   //--------------------------------------------------------------------------
@@ -279,7 +341,7 @@ private:
  
   using DetParams=std::vector<DetParam>;
   
-  DetParams m_DetParams=DetParams(1440);
+  DetParams m_DetParams;
 
 };
 

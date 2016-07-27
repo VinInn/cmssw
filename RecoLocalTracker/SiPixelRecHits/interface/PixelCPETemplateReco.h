@@ -37,6 +37,7 @@ class PixelCPETemplateReco : public PixelCPEBase
   struct ClusterParamTemplate : ClusterParam
   {
     ClusterParamTemplate(const SiPixelCluster & cl) : ClusterParam(cl){}
+    ClusterParamTemplate(const Phase2ITPixelCluster & cl) : ClusterParam(cl){}
     // The result of PixelTemplateReco2D
     float templXrec_ ; 
     float templYrec_ ;
@@ -63,6 +64,7 @@ class PixelCPETemplateReco : public PixelCPEBase
 
  private:
   ClusterParam * createClusterParam(const SiPixelCluster & cl) const;
+  virtual ClusterParam * createClusterParam(const Phase2ITPixelCluster & cl) const;
 
   // We only need to implement measurementPosition, since localPosition() from
   // PixelCPEBase will call it and do the transformation

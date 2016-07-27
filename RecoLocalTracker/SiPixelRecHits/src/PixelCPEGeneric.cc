@@ -113,28 +113,7 @@ PixelCPEGeneric::PixelCPEGeneric(edm::ParameterSet const & conf,
     xerr_endcap_def_=0.0020;
     yerr_endcap_= {0.00210};
     yerr_endcap_def_=0.00075;
-  } else { // isUpgrade=true, funny case
-    xerr_barrel_ln_= {0.00114,0.00104,0.00214};
-    xerr_barrel_ln_def_=0.00425;
-    yerr_barrel_ln_= {0.00299,0.00203,0.0023,0.00237,0.00233,0.00243,0.00232,0.00259,0.00176};
-    yerr_barrel_ln_def_=0.00245;
-    xerr_endcap_= {0.00151,0.000813,0.00221};
-    xerr_endcap_def_=0.00218;
-    yerr_endcap_= {0.00261,0.00107,0.00264};
-    yerr_endcap_def_=0.00357;
-    
-    if ( conf.exists("SmallPitch") && conf.getParameter<bool>("SmallPitch")) {
-      xerr_barrel_l1_= {0.00104, 0.000691, 0.00122};
-      xerr_barrel_l1_def_=0.00321;
-      yerr_barrel_l1_= {0.00199,0.00136,0.0015,0.00153,0.00152,0.00171,0.00154,0.00157,0.00154};
-      yerr_barrel_l1_def_=0.00164;
-    } else {
-      xerr_barrel_l1_= {0.00114,0.00104,0.00214};
-      xerr_barrel_l1_def_=0.00425;
-      yerr_barrel_l1_= {0.00299,0.00203,0.0023,0.00237,0.00233,0.00243,0.00232,0.00259,0.00176};
-      yerr_barrel_l1_def_=0.00245;
-    }
-  } // if isUpgrade
+  } 
 
   if(MYDEBUG) {
     cout << "From PixelCPEGeneric::PixelCPEGeneric(...)" << endl;
@@ -153,6 +132,11 @@ PixelCPEBase::ClusterParam* PixelCPEGeneric::createClusterParam(const SiPixelClu
    return new ClusterParamGeneric(cl);
 }
 
+
+PixelCPEBase::ClusterParam* PixelCPEGeneric::createClusterParam(const Phase2ITPixelCluster & cl) const 
+{
+   return new ClusterParamGeneric(cl);
+}
 
 
 //-----------------------------------------------------------------------------
@@ -177,7 +161,12 @@ PixelCPEGeneric::localPosition(DetParam const & theDetParam, ClusterParam & theC
 
   if ( UseErrorsFromTemplates_ ) {
 
-      float qclus = theClusterParam.theCluster->charge();     
+    float qclus = 0;
+    if ( !theClusterParam.isPhase2_ )  {
+      qclus = theClusterParam.theCluster->charge();     
+    } else {
+      qclus = theClusterParam.theClusterPhase2->charge();     
+    }
       float locBz = theDetParam.bz;
       //cout << "PixelCPEGeneric::localPosition(...) : locBz = " << locBz << endl;
       
@@ -252,13 +241,28 @@ PixelCPEGeneric::localPosition(DetParam const & theDetParam, ClusterParam & theC
   //--- (== upper right corner of lower left pixel), and then
   //--- subtract these two points in the formula.
 
-  //--- Upper Right corner of Lower Left pixel -- in measurement frame
-  MeasurementPoint meas_URcorn_LLpix( theClusterParam.theCluster->minPixelRow()+1.0,
-				      theClusterParam.theCluster->minPixelCol()+1.0 );
+  int maxPixelCol, maxPixelRow, minPixelCol, minPixelRow = 0;       
+  float sizeX, sizeY;
+  if ( !theClusterParam.isPhase2_ ) {
+    sizeX = theClusterParam.theCluster->sizeX();
+    sizeY = theClusterParam.theCluster->sizeY();
+    maxPixelCol = theClusterParam.theCluster->maxPixelCol();
+    maxPixelRow = theClusterParam.theCluster->maxPixelRow();
+    minPixelCol = theClusterParam.theCluster->minPixelCol();
+    minPixelRow = theClusterParam.theCluster->minPixelRow();       
+  } else {
+    sizeX = theClusterParam.theClusterPhase2->sizeX();
+    sizeY = theClusterParam.theClusterPhase2->sizeY();
+    maxPixelCol = theClusterParam.theClusterPhase2->maxPixelCol();
+    maxPixelRow = theClusterParam.theClusterPhase2->maxPixelRow();
+    minPixelCol = theClusterParam.theClusterPhase2->minPixelCol();
+    minPixelRow = theClusterParam.theClusterPhase2->minPixelRow();       
 
+  }
+  //--- Upper Right corner of Lower Left pixel -- in measurement frame
+  MeasurementPoint meas_URcorn_LLpix = MeasurementPoint( minPixelRow+1.0, minPixelCol+1.0 );
   //--- Lower Left corner of Upper Right pixel -- in measurement frame
-  MeasurementPoint meas_LLcorn_URpix( theClusterParam.theCluster->maxPixelRow(),
-				      theClusterParam.theCluster->maxPixelCol() );
+  MeasurementPoint meas_LLcorn_URpix = MeasurementPoint( maxPixelRow, maxPixelCol );
 
   //--- These two now converted into the local  
   LocalPoint local_URcorn_LLpix;
@@ -276,19 +280,18 @@ PixelCPEGeneric::localPosition(DetParam const & theDetParam, ClusterParam & theC
 
  #ifdef EDM_ML_DEBUG
   if (theVerboseLevel > 20) {
-    cout  
-      << "\n\t >>> theClusterParam.theCluster->x = " << theClusterParam.theCluster->x()
-      << "\n\t >>> theClusterParam.theCluster->y = " << theClusterParam.theCluster->y()
-      << "\n\t >>> cluster: minRow = " << theClusterParam.theCluster->minPixelRow()
-      << "  minCol = " << theClusterParam.theCluster->minPixelCol()
-      << "\n\t >>> cluster: maxRow = " << theClusterParam.theCluster->maxPixelRow()
-      << "  maxCol = " << theClusterParam.theCluster->maxPixelCol()
-      << "\n\t >>> meas: inner lower left  = " << meas_URcorn_LLpix.x() 
-      << "," << meas_URcorn_LLpix.y()
-      << "\n\t >>> meas: inner upper right = " << meas_LLcorn_URpix.x() 
-      << "," << meas_LLcorn_URpix.y() 
-      << endl;
-  }
+      LogDebug("PixelCPEGeneric" )
+	<< "\n\t theClusterParam.theCluster->x = " << ( !theClusterParam.isPhase2_ ? theClusterParam.theCluster->x() : theClusterParam.theClusterPhase2->x() )
+	<< "\n\t theClusterParam.theCluster->y = " << ( !theClusterParam.isPhase2_ ? theClusterParam.theCluster->y() : theClusterParam.theClusterPhase2->y() )
+	<< "\n\t >>> cluster: minRow = " << minPixelRow
+	<< "  minCol = " << minPixelCol()
+	<< "\n\t >>> cluster: maxRow = " << maxPixelRow
+	<< "  maxCol = " << maxPixelCol()
+	<< "\n\t >>> meas: inner lower left  = " << meas_URcorn_LLpix.x() 
+	<< "," << meas_URcorn_LLpix.y()
+	<< "\n\t >>> meas: inner upper right = " << meas_LLcorn_URpix.x() 
+	<< "," << meas_LLcorn_URpix.y() 
+	}
 #endif
 
   //--- &&& Note that the cuts below should not be hardcoded (like in Orca and
@@ -302,16 +305,18 @@ PixelCPEGeneric::localPosition(DetParam const & theDetParam, ClusterParam & theC
     cout << "\t >>> Generic:: processing X" << endl;
 #endif
 
+
+
   float xPos = 
-    generic_position_formula( theClusterParam.theCluster->sizeX(),
+  generic_position_formula( sizeX,
 			      Q_f_X, Q_l_X, 
 			      local_URcorn_LLpix.x(), local_LLcorn_URpix.x(),
 			      chargeWidthX,   // lorentz shift in cm
 			      theDetParam.theThickness,
 			      theClusterParam.cotalpha,
 			      theDetParam.thePitchX,
-			      theDetParam.theRecTopol->isItBigPixelInX( theClusterParam.theCluster->minPixelRow() ),
-			      theDetParam.theRecTopol->isItBigPixelInX( theClusterParam.theCluster->maxPixelRow() ),
+			      theDetParam.theRecTopol->isItBigPixelInX( minPixelRow ),
+			      theDetParam.theRecTopol->isItBigPixelInX( maxPixelRow ),
 			      the_eff_charge_cut_lowX,
                               the_eff_charge_cut_highX,
                               the_size_cutX);           // cut for eff charge width &&&
@@ -326,15 +331,15 @@ PixelCPEGeneric::localPosition(DetParam const & theDetParam, ClusterParam & theC
 #endif
 
   float yPos = 
-    generic_position_formula( theClusterParam.theCluster->sizeY(),
+    generic_position_formula( sizeY,
 			      Q_f_Y, Q_l_Y, 
 			      local_URcorn_LLpix.y(), local_LLcorn_URpix.y(),
 			      chargeWidthY,   // lorentz shift in cm
 			      theDetParam.theThickness,
 			      theClusterParam.cotbeta,
 			      theDetParam.thePitchY,  
-			      theDetParam.theRecTopol->isItBigPixelInY( theClusterParam.theCluster->minPixelCol() ),
-			      theDetParam.theRecTopol->isItBigPixelInY( theClusterParam.theCluster->maxPixelCol() ),
+			      theDetParam.theRecTopol->isItBigPixelInY( minPixelCol ),
+			      theDetParam.theRecTopol->isItBigPixelInY( maxPixelCol ),
 			      the_eff_charge_cut_lowY,
                               the_eff_charge_cut_highY,
                               the_size_cutY);           // cut for eff charge width &&&
@@ -344,13 +349,13 @@ PixelCPEGeneric::localPosition(DetParam const & theDetParam, ClusterParam & theC
 
   // Apply irradiation corrections. NOT USED FOR NOW
   if ( IrradiationBiasCorrection_ ) {
-    if ( theClusterParam.theCluster->sizeX() == 1 ) {  // size=1	  
+    if ( sizeX == 1 ) {  // size=1	  
       // ggiurgiu@jhu.edu, 02/03/09 : for size = 1, the Lorentz shift is already accounted by the irradiation correction
       //float tmp1 =  (0.5 * theDetParam.lorentzShiftInCmX);
       //cout << "Apply correction correction_dx1 = " << theClusterParam.dx1 << " to xPos = " << xPos;
       xPos = xPos - (0.5 * theDetParam.lorentzShiftInCmX);
       // Find if pixel is double (big). 
-      bool bigInX = theDetParam.theRecTopol->isItBigPixelInX( theClusterParam.theCluster->maxPixelRow() );	  
+      bool bigInX = theDetParam.theRecTopol->isItBigPixelInX( maxPixelRow );	  
       if ( !bigInX ) xPos -= theClusterParam.dx1;	   
       else           xPos -= theClusterParam.dx2;
       //cout<<" to "<<xPos<<" "<<(tmp1+theClusterParam.dx1)<<endl;
@@ -360,12 +365,12 @@ PixelCPEGeneric::localPosition(DetParam const & theDetParam, ClusterParam & theC
       //cout<<" to "<<xPos<<endl;
     }
     
-    if ( theClusterParam.theCluster->sizeY() == 1 ) {
+    if ( sizeY == 1 ) {
       // ggiurgiu@jhu.edu, 02/03/09 : for size = 1, the Lorentz shift is already accounted by the irradiation correction
       yPos = yPos - (0.5 * theDetParam.lorentzShiftInCmY);
       
       // Find if pixel is double (big). 
-      bool bigInY = theDetParam.theRecTopol->isItBigPixelInY( theClusterParam.theCluster->maxPixelCol() );      
+      bool bigInY = theDetParam.theRecTopol->isItBigPixelInY( maxPixelCol );      
       if ( !bigInY ) yPos -= theClusterParam.dy1;
       else           yPos -= theClusterParam.dy2;
       
@@ -531,32 +536,63 @@ collect_edge_charges(ClusterParam & theClusterParamBase,  //!< input, the cluste
   Q_f_X = Q_l_X = 0.0;
   Q_f_Y = Q_l_Y = 0.0;
 
-
+  uint32_t xmin,xmax,ymin,ymax=0;
+  int isize=0;
   // Obtain boundaries in index units
-  int xmin = theClusterParam.theCluster->minPixelRow();
-  int xmax = theClusterParam.theCluster->maxPixelRow();
-  int ymin = theClusterParam.theCluster->minPixelCol();
-  int ymax = theClusterParam.theCluster->maxPixelCol();
+  if ( !theClusterParam.isPhase2_ ){
+    xmin = theClusterParam.theCluster->minPixelRow();
+    xmax = theClusterParam.theCluster->maxPixelRow();
+    ymin = theClusterParam.theCluster->minPixelCol();
+    ymax = theClusterParam.theCluster->maxPixelCol();
 
+    isize = theClusterParam.theCluster->size();
+
+  } else {
+    xmin = theClusterParam.theClusterPhase2->minPixelRow();
+    xmax = theClusterParam.theClusterPhase2->maxPixelRow();
+    ymin = theClusterParam.theClusterPhase2->minPixelCol();
+    ymax = theClusterParam.theClusterPhase2->maxPixelCol();
+
+    isize = theClusterParam.theClusterPhase2->size();
+  }
 
   // Iterate over the pixels.
-  int isize = theClusterParam.theCluster->size();
+
   for (int i = 0;  i != isize; ++i) 
     {
-      auto const & pixel = theClusterParam.theCluster->pixel(i); 
-      // ggiurgiu@fnal.gov: add pixel charge truncation
-      float pix_adc = pixel.adc;
-      if ( UseErrorsFromTemplates_ && TruncatePixelCharge_ ) 
-	pix_adc = std::min(pix_adc, theClusterParam.pixmx );
-
-      //
-      // X projection
-      if ( pixel.x == xmin ) Q_f_X += pix_adc;
-      if ( pixel.x == xmax ) Q_l_X += pix_adc;
-      //
-      // Y projection
-      if ( pixel.y == ymin ) Q_f_Y += pix_adc;
-      if ( pixel.y == ymax ) Q_l_Y += pix_adc;
+      if ( !theClusterParam.isPhase2_ ){
+	auto const & pixel = theClusterParam.theCluster->pixel(i); 
+	// ggiurgiu@fnal.gov: add pixel charge truncation
+	float pix_adc = pixel.adc;
+	if ( UseErrorsFromTemplates_ && TruncatePixelCharge_ ) 
+	  pix_adc = std::min(pix_adc, theClusterParam.pixmx );
+	
+	//
+	// X projection
+	if ( pixel.x == xmin ) Q_f_X += pix_adc;
+	if ( pixel.x == xmax ) Q_l_X += pix_adc;
+	//
+	// Y projection
+	if ( pixel.y == ymin ) Q_f_Y += pix_adc;
+	if ( pixel.y == ymax ) Q_l_Y += pix_adc;
+	
+      } else {
+	auto const & pixel = theClusterParam.theClusterPhase2->pixel(i); 
+	// ggiurgiu@fnal.gov: add pixel charge truncation
+	float pix_adc = pixel.adc;
+	if ( UseErrorsFromTemplates_ && TruncatePixelCharge_ ) 
+	  pix_adc = std::min(pix_adc, theClusterParam.pixmx );
+	
+	//
+	// X projection
+	if ( pixel.x == xmin ) Q_f_X += pix_adc;
+	if ( pixel.x == xmax ) Q_l_X += pix_adc;
+	//
+	// Y projection
+	if ( pixel.y == ymin ) Q_f_Y += pix_adc;
+	if ( pixel.y == ymax ) Q_l_Y += pix_adc;
+	
+      }
     }
   
   return;
@@ -582,123 +618,142 @@ PixelCPEGeneric::localError(DetParam const & theDetParam,  ClusterParam & theClu
   
 
   // Find if cluster is at the module edge. 
-  int maxPixelCol = theClusterParam.theCluster->maxPixelCol();
-  int maxPixelRow = theClusterParam.theCluster->maxPixelRow();
-  int minPixelCol = theClusterParam.theCluster->minPixelCol();
-  int minPixelRow = theClusterParam.theCluster->minPixelRow();       
+  int maxPixelCol, maxPixelRow, minPixelCol, minPixelRow = 0;       
+  if ( !theClusterParam.isPhase2_ && !isUpgrade_ ) {
+    // EM 2016.07
+    // isUpgrade_ was used to identify phase-2  (likely in CMSSW_620_SLHCX I suppose)
+    // Eventually isPhase2_ 
+    // which now is set depending on the type of the cluster object (SiPixelCluster vs Phase2ITPixelCluster)
+    // will be enough to identify phase-2 (so "!isUpgrade_" will be removed)
+    maxPixelCol = theClusterParam.theCluster->maxPixelCol();
+    maxPixelRow = theClusterParam.theCluster->maxPixelRow();
+    minPixelCol = theClusterParam.theCluster->minPixelCol();
+    minPixelRow = theClusterParam.theCluster->minPixelRow();       
 
-  bool edgex = ( theDetParam.theRecTopol->isItEdgePixelInX( minPixelRow ) ) || ( theDetParam.theRecTopol->isItEdgePixelInX( maxPixelRow ) );
-  bool edgey = ( theDetParam.theRecTopol->isItEdgePixelInY( minPixelCol ) ) || ( theDetParam.theRecTopol->isItEdgePixelInY( maxPixelCol ) );
-
-  unsigned int sizex = theClusterParam.theCluster->sizeX();
-  unsigned int sizey = theClusterParam.theCluster->sizeY();
-  if(MYDEBUG) {
-    if( int(sizex) != (maxPixelRow - minPixelRow+1) ) cout<<" wrong x"<<endl;
-    if( int(sizey) != (maxPixelCol - minPixelCol+1) ) cout<<" wrong y"<<endl;
-  }
-
-  // Find if cluster contains double (big) pixels. 
-  bool bigInX = theDetParam.theRecTopol->containsBigPixelInX( minPixelRow, maxPixelRow ); 	 
-  bool bigInY = theDetParam.theRecTopol->containsBigPixelInY( minPixelCol, maxPixelCol );
-
-  if(localPrint) {
-   cout<<" endge clus "<<xerr<<" "<<yerr<<endl;  //dk
-   if(bigInX || bigInY) cout<<" big "<<bigInX<<" "<<bigInY<<endl;
-   if(edgex || edgey) cout<<" edge "<<edgex<<" "<<edgey<<endl;
-   cout<<" before if "<<UseErrorsFromTemplates_<<" "<<theClusterParam.qBin_<<endl;
-   if(theClusterParam.qBin_ == 0) 
-     cout<<" qbin 0! "<<edgex<<" "<<edgey<<" "<<bigInX<<" "<<bigInY<<" "
-	<<sizex<<" "<<sizey<<endl;
-  }
-
-  if likely(UseErrorsFromTemplates_ ) {
-      //
-      // Use template errors 
-      //cout << "Track angles are known. We can use either errors from templates or the error parameterization from DB." << endl;
-      
-      if ( !edgex ) { // Only use this for non-edge clusters
-	if ( sizex == 1 ) {
-	  if ( !bigInX ) {xerr = theClusterParam.sx1;} 
-	  else           {xerr = theClusterParam.sx2;}
-	} else {xerr = theClusterParam.sigmax;}		  
-      }
-	      
-      if ( !edgey ) { // Only use for non-edge clusters
-	if ( sizey == 1 ) {
-	  if ( !bigInY ) {yerr = theClusterParam.sy1;}
-	  else           {yerr = theClusterParam.sy2;}
-	} else {yerr = theClusterParam.sigmay;}		  
-      }
-
-      if(localPrint) {
-	cout<<" in if "<<edgex<<" "<<edgey<<" "<<sizex<<" "<<sizey<<endl;
-	cout<<" errors  "<<xerr<<" "<<yerr<<" "<<theClusterParam.sx1<<" "<<theClusterParam.sx2<<" "<<theClusterParam.sigmax<<endl;  //dk
-      }
-
-  } else  { // simple errors
-
-    // This are the simple errors, hardcoded in the code 
-    //cout << "Track angles are not known " << endl; 
-    //cout << "Default angle estimation which assumes track from PV (0,0,0) does not work." << endl;
-
-    if ( GeomDetEnumerators::isTrackerPixel(theDetParam.thePart) ) {
-     if(GeomDetEnumerators::isBarrel(theDetParam.thePart)) {
-
-      DetId id = (theDetParam.theDet->geographicalId());
-      int layer=ttopo_.layer(id);
-      if ( layer==1 ) {
-	if ( !edgex ) {
-	  if ( sizex<=xerr_barrel_l1_.size() ) xerr=xerr_barrel_l1_[sizex-1];
-	  else xerr=xerr_barrel_l1_def_;
-	}
-	
-	if ( !edgey ) {
-	  if ( sizey<=yerr_barrel_l1_.size() ) yerr=yerr_barrel_l1_[sizey-1];
-	  else yerr=yerr_barrel_l1_def_;
-	}
-      } else{  // layer 2,3
-	if ( !edgex ) {
-	  if ( sizex<=xerr_barrel_ln_.size() ) xerr=xerr_barrel_ln_[sizex-1];
-	  else xerr=xerr_barrel_ln_def_;
-	}
-	    
-	if ( !edgey ) {
-	  if ( sizey<=yerr_barrel_ln_.size() ) yerr=yerr_barrel_ln_[sizey-1];
-	  else yerr=yerr_barrel_ln_def_;
-	}
-      }
-
-     } else { // EndCap
-
-      if ( !edgex ) {
-	if ( sizex<=xerr_endcap_.size() ) xerr=xerr_endcap_[sizex-1];
-	else xerr=xerr_endcap_def_;
-      }
-      
-      if ( !edgey ) {
-	if ( sizey<=yerr_endcap_.size() ) yerr=yerr_endcap_[sizey-1];
-	else yerr=yerr_endcap_def_;
-      }
-     } // end endcap
+    bool edgex = ( theDetParam.theRecTopol->isItEdgePixelInX( minPixelRow ) ) || ( theDetParam.theRecTopol->isItEdgePixelInX( maxPixelRow ) );
+    bool edgey = ( theDetParam.theRecTopol->isItEdgePixelInY( minPixelCol ) ) || ( theDetParam.theRecTopol->isItEdgePixelInY( maxPixelCol ) );
+    
+    unsigned int sizex, sizey = 0;
+    sizex = theClusterParam.theCluster->sizeX();
+    sizey = theClusterParam.theCluster->sizeY();
+    if(MYDEBUG) {
+      if( int(sizex) != (maxPixelRow - minPixelRow+1) ) cout<<" wrong x"<<endl;
+      if( int(sizey) != (maxPixelCol - minPixelCol+1) ) cout<<" wrong y"<<endl;
     }
 
-    if(inflate_errors) {
-      int n_bigx = 0;
-      int n_bigy = 0;
-      
-      for (int irow = 0; irow < 7; ++irow) {
-	if ( theDetParam.theRecTopol->isItBigPixelInX( irow+minPixelRow ) ) ++n_bigx;
-      }
-      
-      for (int icol = 0; icol < 21; ++icol) {
-	  if ( theDetParam.theRecTopol->isItBigPixelInY( icol+minPixelCol ) ) ++n_bigy;
-      }
-      
-      xerr = (float)(sizex + n_bigx) * theDetParam.thePitchX / std::sqrt( 12.0f );
-      yerr = (float)(sizey + n_bigy) * theDetParam.thePitchY / std::sqrt( 12.0f );
-      
-    } // if(inflate_errors)
+    // Find if cluster contains double (big) pixels. 
+    bool bigInX = theDetParam.theRecTopol->containsBigPixelInX( minPixelRow, maxPixelRow ); 	 
+    bool bigInY = theDetParam.theRecTopol->containsBigPixelInY( minPixelCol, maxPixelCol );
 
+    if(localPrint) {
+      cout<<" edge clus "<<xerr<<" "<<yerr<<endl;  //dk
+      if(bigInX || bigInY) cout<<" big "<<bigInX<<" "<<bigInY<<endl;
+      if(edgex || edgey) cout<<" edge "<<edgex<<" "<<edgey<<endl;
+      cout<<" before if "<<UseErrorsFromTemplates_<<" "<<theClusterParam.qBin_<<endl;
+      if(theClusterParam.qBin_ == 0) 
+	cout<<" qbin 0! "<<edgex<<" "<<edgey<<" "<<bigInX<<" "<<bigInY<<" "
+	    <<sizex<<" "<<sizey<<endl;
+    }
+
+    if likely(UseErrorsFromTemplates_ ) {
+	//
+	// Use template errors 
+	//cout << "Track angles are known. We can use either errors from templates or the error parameterization from DB." << endl;
+	
+	if ( !edgex ) { // Only use this for non-edge clusters
+	  if ( sizex == 1 ) {
+	    if ( !bigInX ) {xerr = theClusterParam.sx1;} 
+	    else           {xerr = theClusterParam.sx2;}
+	  } else {xerr = theClusterParam.sigmax;}		  
+	}
+	
+	if ( !edgey ) { // Only use for non-edge clusters
+	  if ( sizey == 1 ) {
+	    if ( !bigInY ) {yerr = theClusterParam.sy1;}
+	    else           {yerr = theClusterParam.sy2;}
+	  } else {yerr = theClusterParam.sigmay;}		  
+	}
+	
+	if(localPrint) {
+	  cout<<" in if "<<edgex<<" "<<edgey<<" "<<sizex<<" "<<sizey<<endl;
+	  cout<<" errors  "<<xerr<<" "<<yerr<<" "<<theClusterParam.sx1<<" "<<theClusterParam.sx2<<" "<<theClusterParam.sigmax<<endl;  //dk
+	}
+	
+      } else  { // simple errors
+      // This are the simple errors, hardcoded in the code 
+      //cout << "Track angles are not known " << endl; 
+      //cout << "Default angle estimation which assumes track from PV (0,0,0) does not work." << endl;
+      
+      if ( GeomDetEnumerators::isTrackerPixel(theDetParam.thePart) ) {
+	if(GeomDetEnumerators::isBarrel(theDetParam.thePart)) {
+	  
+	  DetId id = (theDetParam.theDet->geographicalId());
+	  int layer=ttopo_.layer(id);
+	  if ( layer==1 ) {
+	    if ( !edgex ) {
+	      if ( sizex<=xerr_barrel_l1_.size() ) xerr=xerr_barrel_l1_[sizex-1];
+	      else xerr=xerr_barrel_l1_def_;
+	    }
+	    
+	    if ( !edgey ) {
+	      if ( sizey<=yerr_barrel_l1_.size() ) yerr=yerr_barrel_l1_[sizey-1];
+	      else yerr=yerr_barrel_l1_def_;
+	    }
+	  } else{  // layer 2,3
+	    if ( !edgex ) {
+	      if ( sizex<=xerr_barrel_ln_.size() ) xerr=xerr_barrel_ln_[sizex-1];
+	      else xerr=xerr_barrel_ln_def_;
+	    }
+	    
+	    if ( !edgey ) {
+	      if ( sizey<=yerr_barrel_ln_.size() ) yerr=yerr_barrel_ln_[sizey-1];
+	      else yerr=yerr_barrel_ln_def_;
+	    }
+	  }
+	  
+	} else { // EndCap
+	  if ( !edgex ) {
+	    if ( sizex<=xerr_endcap_.size() ) xerr=xerr_endcap_[sizex-1];
+	    else xerr=xerr_endcap_def_;
+	  }
+      
+	  if ( !edgey ) {
+	    if ( sizey<=yerr_endcap_.size() ) yerr=yerr_endcap_[sizey-1];
+	    else yerr=yerr_endcap_def_;
+	  }
+	} // end endcap
+      }
+      
+      if(inflate_errors) {
+	int n_bigx = 0;
+	int n_bigy = 0;
+	
+	for (int irow = 0; irow < 7; ++irow) {
+	  if ( theDetParam.theRecTopol->isItBigPixelInX( irow+minPixelRow ) ) ++n_bigx;
+	}
+	
+	for (int icol = 0; icol < 21; ++icol) {
+	  if ( theDetParam.theRecTopol->isItBigPixelInY( icol+minPixelCol ) ) ++n_bigy;
+	}
+	
+	xerr = (float)(sizex + n_bigx) * theDetParam.thePitchX / std::sqrt( 12.0f );
+	yerr = (float)(sizey + n_bigy) * theDetParam.thePitchY / std::sqrt( 12.0f );
+	
+      } // if(inflate_errors) 
+    }
+  } else {
+    // phase2: just pitch/sqrt(12)
+    if ( GeomDetEnumerators::isTrackerPixel(theDetParam.thePart) ) { // EM 2016.07 check if GeomDetEnumerator is ok for phase2 also on post TP geometries (e.g. v111 or later)
+    
+      xerr = theDetParam.thePitchX / std::sqrt( 12.0f );
+      if ( theDetParam.theRecTopol->isItBigPixelInX( theClusterParam.theCluster->minPixelRow() ) )
+	xerr = theDetParam.thePitchX*2./std::sqrt(12.0f);
+
+      yerr = theDetParam.thePitchY / std::sqrt( 12.0f );
+      if ( theDetParam.theRecTopol->isItBigPixelInY( theClusterParam.theCluster->minPixelCol() ) )
+	yerr = theDetParam.thePitchY*2./std::sqrt(12.0f);
+      
+    }
   } // end 
 
 #ifdef EDM_ML_DEBUG
