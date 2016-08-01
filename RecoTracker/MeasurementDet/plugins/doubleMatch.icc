@@ -68,7 +68,7 @@ namespace {
 
 
 template<typename Collector>
-void TkGluedMeasurementDet::doubleMatch(const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent &data, Collector & collector) const {
+void TkGluedMeasurementDet::doubleMatch(const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent &data, Collector & collector, const DetState & detState) const {
 
 
   GlobalVector glbDir = (ts.isValid() ? ts.globalMomentum() : position()-GlobalPoint(0,0,0));
@@ -149,12 +149,15 @@ void TkGluedMeasurementDet::doubleMatch(const TrajectoryStateOnSurface& ts, cons
 			    gluedDet, trdir, chelper);
   }
 
+
+
   if (ts.globalMomentum().perp2()> collector.estimator().minPt2ForHitRecoveryInGluedDet()) {
     // if no match found try add mon than try to add stereo...
+    // only if APV on other side is not proven to be active
     if (0==collector.size()) 
-      projectOnGluedDet( collector, monoHits, glbDir);
+      if (!detState.stereo[1]) projectOnGluedDet( collector, monoHits, glbDir);
     if (0==collector.size())
-      projectOnGluedDet( collector, stereoHits, glbDir);
+      if (!detState.mono[1]) projectOnGluedDet( collector, stereoHits, glbDir);
   }
   /*
   // recover hits outside 

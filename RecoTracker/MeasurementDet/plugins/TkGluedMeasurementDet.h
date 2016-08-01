@@ -56,12 +56,16 @@ private:
   const TkStripMeasurementDet*       theMonoDet;
   const TkStripMeasurementDet*       theStereoDet;
 
+  struct DetState {
+    std::array<bool,2> mono, stereo;
+  };
+
 
   template<typename Collector>
-  void doubleMatch(const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector) const  dso_internal;
+  void doubleMatch(const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector,  const DetState & detState) const  dso_internal;
 
   template<typename Collector>
-  void collectRecHits(const TrajectoryStateOnSurface&, const MeasurementTrackerEvent & data, Collector &coll) const dso_internal;
+  void collectRecHits(const TrajectoryStateOnSurface&, const MeasurementTrackerEvent & data, Collector &coll,  const DetState & detState) const dso_internal;
 
   // for TTRH
   class dso_internal  HitCollectorForRecHits {
@@ -188,7 +192,7 @@ private:
 			  const GeomDet& det) const dso_internal;
 
   /** \brief Test the strips on one of the two dets with projection */
-  bool testStrips(const TrajectoryStateOnSurface& tsos,
+ std::array<bool,2> testStrips(const TrajectoryStateOnSurface& tsos,
                   const BoundPlane &gluedPlane,
                   const TkStripMeasurementDet &mdet,
                   const MeasurementTrackerEvent & data) const  dso_internal;
