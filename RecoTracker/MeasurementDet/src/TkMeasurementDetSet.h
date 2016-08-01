@@ -20,6 +20,10 @@ class PixelClusterParameterEstimator;
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
+#include "RecoLocalTracker/SiStripClusterizer/interface/ClusterChargeCut.h"
+#include "DataFormats/SiStripCluster/interface/SiStripClusterTools.h"
+#include<bitset>
+
 // #define VISTAT
 
 #ifdef VISTAT
@@ -166,11 +170,13 @@ public:
 
   const StMeasurementConditionSet & conditions() const { return *conditionSet_; } 
  
- 
+  /* 
   void update(int i,const StripDetset & detSet ) { 
     detSet_[i] = detSet;     
     empty_[i] = false;
   }
+  */
+
 
   void update(int i, int j ) {
     assert(j>=0); assert(empty_[i]); assert(ready_[i]); 
@@ -224,11 +230,19 @@ public:
     stripRegions_[i] = range; 
   }
 
+
+  void setInactiveAPVs(int i, std::bitset<6> hips) { inactiveAPVs_[i]=hips; }
+  std::bitset<6> const & inactiveAPVs(int i) const { return inactiveAPVs_[i];}
+  void setActiveAPVs(int i, std::bitset<6> nohips) { activeAPVs_[i]=nohips; }
+  std::bitset<6> const & activeAPVs(int i) const { return activeAPVs_[i];}
+
 private:
 
   void getDetSet(int i) {
     if(detIndex_[i]>=0) {
       detSet_[i].set(*handle_,handle_->item(detIndex_[i]));
+      //  verify activity in APV: shall be here because of onDemand....
+      checkAPVs(i);
       empty_[i]=false; // better be false already
       incAct();
     }  else { // we should not be here
@@ -237,6 +251,14 @@ private:
     }
     ready_[i]=false;
     incSet();
+  }
+
+  void checkAPVs(int i) {
+    auto const & ds = detSet_[i];
+    for (auto const & cl : ds) {
+      auto ch = siStripClusterTools::chargePerCM(id(i), cl);
+      if (ch>2000.f && ch <4000.f) activeAPVs_[i].set(cl.firstStrip()/128); 
+    } 
   }
 
 
@@ -251,7 +273,10 @@ private:
  
   std::vector<bool> empty_;
   std::vector<bool> activeThisEvent_;
-  
+
+  std::vector<std::bitset<6>> inactiveAPVs_;  // from HIP identification?  
+  std::vector<std::bitset<6>> activeAPVs_;    // from good cluster/track identification?
+
   // full reco
   std::vector<StripDetset> detSet_;
   std::vector<int> detIndex_;
