@@ -120,7 +120,7 @@ public:
   bool isActive(const MeasurementTrackerEvent & data) const { return data.stripData().isActive(index()); }
 
   std::bitset<6> const & inactiveAPVs(const MeasurementTrackerEvent & data) const { return data.stripData().inactiveAPVs(index());}
-  std::bitset<6> const & activeAPVs(const MeasurementTrackerEvent & data) const { return data.stripData().inactiveAPVs(index());}
+  std::bitset<6> const & activeAPVs(const MeasurementTrackerEvent & data) const { return data.stripData().activeAPVs(index());}
 
   
   //TO BE IMPLEMENTED
