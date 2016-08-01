@@ -20,7 +20,11 @@ class PixelClusterParameterEstimator;
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-// #define VISTAT
+#include "RecoLocalTracker/SiStripClusterizer/interface/ClusterChargeCut.h"
+#include "DataFormats/SiStripCluster/interface/SiStripClusterTools.h"
+#include<bitset>
+
+#define VISTAT
 
 #ifdef VISTAT
 #include<iostream>
@@ -150,6 +154,8 @@ public:
     conditionSet_(&cond),
     empty_(cond.nDet(), true),
     activeThisEvent_(cond.nDet(), true),
+    inactiveAPVs_(cond.nDet()),
+    activeAPVs_(cond.nDet()),
     detSet_(cond.nDet()),
     detIndex_(cond.nDet(),-1),
     ready_(cond.nDet(),true),
@@ -166,11 +172,13 @@ public:
 
   const StMeasurementConditionSet & conditions() const { return *conditionSet_; } 
  
- 
+  /* 
   void update(int i,const StripDetset & detSet ) { 
     detSet_[i] = detSet;     
     empty_[i] = false;
   }
+  */
+
 
   void update(int i, int j ) {
     assert(j>=0); assert(empty_[i]); assert(ready_[i]); 
@@ -198,7 +206,7 @@ public:
     std::fill(ready_.begin(),ready_.end(),true);
     std::fill(detIndex_.begin(),detIndex_.end(),-1);
     std::fill(activeThisEvent_.begin(), activeThisEvent_.end(),true);
-    incTot(size());
+    incTot(size(),0);
   }
   
   /** \brief Turn on/off the module for reconstruction for one events.
@@ -224,11 +232,19 @@ public:
     stripRegions_[i] = range; 
   }
 
+
+  void setInactiveAPVs(int i, std::bitset<6> hips) { inactiveAPVs_[i]=hips; }
+  std::bitset<6> const & inactiveAPVs(int i) const { return inactiveAPVs_[i];}
+  // void setActiveAPVs(int i, std::bitset<6> nohips) { activeAPVs_[i]=nohips; }
+  std::bitset<6> const & activeAPVs(int i) const { if (ready_[i]) const_cast<StMeasurementDetSet*>(this)->getDetSet(i); return activeAPVs_[i];}
+
 private:
 
   void getDetSet(int i) {
     if(detIndex_[i]>=0) {
       detSet_[i].set(*handle_,handle_->item(detIndex_[i]));
+      //  verify activity in APV: shall be here because of onDemand....
+      checkAPVs(i);
       empty_[i]=false; // better be false already
       incAct();
     }  else { // we should not be here
@@ -237,6 +253,15 @@ private:
     }
     ready_[i]=false;
     incSet();
+  }
+
+  void checkAPVs(int i) {
+    auto const & ds = detSet_[i];
+    for (auto const & cl : ds) {
+      auto ch = siStripClusterTools::chargePerCM(id(i), cl);
+      if (ch>2000.f && ch <4000.f) activeAPVs_[i].set(cl.firstStrip()/128); 
+    }
+    incActAPV(activeAPVs_[i].count());
   }
 
 
@@ -251,7 +276,10 @@ private:
  
   std::vector<bool> empty_;
   std::vector<bool> activeThisEvent_;
-  
+
+  std::vector<std::bitset<6>> inactiveAPVs_;  // from HIP identification?  
+  std::vector<std::bitset<6>> activeAPVs_;    // from good cluster/track identification?
+
   // full reco
   std::vector<StripDetset> detSet_;
   std::vector<int> detIndex_;
@@ -274,24 +302,29 @@ private:
     int detReady=0; // dets "updated"
     int detSet=0;  // det actually set not empty
     int detAct=0;  // det actually set with content
+    int totAPV=0; // all APV
+    int apvAct=0; // APvs with good clusters;
   };
 
   mutable Stat stat;
   void zeroStat() const { stat = Stat(); }
-  void incTot(int n) const { stat.totDet=n;}
+  void incTot(int n, int a) const { stat.totDet=n; stat.totAPV=a;}
   void incReady() const { stat.detReady++;}
   void incSet() const { stat.detSet++;}
   void incAct() const { stat.detAct++;}
+  void incActAPV(int n) const { stat.apvAct+=n;}
   void printStat() const {
     COUT << "VI detsets " << stat.totDet <<','<< stat.detReady <<','<< stat.detSet <<','<< stat.detAct << std::endl;
+    COUT << "VI APVs " << stat.totAPV <<','<<  stat.apvAct << std::endl;
   }
 
 #else
   static void zeroStat(){}
-  static void incTot(int){}
+  static void incTot(int,int){}
   static void incReady() {}
   static void incSet() {}
   static void incAct() {}
+  static void incActAPV(int) {}
   static void printStat(){}
 #endif
    

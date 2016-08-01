@@ -90,10 +90,12 @@ void TkGluedMeasurementDet::init(const MeasurementDet* monoDet,
 TkGluedMeasurementDet::RecHitContainer 
 TkGluedMeasurementDet::recHits( const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data) const
 {
-  
+  const BoundPlane &gluedPlane = geomDet().surface();
+  DetState detState{testStrips(ts,gluedPlane,*theMonoDet,data),testStrips(ts,gluedPlane,*theStereoDet,data)};
+
   RecHitContainer result;
   HitCollectorForRecHits collector( &fastGeomDet(), theMatcher, theCPE, result );
-  collectRecHits(ts, data, collector);
+  collectRecHits(ts, data, collector,detState);
   return result;
 }
 
@@ -103,9 +105,13 @@ bool TkGluedMeasurementDet::recHits(SimpleHitContainer & result,
 				    const TrajectoryStateOnSurface& stateOnThisDet, 
 				    const MeasurementEstimator& est, const MeasurementTrackerEvent & data) const {
   if unlikely((!theMonoDet->isActive(data)) && (!theStereoDet->isActive(data))) return false;
+
+  const BoundPlane &gluedPlane = geomDet().surface();
+  DetState detState{testStrips(stateOnThisDet,gluedPlane,*theMonoDet,data),testStrips(stateOnThisDet,gluedPlane,*theStereoDet,data)};
+
   auto oldSize = result.size();
   HitCollectorForSimpleHits collector( &fastGeomDet(), theMatcher, theCPE, stateOnThisDet, est, result);
-  collectRecHits(stateOnThisDet, data, collector);
+  collectRecHits(stateOnThisDet, data, collector, detState);
   
   return result.size()>oldSize;
   
@@ -124,11 +130,17 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
        result.add(theInactiveHit, 0.F);
        return true;
     }
+
+   const BoundPlane &gluedPlane = geomDet().surface();
+   DetState detState{testStrips(stateOnThisDet,gluedPlane,*theMonoDet,data),testStrips(stateOnThisDet,gluedPlane,*theStereoDet,data)};
+
   
    auto oldSize = result.size();
 
+
+
    HitCollectorForFastMeasurements collector( &fastGeomDet(), theMatcher, theCPE, stateOnThisDet, est, result);
-   collectRecHits(stateOnThisDet, data, collector);
+   collectRecHits(stateOnThisDet, data, collector,detState);
    
    
    if (result.size()>oldSize) return true;
@@ -137,6 +149,7 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
    auto l = TOBDetId(geomDet().geographicalId()).layer();
    bool killHIP = (1==l) && (2==id); //TOB1
    killHIP &= stateOnThisDet.globalMomentum().perp2()>est.minPt2ForHitRecoveryInGluedDet();
+   killHIP &= !( detState.mono[1] || detState.stereo[1]);
    if (killHIP) {
         result.add(theInactiveHit, 0.F); 
         return true;
@@ -144,23 +157,7 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
 
 
    //LogDebug("TkStripMeasurementDet") << "No hit found on TkGlued. Testing strips...  ";
-   const BoundPlane &gluedPlane = geomDet().surface();
-   if (  // sorry for the big IF, but I want to exploit short-circuiting of logic
-       stateOnThisDet.hasError() && ( /* do this only if the state has uncertainties, otherwise it will throw 
-					 (states without uncertainties are passed to this code from seeding */
-				     (theMonoDet->isActive(data) && 
-				      (theMonoDet->hasAllGoodChannels() || 
-				       testStrips(stateOnThisDet,gluedPlane,*theMonoDet)
-				       )
-				      ) /*Mono OK*/ 
-                                     && // was || 
-				     (theStereoDet->isActive(data) && 
-				      (theStereoDet->hasAllGoodChannels() || 
-				       testStrips(stateOnThisDet,gluedPlane,*theStereoDet)
-				       )
-				      ) /*Stereo OK*/ 
-				      ) /* State has errors */
-	 ) {
+   if (detState.mono[0] || detState.stereo[0]) {
      result.add(theMissingHit, 0.F);
      return false;
    } 
@@ -175,14 +172,14 @@ struct take_address { template<typename T> const T * operator()(const T &val) co
 #ifdef DOUBLE_MATCH
 template<typename Collector>
 void
-TkGluedMeasurementDet::collectRecHits( const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector) const
+TkGluedMeasurementDet::collectRecHits( const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector, const DetState & detState) const
 {
-  doubleMatch(ts,data,collector);
+  doubleMatch(ts,data,collector, detState);
 }
 #else
 template<typename Collector>
 void
-TkGluedMeasurementDet::collectRecHits( const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector) const
+TkGluedMeasurementDet::collectRecHits( const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector, const DetState & detState) const
 {
   //------ WARNING: here ts is used as it is on the mono/stereo surface.
   //-----           A further propagation is necessary.
@@ -383,15 +380,20 @@ void TkGluedMeasurementDet::checkHitProjection(const TrackingRecHit& hit,
   
 }
 
-bool
+std::array<bool,2>
 TkGluedMeasurementDet::testStrips(const TrajectoryStateOnSurface& tsos,
                                   const BoundPlane &gluedPlane,
-                                  const TkStripMeasurementDet &mdet) const {
+                                  const TkStripMeasurementDet &mdet,
+                                  const MeasurementTrackerEvent & data) const {
+
+  if (!mdet.isActive(data)) return std::array<bool,2>{{false,false}};
+  if (!tsos.hasError()) return std::array<bool,2>{{true,false}};
+
   // from TrackingRecHitProjector
   const GeomDet &det = mdet.fastGeomDet();
   const BoundPlane &stripPlane = det.surface();
 
-   //LocalPoint glp = tsos.localPosition();
+  //LocalPoint glp = tsos.localPosition();
   LocalError  err = tsos.localError().positionError();
   /*LogDebug("TkStripMeasurementDet") << 
     "Testing local pos glued: " << glp << 
@@ -431,7 +433,7 @@ TkGluedMeasurementDet::testStrips(const TrajectoryStateOnSurface& tsos,
    const StripTopology &topo = mdet.specificGeomDet().specificTopology();
    float utraj = topo.measurementPosition(pos).x();
    float uerr  = std::sqrt(topo.measurementError(pos,rotatedError).uu());
-   return mdet.testStrips(utraj, uerr);
+   return mdet.testStrips(utraj, uerr,data);
 } 
 
 #include<boost/bind.hpp>

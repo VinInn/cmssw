@@ -191,7 +191,7 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
 
   float utraj =  specificGeomDet().specificTopology().measurementPosition( stateOnThisDet.localPosition()).x();
   float uerr= sqrt(specificGeomDet().specificTopology().measurementError(stateOnThisDet.localPosition(),stateOnThisDet.localError().positionError()).uu());
-  if (testStrips(utraj,uerr)) {
+  if (testStrips(utraj,uerr,data)[0]) {
     //LogDebug("TkStripMeasurementDet") << " DetID " << id_ << " empty after search, but active ";
     result.add(theMissingHit, 0.F);
     return false;
@@ -261,8 +261,9 @@ SiStripRecHit2D TkStripMeasurementDet::hit(TkStripRecHitIter const & hi ) const 
   return SiStripRecHit2D(lv.first,lv.second, gdu, cluster);
 }
 
-bool
-TkStripMeasurementDet::testStrips(float utraj, float uerr) const {
+std::array<bool,2>
+TkStripMeasurementDet::testStrips(float utraj, float uerr, const MeasurementTrackerEvent & data) const {
+    std::array<bool,2> ret{{true,false}};
     int16_t start = (int16_t) std::max<float>(utraj - 3.f*uerr, 0);
     int16_t end   = (int16_t) std::min<float>(utraj + 3.f*uerr, totalStrips());
 
@@ -272,14 +273,14 @@ TkStripMeasurementDet::testStrips(float utraj, float uerr) const {
             "; Range [" << (utraj - 3*uerr) << ", " << (utraj + 3*uerr) << "] " << 
             ": YOU'RE COMPLETELY OFF THE MODULE."; */
         //return false; 
-        return true;  // Wolfgang thinks this way is better
+        return ret;  // Wolfgang thinks this way is better
                       // and solves some problems with grouped ckf
     } 
 
-    typedef std::vector<BadStripBlock>::const_iterator BSBIT;
+    // typedef std::vector<BadStripBlock>::const_iterator BSBIT;
 
     int16_t bad = 0, largestBadBlock = 0;
-    for (BSBIT bsbc = badStripBlocks().begin(), bsbe = badStripBlocks().end(); bsbc != bsbe; ++bsbc) {
+    for (auto bsbc = badStripBlocks().begin(), bsbe = badStripBlocks().end(); bsbc != bsbe; ++bsbc) {
         if (bsbc->last  < start) continue;
         if (bsbc->first > end)   break;
         int16_t thisBad = std::min(bsbc->last, end) - std::max(bsbc->first, start);
@@ -299,6 +300,17 @@ TkStripMeasurementDet::testStrips(float utraj, float uerr) const {
 //            " total strips:" << (end-start) << ", good:" << (end-start-bad) << ", bad:" << bad << ", largestBadBlock: " << largestBadBlock << 
 //            ". " << (ok ? "OK" : "NO"); 
 //    }
-    return ok;
+
+
+     
+    ret[0]=ok;
+
+    // check if the APV is definetively Active...
+    auto const & apvs = activeAPVs(data);
+    auto b = start/128; auto e = std::min(end/128,5);
+    // std::cout << "testing hip "<< b << ' ' << e << std::endl;
+    for (;b<=e; ++b) if (apvs[b]) ret[1]=true;
+    
+    return ret;
 }
 
