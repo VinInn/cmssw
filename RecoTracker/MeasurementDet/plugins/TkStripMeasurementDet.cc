@@ -191,7 +191,7 @@ bool TkStripMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
 
   float utraj =  specificGeomDet().specificTopology().measurementPosition( stateOnThisDet.localPosition()).x();
   float uerr= sqrt(specificGeomDet().specificTopology().measurementError(stateOnThisDet.localPosition(),stateOnThisDet.localError().positionError()).uu());
-  if (testStrips(utraj,uerr)) {
+  if (testStrips(utraj,uerr,data)) {
     //LogDebug("TkStripMeasurementDet") << " DetID " << id_ << " empty after search, but active ";
     result.add(theMissingHit, 0.F);
     return false;
@@ -262,7 +262,7 @@ SiStripRecHit2D TkStripMeasurementDet::hit(TkStripRecHitIter const & hi ) const 
 }
 
 bool
-TkStripMeasurementDet::testStrips(float utraj, float uerr) const {
+TkStripMeasurementDet::testStrips(float utraj, float uerr, const MeasurementTrackerEvent & data) const {
     int16_t start = (int16_t) std::max<float>(utraj - 3.f*uerr, 0);
     int16_t end   = (int16_t) std::min<float>(utraj + 3.f*uerr, totalStrips());
 

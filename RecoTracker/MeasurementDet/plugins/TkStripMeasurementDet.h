@@ -226,7 +226,7 @@ public:
   typedef StMeasurementConditionSet::BadStripCuts BadStripCuts;
   
   /** \brief return true if there are 'enough' good strips in the utraj +/- 3 uerr range.*/
-  bool testStrips(float utraj, float uerr) const;
+  bool testStrips(float utraj, float uerr, const MeasurementTrackerEvent & data) const;
   
   typedef StMeasurementConditionSet::BadStripBlock BadStripBlock;
   

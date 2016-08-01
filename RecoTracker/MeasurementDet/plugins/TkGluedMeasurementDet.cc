@@ -150,13 +150,13 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
 					 (states without uncertainties are passed to this code from seeding */
 				     (theMonoDet->isActive(data) && 
 				      (theMonoDet->hasAllGoodChannels() || 
-				       testStrips(stateOnThisDet,gluedPlane,*theMonoDet)
+				       testStrips(stateOnThisDet,gluedPlane,*theMonoDet,data)
 				       )
 				      ) /*Mono OK*/ 
                                      && // was || 
 				     (theStereoDet->isActive(data) && 
 				      (theStereoDet->hasAllGoodChannels() || 
-				       testStrips(stateOnThisDet,gluedPlane,*theStereoDet)
+				       testStrips(stateOnThisDet,gluedPlane,*theStereoDet,data)
 				       )
 				      ) /*Stereo OK*/ 
 				      ) /* State has errors */
@@ -386,7 +386,8 @@ void TkGluedMeasurementDet::checkHitProjection(const TrackingRecHit& hit,
 bool
 TkGluedMeasurementDet::testStrips(const TrajectoryStateOnSurface& tsos,
                                   const BoundPlane &gluedPlane,
-                                  const TkStripMeasurementDet &mdet) const {
+                                  const TkStripMeasurementDet &mdet,
+                                  const MeasurementTrackerEvent & data) const {
   // from TrackingRecHitProjector
   const GeomDet &det = mdet.fastGeomDet();
   const BoundPlane &stripPlane = det.surface();
@@ -431,7 +432,7 @@ TkGluedMeasurementDet::testStrips(const TrajectoryStateOnSurface& tsos,
    const StripTopology &topo = mdet.specificGeomDet().specificTopology();
    float utraj = topo.measurementPosition(pos).x();
    float uerr  = std::sqrt(topo.measurementError(pos,rotatedError).uu());
-   return mdet.testStrips(utraj, uerr);
+   return mdet.testStrips(utraj, uerr,data);
 } 
 
 #include<boost/bind.hpp>

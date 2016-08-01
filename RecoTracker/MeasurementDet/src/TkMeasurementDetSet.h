@@ -24,7 +24,7 @@ class PixelClusterParameterEstimator;
 #include "DataFormats/SiStripCluster/interface/SiStripClusterTools.h"
 #include<bitset>
 
-// #define VISTAT
+#define VISTAT
 
 #ifdef VISTAT
 #include<iostream>
@@ -154,6 +154,8 @@ public:
     conditionSet_(&cond),
     empty_(cond.nDet(), true),
     activeThisEvent_(cond.nDet(), true),
+    inactiveAPVs_(cond.nDet()),
+    activeAPVs_(cond.nDet()),
     detSet_(cond.nDet()),
     detIndex_(cond.nDet(),-1),
     ready_(cond.nDet(),true),
@@ -204,7 +206,7 @@ public:
     std::fill(ready_.begin(),ready_.end(),true);
     std::fill(detIndex_.begin(),detIndex_.end(),-1);
     std::fill(activeThisEvent_.begin(), activeThisEvent_.end(),true);
-    incTot(size());
+    incTot(size(),0);
   }
   
   /** \brief Turn on/off the module for reconstruction for one events.
@@ -233,8 +235,8 @@ public:
 
   void setInactiveAPVs(int i, std::bitset<6> hips) { inactiveAPVs_[i]=hips; }
   std::bitset<6> const & inactiveAPVs(int i) const { return inactiveAPVs_[i];}
-  void setActiveAPVs(int i, std::bitset<6> nohips) { activeAPVs_[i]=nohips; }
-  std::bitset<6> const & activeAPVs(int i) const { return activeAPVs_[i];}
+  // void setActiveAPVs(int i, std::bitset<6> nohips) { activeAPVs_[i]=nohips; }
+  std::bitset<6> const & activeAPVs(int i) const { if (ready_[i]) const_cast<StMeasurementDetSet*>(this)->getDetSet(i); return activeAPVs_[i];}
 
 private:
 
@@ -258,7 +260,8 @@ private:
     for (auto const & cl : ds) {
       auto ch = siStripClusterTools::chargePerCM(id(i), cl);
       if (ch>2000.f && ch <4000.f) activeAPVs_[i].set(cl.firstStrip()/128); 
-    } 
+    }
+    incActAPV(activeAPVs_[i].count());
   }
 
 
@@ -299,24 +302,29 @@ private:
     int detReady=0; // dets "updated"
     int detSet=0;  // det actually set not empty
     int detAct=0;  // det actually set with content
+    int totAPV=0; // all APV
+    int apvAct=0; // APvs with good clusters;
   };
 
   mutable Stat stat;
   void zeroStat() const { stat = Stat(); }
-  void incTot(int n) const { stat.totDet=n;}
+  void incTot(int n, int a) const { stat.totDet=n; stat.totAPV=a;}
   void incReady() const { stat.detReady++;}
   void incSet() const { stat.detSet++;}
   void incAct() const { stat.detAct++;}
+  void incActAPV(int n) const { stat.apvAct+=n;}
   void printStat() const {
     COUT << "VI detsets " << stat.totDet <<','<< stat.detReady <<','<< stat.detSet <<','<< stat.detAct << std::endl;
+    COUT << "VI APVs " << stat.totAPV <<','<<  stat.apvAct << std::endl;
   }
 
 #else
   static void zeroStat(){}
-  static void incTot(int){}
+  static void incTot(int,int){}
   static void incReady() {}
   static void incSet() {}
   static void incAct() {}
+  static void incActAPV(int) {}
   static void printStat(){}
 #endif
    
