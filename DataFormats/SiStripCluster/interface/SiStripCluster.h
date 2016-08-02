@@ -13,10 +13,11 @@ public:
   typedef std::pair<SiStripDigiIter,SiStripDigiIter>   SiStripDigiRange;
 
   static constexpr uint16_t stripIndexMask = 1023;  // The first strip index is in the low 10 bits of firstStrip_
-  static constexpr uint16_t goodAPVMask = stripIndexMask+1;     // 
-  static constexpr uint16_t badAPVMask = goodAPVMask*2;     //
-  static constexpr uint16_t tinyChargeMask = badAPVMask*2;     //                                                        
-  static constexpr uint16_t goodChargeMask = tinyChargeMask*2;     //                         
+  static constexpr uint16_t goodAPVMask = stripIndexMask+1;     // bit 11
+  static constexpr uint16_t badAPVMask = goodAPVMask*2;     //         12
+  static constexpr uint16_t tinyChargeMask = badAPVMask*2;     //      13                                                  
+  static constexpr uint16_t goodChargeMask = tinyChargeMask*2;     //  14
+  static constexpr uint16_t oneBitStillFree = goodChargeMask*2;     //  15
   static constexpr uint16_t mergedValueMask = 0x8000;  // The merged state is given by the high bit of firstStrip_
 
 
