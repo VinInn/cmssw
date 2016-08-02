@@ -3,6 +3,7 @@
 #include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
 #include <cmath>
 #include <numeric>
+#include <bitset>
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include "DataFormats/SiStripCluster/interface/SiStripClusterTools.h"
@@ -19,13 +20,14 @@ template<class digiDetSet>
 inline
 void ThreeThresholdAlgorithm::
 clusterizeDetUnit_(const digiDetSet& digis, output_t::TSFastFiller& output) const {
-  if(isModuleBad(digis.detId())) return;
+  auto id = digis.detId();
+  if(isModuleBad(id)) return;
 
-  auto const & det = findDetId( digis.detId());
+  auto const & det = findDetId(id);
   if (!det.valid()) return;
 
 #ifdef EDM_ML_DEBUG
-  if(!isModuleUsable(digis.detId() )) 
+  if(!isModuleUsable(id)) 
     edm::LogWarning("ThreeThresholdAlgorithm") << " id " << digis.detId() << " not usable???" << std::endl;
 #endif
 
@@ -45,6 +47,18 @@ clusterizeDetUnit_(const digiDetSet& digis, output_t::TSFastFiller& output) cons
       addToCandidate( state, *scan++);
     endCandidate(state, output);
   }
+
+  // classify....
+  std::bitset<6> apvs;
+  for (auto & cl : output) {
+     auto charge = siStripClusterTools::chargePerCM(id, cl);
+     if (charge>800.f) cl.setTinyCharge();
+     if	(charge>1947.f) cl.setGoodCharge();
+     if (charge>1947.f && charge<4000.f) apvs.set(cl.firstStrip()/128);
+  }
+  for (auto & cl : output)
+   if (apvs[cl.firstStrip()/128]) cl.setGoodAPV();
+ 
 }
 
 inline 
