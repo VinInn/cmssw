@@ -12,8 +12,13 @@ public:
   typedef std::vector<SiStripDigi>::const_iterator   SiStripDigiIter;
   typedef std::pair<SiStripDigiIter,SiStripDigiIter>   SiStripDigiRange;
 
-  static const uint16_t stripIndexMask = 0x7FFF;  // The first strip index is in the low 15 bits of firstStrip_
-  static const uint16_t mergedValueMask = 0x8000;  // The merged state is given by the high bit of firstStrip_
+  static constexpr uint16_t stripIndexMask = 1023;  // The first strip index is in the low 10 bits of firstStrip_
+  static constexpr uint16_t goodAPVMask = stripIndexMask+1;     // 
+  static constexpr uint16_t badAPVMask = goodAPVMask*2;     //
+  static constexpr uint16_t tinyChargeMask = badAPVMask*2;     //                                                        
+  static constexpr uint16_t goodChargeMask = tinyChargeMask*2;     //                         
+  static constexpr uint16_t mergedValueMask = 0x8000;  // The merged state is given by the high bit of firstStrip_
+
 
   /** Construct from a range of digis that form a cluster and from 
    *  a DetID. The range is assumed to be non-empty.
@@ -40,10 +45,24 @@ public:
 	   if (merged) firstStrip_ |= mergedValueMask;  // if this is a candidate merged cluster
 	 }
 
+  void setGoodAPV()    { firstStrip_ |= goodAPVMask;}
+  void badGoodAPV()    { firstStrip_ |= goodAPVMask;}
+  void setTinyCharge() { firstStrip_ |= tinyChargeMask;}
+  void setGoodCharge() { firstStrip_ |= goodChargeMask;}
+
+
+
   /** The number of the first strip in the cluster.
    *  The high bit of firstStrip_ indicates whether the cluster is a candidate for being merged.
    */
   uint16_t firstStrip() const {return firstStrip_ & stripIndexMask;}
+
+  bool goodAPV() const { return firstStrip_ & goodAPVMask;}
+  bool badAPV() const { return firstStrip_ & badAPVMask;}
+  bool tinyCharge() const { return firstStrip_ & tinyChargeMask;}
+  bool goodCharge() const { return firstStrip_ & goodChargeMask;}
+
+
 
   /** The amplitudes of the strips forming the cluster.
    *  The amplitudes are on consecutive strips; if a strip is missing
