@@ -170,9 +170,10 @@ namespace sistrip {
     // Create digis
     if ( rawToDigi_ ) { rawToDigi_->createDigis( *cabling_,*buffers,*summary,*sm,*vr,*pr,*zs,*ids,*cm ); }
 
-
+#ifdef SIMULATE_HIP_IN_R2D
     for (auto & ds : *zs) kill(ds);
-  
+#endif  
+
     // Create auto_ptr's of digi products
     std::auto_ptr< edm::DetSetVector<SiStripRawDigi> > sm_dsv(sm);
     std::auto_ptr< edm::DetSetVector<SiStripRawDigi> > vr_dsv(vr);

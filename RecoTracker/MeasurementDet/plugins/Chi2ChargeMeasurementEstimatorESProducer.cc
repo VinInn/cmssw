@@ -31,12 +31,13 @@ public:
    */
   template<typename... Args>
   Chi2ChargeMeasurementEstimator(
-	float minGoodPixelCharge, float minGoodStripCharge,
+	float minGoodPixelCharge, float minBadStripCharge, float minGoodStripCharge,
 	float pTChargeCutThreshold,
         Args && ...args) : 
     Chi2MeasurementEstimator(args...),
     minGoodPixelCharge_(minGoodPixelCharge),
-    minGoodStripCharge_(minGoodStripCharge),
+    minBadStripCharge_(minBadStripCharge),
+    minGoodStripCharge_(std::max(minGoodStripCharge,minBadStripCharge)),
     pTChargeCutThreshold2_( pTChargeCutThreshold>=0.? pTChargeCutThreshold*pTChargeCutThreshold :std::numeric_limits<float>::max())
     {}
 
@@ -51,11 +52,13 @@ public:
 private:
 
   const float minGoodPixelCharge_; 
+  const float minBadStripCharge_;
   const float minGoodStripCharge_;
   const float pTChargeCutThreshold2_;
 
   bool checkClusterCharge(DetId id, SiStripCluster const & cluster, const TrajectoryStateOnSurface& ts) const {
-    return siStripClusterTools::chargePerCM(id, cluster, ts.localParameters() ) >  minGoodStripCharge_;
+    auto mc = cluster.goodAPV() ? minGoodStripCharge_ : minBadStripCharge_;
+    return siStripClusterTools::chargePerCM(id, cluster, ts.localParameters() ) >  mc;
 
   }
 
@@ -124,6 +127,7 @@ Chi2ChargeMeasurementEstimatorESProducer::fillDescriptions(edm::ConfigurationDes
   desc.add<double>("pTChargeCutThreshold",-1.);
   edm::ParameterSetDescription descCCC = getFilledConfigurationDescription4CCC();
   desc.add<edm::ParameterSetDescription>("clusterChargeCut", descCCC);
+  desc.add<edm::ParameterSetDescription>("clusterChargeCutForGoodAPV", descCCC);
   descriptions.add("Chi2ChargeMeasurementEstimatorDefault", desc);
 }
 
@@ -148,11 +152,12 @@ Chi2ChargeMeasurementEstimatorESProducer::produce(const TrackingComponentsRecord
   auto minTol  = m_pset.getParameter<double>("MinimalTolerance");
   auto minpt = m_pset.getParameter<double>("MinPtForHitRecoveryInGluedDet");
   auto minGoodPixelCharge  = 0;
-  auto minGoodStripCharge  =  clusterChargeCut(m_pset);
+  auto minBadStripCharge  =  clusterChargeCut(m_pset);
+  auto minGoodStripCharge  =  clusterChargeCut(m_pset,"clusterChargeCutForGoodAPV");
   auto pTChargeCutThreshold=   m_pset.getParameter<double>("pTChargeCutThreshold");
 
   m_estimator = std::make_shared<Chi2ChargeMeasurementEstimator>(
-                                            minGoodPixelCharge, minGoodStripCharge, pTChargeCutThreshold,
+                                            minGoodPixelCharge, minBadStripCharge, minGoodStripCharge, pTChargeCutThreshold,
                                             maxChi2,nSigma, maxDis, maxSag, minTol,minpt);
 
   return m_estimator;
