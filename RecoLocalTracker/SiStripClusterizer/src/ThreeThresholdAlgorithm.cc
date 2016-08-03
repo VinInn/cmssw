@@ -48,13 +48,18 @@ clusterizeDetUnit_(const digiDetSet& digis, output_t::TSFastFiller& output) cons
     endCandidate(state, output);
   }
 
+
+  auto const & du = *(tracker().idToDetUnit(id));
+  auto dir = du.position() - GlobalPoint(0,0,0);
+  auto ldir = du.toLocal(dir);
+
   // classify....
   std::bitset<6> apvs;
   for (auto & cl : output) {
-     auto charge = siStripClusterTools::chargePerCM(id, cl);
+     auto charge = siStripClusterTools::chargePerCM(id, cl)*std::abs(ldir.z())/ldir.mag();
      if (charge>800.f) cl.setTinyCharge();
-     if	(charge>1947.f) cl.setGoodCharge();
-     if (charge>1947.f && charge<4000.f) apvs.set(cl.firstStrip()/128);
+     if	(charge>1945.f) cl.setGoodCharge();
+     if (charge>2000.f && charge<4000.f) apvs.set(cl.firstStrip()/128);
   }
   for (auto & cl : output)
    if (apvs[cl.firstStrip()/128]) cl.setGoodAPV();

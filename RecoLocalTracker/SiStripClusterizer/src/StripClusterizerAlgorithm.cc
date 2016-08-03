@@ -23,9 +23,15 @@
 
 void StripClusterizerAlgorithm::
 initialize(const edm::EventSetup& es) {
+  uint32_t tk_cache_id = es.get<TrackerDigiGeometryRecord>().cacheIdentifier();
   uint32_t n_cache_id = es.get<SiStripNoisesRcd>().cacheIdentifier();
   uint32_t g_cache_id = es.get<SiStripGainRcd>().cacheIdentifier();
   uint32_t q_cache_id = es.get<SiStripQualityRcd>().cacheIdentifier();
+
+  if(tk_cache_id != tracker_cache_id) {
+    es.get<TrackerDigiGeometryRecord>().get(trackerHandle);
+    tracker_cache_id = tk_cache_id;
+  }
 
   bool mod=false;
   if(g_cache_id != gain_cache_id) {

@@ -13,6 +13,9 @@ class SiStripDigi;
 #include "EventFilter/SiStripRawToDigi/interface/SiStripFEDBuffer.h"
 #include <limits>
 
+#include "DataFormats/GeometryVector/interface/LocalVector.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+
 
 class FedChannelConnection;
 
@@ -74,7 +77,7 @@ class StripClusterizerAlgorithm {
 
   struct InvalidChargeException : public cms::Exception { public: InvalidChargeException(const SiStripDigi&); };
 
-
+  TrackerGeometry const & tracker() const { return *trackerHandle;}
   SiStripDetCabling const * cabling() const { return theCabling;} 
   std::vector<uint32_t> const & allDetIds() const { return detIds;}
 
@@ -109,11 +112,12 @@ class StripClusterizerAlgorithm {
   std::vector<uint32_t> detIds; // from cabling (connected and not bad)
   std::vector<std::vector<const FedChannelConnection *> > connections;
   std::vector<Index> indices;
+  edm::ESHandle<TrackerGeometry> trackerHandle;
   edm::ESHandle<SiStripGain> gainHandle;
   edm::ESHandle<SiStripNoises> noiseHandle;
   edm::ESHandle<SiStripQuality> qualityHandle;
   SiStripDetCabling const * theCabling = nullptr;
-  uint32_t noise_cache_id, gain_cache_id, quality_cache_id;
+  uint32_t tracker_cache_id, noise_cache_id, gain_cache_id, quality_cache_id;
     
 
 };
