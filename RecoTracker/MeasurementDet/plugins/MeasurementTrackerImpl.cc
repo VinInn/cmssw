@@ -93,7 +93,7 @@ MeasurementTrackerImpl::MeasurementTrackerImpl(const edm::ParameterSet&         
   MeasurementTracker(trackerGeom,geometricSearchTracker),
   pset_(conf),
   name_(conf.getParameter<std::string>("ComponentName")),
-  theStDetConditions(hitMatcher,stripCPE),
+  theStDetConditions(trackerGeom,hitMatcher,stripCPE),
   thePxDetConditions(pixelCPE),
   thePhase2DetConditions(pixelCPE)
 {

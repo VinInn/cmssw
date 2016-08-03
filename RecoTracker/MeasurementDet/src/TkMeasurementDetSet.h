@@ -15,6 +15,7 @@ class PixelClusterParameterEstimator;
 #include "DataFormats/Phase2TrackerCluster/interface/Phase2TrackerCluster1D.h"
 #include "DataFormats/Common/interface/Handle.h"
 
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 #include "CondFormats/SiStripObjects/interface/SiStripBadStrip.h"
 #include "CalibFormats/SiStripObjects/interface/SiStripQuality.h"
 
@@ -58,13 +59,15 @@ public:
   };
   
   
-  StMeasurementConditionSet(const SiStripRecHitMatcher* matcher,
+  StMeasurementConditionSet(const TrackerGeometry*  trackerGeom,
+                            const SiStripRecHitMatcher* matcher,
 		           const StripClusterParameterEstimator* cpe):
-    theMatcher(matcher), theCPE(cpe){}
+    theTrackerGeom(trackerGeom),theMatcher(matcher), theCPE(cpe){}
   
   
   void init(int size);
  
+  const TrackerGeometry*  trackerGeom() const { return theTrackerGeom;}
   const SiStripRecHitMatcher*  matcher() const { return theMatcher;}
   const StripClusterParameterEstimator*  stripCPE() const { return theCPE;}
 
@@ -122,9 +125,11 @@ private:
   friend class  MeasurementTrackerImpl;
   
   // globals
+  const TrackerGeometry*  theTrackerGeom;
   const SiStripRecHitMatcher*       theMatcher;
   const StripClusterParameterEstimator* theCPE;
   
+
   bool maskBad128StripBlocks_;
   BadStripCuts badStripCuts_[4];
   
@@ -256,9 +261,13 @@ private:
   }
 
   void checkAPVs(int i) {
+    auto const & du = *(conditionSet_->trackerGeom()->idToDetUnit(id(i)));
+    auto dir = du.position() - GlobalPoint(0,0,0);
+    auto ldir = du.toLocal(dir);
+
     auto const & ds = detSet_[i];
     for (auto const & cl : ds) {
-      auto ch = siStripClusterTools::chargePerCM(id(i), cl);
+      auto ch = siStripClusterTools::chargePerCM(id(i), cl)*std::abs(ldir.z())/ldir.mag();;
       if (ch>2000.f && ch <4000.f) activeAPVs_[i].set(cl.firstStrip()/128); 
     }
     incActAPV(activeAPVs_[i].count());
