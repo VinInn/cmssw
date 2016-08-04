@@ -268,7 +268,7 @@ private:
     auto const & ds = detSet_[i];
     for (auto const & cl : ds) {
       auto ch = siStripClusterTools::chargePerCM(id(i), cl)*std::abs(ldir.z())/ldir.mag();;
-      if (ch>2000.f && ch <4000.f) activeAPVs_[i].set(cl.firstStrip()/128); 
+      if (ch>2500.f && ch <4500.f) activeAPVs_[i].set(cl.firstStrip()/128); 
     }
     incActAPV(activeAPVs_[i].count());
   }
