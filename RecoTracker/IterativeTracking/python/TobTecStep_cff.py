@@ -20,12 +20,12 @@ tobTecStepSeedLayersTripl = cms.EDProducer("SeedingLayersEDProducer",
     'TOB1+TOB2+MTEC1_pos','TOB1+TOB2+MTEC1_neg',
     ),
     TOB = cms.PSet(
-         TTRHBuilder    = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight')),
+         TTRHBuilder    = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTiny')),
          matchedRecHits = cms.InputTag("siStripMatchedRecHits","matchedRecHit"),
          skipClusters   = cms.InputTag('tobTecStepClusters')
     ),
     MTOB = cms.PSet(
-         TTRHBuilder    = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight')),
+         TTRHBuilder    = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTiny')),
          skipClusters   = cms.InputTag('tobTecStepClusters'),
          rphiRecHits    = cms.InputTag("siStripMatchedRecHits","rphiRecHit")
     ),
@@ -33,7 +33,7 @@ tobTecStepSeedLayersTripl = cms.EDProducer("SeedingLayersEDProducer",
         rphiRecHits    = cms.InputTag("siStripMatchedRecHits","rphiRecHit"),
         skipClusters = cms.InputTag('tobTecStepClusters'),
         useRingSlector = cms.bool(True),
-        TTRHBuilder = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight')),
+        TTRHBuilder = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTiny')),
         minRing = cms.int32(6),
         maxRing = cms.int32(7)
     )
@@ -83,7 +83,7 @@ tobTecStepSeedLayersPair = cms.EDProducer("SeedingLayersEDProducer",
                             'TEC5_pos+TEC6_pos','TEC5_neg+TEC6_neg', 
                             'TEC6_pos+TEC7_pos','TEC6_neg+TEC7_neg'),
     TOB = cms.PSet(
-         TTRHBuilder    = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight')),
+         TTRHBuilder    = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTiny')),
          matchedRecHits = cms.InputTag("siStripMatchedRecHits","matchedRecHit"),
          skipClusters   = cms.InputTag('tobTecStepClusters')
     ),
@@ -91,7 +91,7 @@ tobTecStepSeedLayersPair = cms.EDProducer("SeedingLayersEDProducer",
         matchedRecHits = cms.InputTag("siStripMatchedRecHits","matchedRecHit"),
         skipClusters = cms.InputTag('tobTecStepClusters'),
         useRingSlector = cms.bool(True),
-        TTRHBuilder = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight')),
+        TTRHBuilder = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTiny')),
         minRing = cms.int32(5),
         maxRing = cms.int32(5)
     )
@@ -101,7 +101,7 @@ import RecoPixelVertexing.PixelLowPtUtilities.ClusterShapeHitFilterESProducer_cf
 tobTecStepClusterShapeHitFilter  = RecoPixelVertexing.PixelLowPtUtilities.ClusterShapeHitFilterESProducer_cfi.ClusterShapeHitFilterESProducer.clone(
 	ComponentName = cms.string('tobTecStepClusterShapeHitFilter'),
         PixelShapeFile= cms.string('RecoPixelVertexing/PixelLowPtUtilities/data/pixelShape.par'),
-	clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight')),
+	clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTiny')),
 	doStripShapeCut  = cms.bool(False)
 	)
 
@@ -177,6 +177,8 @@ _tobTecStepTrajectoryFilterBase = TrackingTools.TrajectoryFiltering.TrajectoryFi
     )
 tobTecStepTrajectoryFilter = _tobTecStepTrajectoryFilterBase.clone(
     seedPairPenalty = 1,
+    maxCCCLostHits = 2,
+    minGoodStripCharge = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight'))
 )
 eras.trackingLowPU.toReplaceWith(tobTecStepTrajectoryFilter, _tobTecStepTrajectoryFilterBase.clone(
     minimumNumberOfHits = 6,
@@ -195,7 +197,7 @@ tobTecStepChi2Est = RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimator_cf
     ComponentName = cms.string('tobTecStepChi2Est'),
     nSigma = cms.double(3.0),
     MaxChi2 = cms.double(16.0),
-    clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight'))
+    clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTiny'))
 )
 eras.trackingLowPU.toModify(tobTecStepChi2Est,
     clusterChargeCut = dict(refToPSet_ = 'SiStripClusterChargeCutTiny')

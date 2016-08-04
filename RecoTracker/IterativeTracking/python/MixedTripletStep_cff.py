@@ -11,7 +11,8 @@ chargeCut2069Clusters =  cms.EDProducer("ClusterChargeMasker",
     oldClusterRemovalInfo = cms.InputTag(""), # to be set below
     pixelClusters = cms.InputTag("siPixelClusters"),
     stripClusters = cms.InputTag("siStripClusters"),
-    clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight'))
+    clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTiny')),
+    clusterChargeCutForGoodAPV = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight'))
 )
 
 mixedTripletStepClusters = _cfg.clusterRemoverForIter("MixedTripletStep")
@@ -44,7 +45,8 @@ mixedTripletStepSeedLayersA = cms.EDProducer("SeedingLayersEDProducer",
     TEC = cms.PSet(
         matchedRecHits = cms.InputTag("siStripMatchedRecHits","matchedRecHit"),
         useRingSlector = cms.bool(True),
-        TTRHBuilder = cms.string('WithTrackAngle'), clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight')),
+        TTRHBuilder = cms.string('WithTrackAngle'), 
+        clusterChargeCut = cms.PSet(refToPSet_ = cms.string('SiStripClusterChargeCutTight')),
         minRing = cms.int32(1),
         maxRing = cms.int32(1),
         skipClusters = cms.InputTag('mixedTripletStepClusters')

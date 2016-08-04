@@ -118,8 +118,9 @@ namespace {
 	auto detid = item.id;
 	
 	for (int i = item.offset; i<item.offset+int(item.size); ++i) {
+          auto mc = clusters[i].goodAPV() ? minGoodStripCharge_ : minBadStripCharge_;
           auto clusCharge = siStripClusterTools::chargePerCM(detid,clusters[i]);
-	  if(clusCharge < minGoodStripCharge_) collectedStrips[i] = true; 
+	  if(clusCharge < mc) collectedStrips[i] = true; 
 	}
 
     }
