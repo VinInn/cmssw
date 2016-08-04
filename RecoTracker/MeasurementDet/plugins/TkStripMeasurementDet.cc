@@ -306,10 +306,11 @@ TkStripMeasurementDet::testStrips(float utraj, float uerr, const MeasurementTrac
     ret[0]=ok;
 
     // check if the APV is definetively Active...
+    ret[1]=true;
     auto const & apvs = activeAPVs(data);
     auto b = start/128; auto e = std::min(end/128,5);
     // std::cout << "testing hip "<< b << ' ' << e << std::endl;
-    for (;b<=e; ++b) if (apvs[b]) ret[1]=true;
+    for (;b<=e; ++b) if (!apvs[b]) ret[1]=false;
     
     return ret;
 }
