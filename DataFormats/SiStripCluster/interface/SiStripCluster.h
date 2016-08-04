@@ -47,7 +47,7 @@ public:
 	 }
 
   void setGoodAPV()    { firstStrip_ |= goodAPVMask;}
-  void badGoodAPV()    { firstStrip_ |= goodAPVMask;}
+  void setBadAPV()     { firstStrip_ |= badAPVMask;}
   void setTinyCharge() { firstStrip_ |= tinyChargeMask;}
   void setGoodCharge() { firstStrip_ |= goodChargeMask;}
 
