@@ -2,6 +2,8 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/InputTag.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 
 #include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
 #include "DataFormats/SiPixelCluster/interface/SiPixelCluster.h"
@@ -26,6 +28,7 @@ namespace {
   public:
     ClusterChargeMasker(const edm::ParameterSet& iConfig);
     ~ClusterChargeMasker(){}
+    static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
     void produce(edm::Event &iEvent, const edm::EventSetup &iSetup) override ;
   private:
  
@@ -33,12 +36,12 @@ namespace {
     using PixelMaskContainer = edm::ContainerMask<edmNew::DetSetVector<SiPixelCluster>>;
     using StripMaskContainer = edm::ContainerMask<edmNew::DetSetVector<SiStripCluster>>;
 
+    const float minBadStripCharge_;
+    const float minGoodStripCharge_;
 
-    bool mergeOld_;
-    float minGoodStripCharge_;
 
-    edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster> > pixelClusters_;
-    edm::EDGetTokenT<edmNew::DetSetVector<SiStripCluster> > stripClusters_;
+    const edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster> > pixelClusters_;
+    const edm::EDGetTokenT<edmNew::DetSetVector<SiStripCluster> > stripClusters_;
 
     edm::EDGetTokenT<PixelMaskContainer> oldPxlMaskToken_;
     edm::EDGetTokenT<StripMaskContainer> oldStrMaskToken_;
@@ -47,21 +50,32 @@ namespace {
 
   };
 
+  void ClusterChargeMasker::
+  fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+    edm::ParameterSetDescription desc;
+    edm::ParameterSetDescription descCCC = getFilledConfigurationDescription4CCC();
+    desc.add<edm::ParameterSetDescription>("clusterChargeCut", descCCC);
+    desc.add<edm::ParameterSetDescription>("clusterChargeCutForGoodAPV", descCCC);
+    desc.add<edm::InputTag>("pixelClusters",edm::InputTag("siPixelClusters"));
+    desc.add<edm::InputTag>("stripClusters",edm::InputTag("siStripClusters"));
+    desc.add<edm::InputTag>("oldClusterRemovalInfo",edm::InputTag());
+    descriptions.add("ClusterChargeMasker", desc);
+  }
+
 
   ClusterChargeMasker::ClusterChargeMasker(const edm::ParameterSet& iConfig) :
-    mergeOld_(iConfig.exists("oldClusterRemovalInfo")),
-    minGoodStripCharge_(clusterChargeCut(iConfig))
+    minBadStripCharge_(clusterChargeCut(iConfig)),
+    minGoodStripCharge_(std::max(clusterChargeCut(iConfig,"clusterChargeCutForGoodAPV"),minBadStripCharge_)),
+    pixelClusters_(consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("pixelClusters"))),
+    stripClusters_(consumes<edmNew::DetSetVector<SiStripCluster>>(iConfig.getParameter<edm::InputTag>("stripClusters")))
   {
-    produces<edm::ContainerMask<edmNew::DetSetVector<SiPixelCluster> > >();
-    produces<edm::ContainerMask<edmNew::DetSetVector<SiStripCluster> > >();
+    produces<edm::ContainerMask<edmNew::DetSetVector<SiPixelCluster>>>();
+    produces<edm::ContainerMask<edmNew::DetSetVector<SiStripCluster>>>();
 
-
-    pixelClusters_ = consumes<edmNew::DetSetVector<SiPixelCluster> >(iConfig.getParameter<edm::InputTag>("pixelClusters"));
-    stripClusters_ = consumes<edmNew::DetSetVector<SiStripCluster> >(iConfig.getParameter<edm::InputTag>("stripClusters"));
-
-    if (mergeOld_) {
-      oldPxlMaskToken_ = consumes<PixelMaskContainer>(iConfig.getParameter<edm::InputTag>("oldClusterRemovalInfo"));
-      oldStrMaskToken_ = consumes<StripMaskContainer>(iConfig.getParameter<edm::InputTag>("oldClusterRemovalInfo"));
+    auto const &  oldClusterRemovalInfo = iConfig.getParameter<edm::InputTag>("oldClusterRemovalInfo");
+    if (!oldClusterRemovalInfo.label().empty()) {
+      oldPxlMaskToken_ = consumes<PixelMaskContainer>(oldClusterRemovalInfo);
+      oldStrMaskToken_ = consumes<StripMaskContainer>(oldClusterRemovalInfo);
     }
 
   }
@@ -81,7 +95,7 @@ namespace {
     std::vector<bool> collectedStrips;
     std::vector<bool> collectedPixels;
 
-    if(mergeOld_) {
+    if(!oldPxlMaskToken_.isUninitialized()) {
       edm::Handle<PixelMaskContainer> oldPxlMask;
       edm::Handle<StripMaskContainer> oldStrMask;
       iEvent.getByToken(oldPxlMaskToken_ ,oldPxlMask);
