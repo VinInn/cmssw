@@ -56,12 +56,13 @@ private:
   const TkStripMeasurementDet*       theMonoDet;
   const TkStripMeasurementDet*       theStereoDet;
 
+  struct DetState{ bool mono=true,stereo=true;};
 
   template<typename Collector>
-  void doubleMatch(const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector) const  dso_internal;
+  void doubleMatch(const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector, DetState detState) const  dso_internal;
 
   template<typename Collector>
-  void collectRecHits(const TrajectoryStateOnSurface&, const MeasurementTrackerEvent & data, Collector &coll) const dso_internal;
+  void collectRecHits(const TrajectoryStateOnSurface&, const MeasurementTrackerEvent & data, Collector &coll, DetState detState=DetState()) const dso_internal;
 
   // for TTRH
   class dso_internal  HitCollectorForRecHits {

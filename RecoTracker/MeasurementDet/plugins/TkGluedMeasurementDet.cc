@@ -125,14 +125,33 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
        return true;
     }
   
+   DetState detState; 
+   const BoundPlane &gluedPlane = geomDet().surface();
+   if (stateOnThisDet.hasError()) { 
+     /* do this only if the state has uncertainties, otherwise it will throw
+      (states without uncertainties are passed to this code from seeding) */
+     detState.mono =  (theMonoDet->isActive(data) &&
+                      (theMonoDet->hasAllGoodChannels() ||
+                       testStrips(stateOnThisDet,gluedPlane,*theMonoDet)
+                      )
+                      ); /*Mono OK*/
+     detState.stereo = (theStereoDet->isActive(data) &&
+                       (theStereoDet->hasAllGoodChannels() ||
+                        testStrips(stateOnThisDet,gluedPlane,*theStereoDet)
+                       )
+                       ); /*Stereo OK*/
+   } /* State has errors */
+
+
    auto oldSize = result.size();
 
    HitCollectorForFastMeasurements collector( &fastGeomDet(), theMatcher, theCPE, stateOnThisDet, est, result);
-   collectRecHits(stateOnThisDet, data, collector);
+   collectRecHits(stateOnThisDet, data, collector,detState);
    
    
    if (result.size()>oldSize) return true;
    
+   /*
    auto id = geomDet().geographicalId().subdetId()-3;
    auto l = TOBDetId(geomDet().geographicalId()).layer();
    bool killHIP = (1==l) && (2==id); //TOB1
@@ -141,26 +160,10 @@ bool TkGluedMeasurementDet::measurements( const TrajectoryStateOnSurface& stateO
         result.add(theInactiveHit, 0.F); 
         return true;
    }
+   */
 
 
-   //LogDebug("TkStripMeasurementDet") << "No hit found on TkGlued. Testing strips...  ";
-   const BoundPlane &gluedPlane = geomDet().surface();
-   if (  // sorry for the big IF, but I want to exploit short-circuiting of logic
-       stateOnThisDet.hasError() && ( /* do this only if the state has uncertainties, otherwise it will throw 
-					 (states without uncertainties are passed to this code from seeding */
-				     (theMonoDet->isActive(data) && 
-				      (theMonoDet->hasAllGoodChannels() || 
-				       testStrips(stateOnThisDet,gluedPlane,*theMonoDet)
-				       )
-				      ) /*Mono OK*/ 
-                                     && // was || 
-				     (theStereoDet->isActive(data) && 
-				      (theStereoDet->hasAllGoodChannels() || 
-				       testStrips(stateOnThisDet,gluedPlane,*theStereoDet)
-				       )
-				      ) /*Stereo OK*/ 
-				      ) /* State has errors */
-	 ) {
+   if (detState.mono && detState.stereo) {
      result.add(theMissingHit, 0.F);
      return false;
    } 
@@ -175,14 +178,14 @@ struct take_address { template<typename T> const T * operator()(const T &val) co
 #ifdef DOUBLE_MATCH
 template<typename Collector>
 void
-TkGluedMeasurementDet::collectRecHits( const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector) const
+TkGluedMeasurementDet::collectRecHits( const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector, DetState detState) const
 {
-  doubleMatch(ts,data,collector);
+  doubleMatch(ts,data,collector,detState);
 }
 #else
 template<typename Collector>
 void
-TkGluedMeasurementDet::collectRecHits( const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector) const
+TkGluedMeasurementDet::collectRecHits( const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent & data, Collector & collector, DetState detState) const
 {
   //------ WARNING: here ts is used as it is on the mono/stereo surface.
   //-----           A further propagation is necessary.

@@ -1,6 +1,14 @@
 
-
+#include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
 namespace {  
+
+
+  bool isBorder(SiStripRecHit2D const & hit) {
+    auto ns = ((const StripTopology&)(hit.det()->topology())).nstrips();
+    auto sp = hit.cluster()->firstStrip();
+    return sp<50 || (ns-sp)<50;
+  }
+
 
   template<typename Collector>
   struct CollectorHelper {
@@ -30,19 +38,15 @@ namespace {
     typename Collector::Collector & collector() { return m_collector.collector();}
     
     inline void closure( TkGluedMeasurementDet::RecHitContainer::const_iterator monoHit) {
-      if (m_collector.hasNewMatchedHits()) {
-	m_collector.clearNewMatchedHitsFlag();
-      } else {
-	m_collector.addProjected( **monoHit, glbDir );
-      }
+      if (!m_collector.hasNewMatchedHits() || isBorder((SiStripRecHit2D const&)(**monoHit)))
+	m_collector.addProjected( **monoHit, glbDir );  
+       m_collector.clearNewMatchedHitsFlag();
     }
 
     inline void closure(std::vector<SiStripRecHit2D>::const_iterator monoHit) {
-      if (m_collector.hasNewMatchedHits()) {
-	m_collector.clearNewMatchedHitsFlag();
-      } else {
-	m_collector.addProjected( *monoHit, glbDir );
-      }
+      if (!m_collector.hasNewMatchedHits() || isBorder(*monoHit))  
+	m_collector.addProjected( *monoHit, glbDir ); 	
+      m_collector.clearNewMatchedHitsFlag();
     }
   
     
@@ -68,7 +72,7 @@ namespace {
 
 
 template<typename Collector>
-void TkGluedMeasurementDet::doubleMatch(const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent &data, Collector & collector) const {
+void TkGluedMeasurementDet::doubleMatch(const TrajectoryStateOnSurface& ts, const MeasurementTrackerEvent &data, Collector & collector,DetState detState) const {
 
 
   GlobalVector glbDir = (ts.isValid() ? ts.globalMomentum() : position()-GlobalPoint(0,0,0));
@@ -149,13 +153,13 @@ void TkGluedMeasurementDet::doubleMatch(const TrajectoryStateOnSurface& ts, cons
 			    gluedDet, trdir, chelper);
   }
 
-  if (ts.globalMomentum().perp2()> collector.estimator().minPt2ForHitRecoveryInGluedDet()) {
+//  if (ts.globalMomentum().perp2()> collector.estimator().minPt2ForHitRecoveryInGluedDet()) {
     // if no match found try add mon than try to add stereo...
-    if (0==collector.size()) 
-      projectOnGluedDet( collector, monoHits, glbDir);
-    if (0==collector.size())
-      projectOnGluedDet( collector, stereoHits, glbDir);
-  }
+//    if (0==collector.size()) 
+    if (!detState.stereo)  projectOnGluedDet( collector, monoHits, glbDir);
+    //if (0==collector.size())
+    if (!detState.mono)  projectOnGluedDet( collector, stereoHits, glbDir);
+//  }
   /*
   // recover hits outside 
   if ( collector.filter() && 0==collector.size())  {
