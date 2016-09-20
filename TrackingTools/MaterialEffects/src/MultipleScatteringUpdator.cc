@@ -27,7 +27,7 @@ void MultipleScatteringUpdator::compute (const TrajectoryStateOnSurface& TSoS,
   std::cout << "radlen " << mp.radLen() << std::endl;
   if unlikely(mp.radLen()==0) return;
   auto rl = mp.radLen();
-  if (rl  >0.012) rl=0.1;
+//   if (rl  >0.012) rl=0.1;
 
   // Momentum vector
   LocalVector d = TSoS.localMomentum();

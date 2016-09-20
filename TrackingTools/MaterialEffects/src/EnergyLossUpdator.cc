@@ -78,8 +78,11 @@ EnergyLossUpdator::computeBetheBloch (const LocalVector& localP,
   Float eta2  = p2*im2;
   Float ratio2 = (emass*emass)*im2;
   Float emax  = Float(2.)*emass*eta2/(Float(1.) + Float(2.)*emass*e*im2 + ratio2);
-  
-  Float xi = materialConstants.xi()*xf; xi /= beta2;
+
+
+  std::cout << "xi " << materialConstants.xi() << std::endl; 
+  Float xi = xf*materialConstants.radLen()*2.13e-05/0.0112;    //materialConstants.xi()*xf; 
+  xi /= beta2;
   
   Float dEdx = xi*(unsafe_logf<2>(Float(2.)*emass*emax/(poti*poti)) - Float(2.)*(beta2) - delta0);
   
@@ -91,7 +94,7 @@ EnergyLossUpdator::computeBetheBloch (const LocalVector& localP,
   effect.deltaCov[elos] += sigp2;
 
 
-  // std::cout << "pion new " <<  theDeltaP << " " << theDeltaCov(0,0) << std::endl;
+  std::cout << "pion new " <<  dP << " " << sigp2 << std::endl;
   // oldComputeBetheBloch (localP, materialConstants, mass());
 
 }
