@@ -24,7 +24,10 @@ void MultipleScatteringUpdator::compute (const TrajectoryStateOnSurface& TSoS,
   // Now get information on medium
   //
   const MediumProperties& mp = surface.mediumProperties();
+  std::cout << "radlen " << mp.radLen() << std::endl;
   if unlikely(mp.radLen()==0) return;
+  auto rl = mp.radLen();
+  if (rl  >0.012) rl=0.1;
 
   // Momentum vector
   LocalVector d = TSoS.localMomentum();
@@ -37,7 +40,7 @@ void MultipleScatteringUpdator::compute (const TrajectoryStateOnSurface& TSoS,
   float e2     = p2 + m2;
   float beta2  = p2/e2;
   // calculate the multiple scattering angle
-  float radLen = mp.radLen()*xf;     // effective rad. length
+  float radLen = rl*xf;     // effective rad. length
   float sigt2 = 0.;                  // sigma(alpha)**2
 
   // Calculated rms scattering angle squared.

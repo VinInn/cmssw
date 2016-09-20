@@ -48,7 +48,11 @@
 #include <algorithm>
 #include <array>
 
-// #define STAT_TSB
+#define VI_DEBUG
+#define PRINT(x) std::cout << x << ' '
+
+
+#define STAT_TSB
 
 namespace {
 #ifdef STAT_TSB
@@ -288,7 +292,7 @@ GroupedCkfTrajectoryBuilder::buildTrajectories (const TrajectorySeed& seed,
 
   analyseResult(result);
 
-  LogDebug("CkfPattern")<< "GroupedCkfTrajectoryBuilder: returning result of size " << result.size();
+  std::cout << "CkfPattern" << "GroupedCkfTrajectoryBuilder: returning result of size " << result.size() << std::endl;
   statCount.traj(result.size());
 
 #ifdef VI_DEBUG
@@ -316,7 +320,7 @@ for (auto const & tm : traj.measurements()) {
   }
  }
 
-std::cout << "ckf " << kt++ << ": "; for (auto c:chit) std::cout << c <<'/'; std::cout<< std::endl;
+std::cout << "VI ckf " << kt++ << ": "; for (auto c:chit) std::cout << c <<'/'; std::cout<< std::endl;
 }
 #endif
 
@@ -344,11 +348,11 @@ GroupedCkfTrajectoryBuilder::groupedLimitedCandidates (const TrajectorySeed& see
     for (TempTrajectoryContainer::iterator traj=candidates.begin();
 	 traj!=candidates.end(); traj++) {
       if ( !advanceOneLayer(seed, *traj, regionalCondition, propagator, inOut, newCand, result) ) {
-	LogDebug("CkfPattern")<< "GCTB: terminating after advanceOneLayer==false";
+	std::cout << ("CkfPattern")<< "GCTB: terminating after advanceOneLayer==false" << std::endl;
  	continue;
       }
 
-      LogDebug("CkfPattern")<<"newCand(1): after advanced one layer:\n"<<PrintoutHelper::dumpCandidates(newCand);
+      PRINT("CkfPattern")<<"newCand(1): after advanced one layer:\n"<<PrintoutHelper::dumpCandidates(newCand) << std::endl;
 
       if ((int)newCand.size() > theMaxCand) {
 	//ShowCand()(newCand);
@@ -356,10 +360,10 @@ GroupedCkfTrajectoryBuilder::groupedLimitedCandidates (const TrajectorySeed& see
  	std::nth_element( newCand.begin(), newCand.begin()+theMaxCand, newCand.end(), GroupedTrajCandLess(theLostHitPenalty,theFoundHitBonus));
  	newCand.erase( newCand.begin()+theMaxCand, newCand.end());
       }
-      LogDebug("CkfPattern")<<"newCand(2): after removing extra candidates.\n"<<PrintoutHelper::dumpCandidates(newCand);
+      PRINT("CkfPattern")<<"newCand(2): after removing extra candidates.\n"<<PrintoutHelper::dumpCandidates(newCand) << std::endl;
     }
 
-    LogDebug("CkfPattern") << "newCand.size() at end = " << newCand.size();
+    PRINT("CkfPattern") << "newCand.size() at end = " << newCand.size() << std::endl;
 /*
     if (theIntermediateCleaning) {
       candidates.clear();
@@ -378,10 +382,10 @@ GroupedCkfTrajectoryBuilder::groupedLimitedCandidates (const TrajectorySeed& see
     }	
     candidates.swap(newCand);
 
-    LogDebug("CkfPattern") <<"candidates(3): "<<result.size()<<" candidates after "<<nIter++<<" groupedCKF iteration: \n"
+    PRINT("CkfPattern") <<"candidates(3): "<<result.size()<<" candidates after "<<nIter++<<" groupedCKF iteration: \n"
       			   <<PrintoutHelper::dumpCandidates(result)
 			   <<"\n "<<candidates.size()<<" running candidates are: \n"
-			   <<PrintoutHelper::dumpCandidates(candidates);
+			   <<PrintoutHelper::dumpCandidates(candidates) << std::endl;
   }
 }
 
@@ -930,7 +934,7 @@ GroupedCkfTrajectoryBuilder::rebuildSeedingRegion(const TrajectorySeed&seed,
   const bool inOut = false;
   groupedLimitedCandidates(seed, candidate, nullptr, backwardPropagator(seed), inOut, rebuiltTrajectories);
 
-  LogDebug("CkfPattern")<<" After backward building: "<<PrintoutHelper::dumpCandidates(rebuiltTrajectories);
+  PRINT("CkfPattern")<<" After backward building: "<<PrintoutHelper::dumpCandidates(rebuiltTrajectories) << std::endl;
 
   //
   // Check & count resulting candidates
@@ -976,8 +980,8 @@ GroupedCkfTrajectoryBuilder::rebuildSeedingRegion(const TrajectorySeed&seed,
       reversedTrajectory.push(*im);
     }
     
-    LogDebug("CkgPattern")<<"New traj direction = " << reversedTrajectory.direction()<<"\n"
-			  <<PrintoutHelper::dumpMeasurements(reversedTrajectory.measurements());
+    PRINT("CkgPattern")<<"New traj direction = " << reversedTrajectory.direction()<<"\n"
+			  <<PrintoutHelper::dumpMeasurements(reversedTrajectory.measurements()) << std::endl;
   } // rebuiltTrajectories
 
   // If nrOfTrajectories = 0 and orig_ok = true, this means that a track was actually found on the
@@ -1005,9 +1009,9 @@ GroupedCkfTrajectoryBuilder::backwardFit (TempTrajectory& candidate, unsigned in
   //
   remainingHits.clear();
 
-  LogDebug("CkfPattern")<<"nSeed " << nSeed << endl
+  PRINT("CkfPattern")<<"nSeed " << nSeed << endl
 			<< "Old traj direction = " << candidate.direction() << endl
-			<<PrintoutHelper::dumpMeasurements(candidate.measurements());
+			<<PrintoutHelper::dumpMeasurements(candidate.measurements()) << std::endl;
 
   //
   // backward fit trajectory.

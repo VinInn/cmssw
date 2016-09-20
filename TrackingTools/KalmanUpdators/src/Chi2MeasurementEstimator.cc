@@ -27,7 +27,9 @@ namespace {
     
     R += RMeas;
     invertPosDefMatrix(R);
-    return ROOT::Math::Similarity(r - rMeas, R);
+    auto val = ROOT::Math::Similarity(r - rMeas, R);
+    std::cout << "chi2-" << D << ' ' << val << std::endl;
+    return val;
   }
 }
 

@@ -49,6 +49,8 @@
 
 #include "RecoTracker/CkfPattern/interface/PrintoutHelper.h"
 
+#define PRINT(x) std::cout << x << ' '
+
 using namespace edm;
 using namespace std;
 
@@ -498,12 +500,12 @@ namespace cms{
 
       edm::ESHandle<TrackerGeometry> tracker;
       es.get<TrackerDigiGeometryRecord>().get(tracker);
-      LogTrace("CkfPattern|TrackingRegressionTest") << "========== CkfTrackCandidateMaker Info =========="
+      PRINT("CkfPattern|TrackingRegressionTest") << "========== CkfTrackCandidateMaker Info =========="
 						    << "number of Seed: " << collseed->size()<<'\n'
-      						    <<PrintoutHelper::regressionTest(*tracker,unsmoothedResult);
+      						    <<PrintoutHelper::regressionTest(*tracker,unsmoothedResult) << std::endl;
 
       assert(viTotHits>=0); // just to use it...
-      // std::cout << "VICkfPattern result " << output->size() << " " << viTotHits << std::endl;
+      std::cout << "VICkfPattern result " << output->size() << " " << viTotHits << std::endl;
 
       if (theTrajectoryOutput){ outputT->swap(unsmoothedResult);}
 

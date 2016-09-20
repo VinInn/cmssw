@@ -61,8 +61,31 @@ void SimHitTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, con
       }
     }
   } 
+
   
   std::sort(simHitTPList->begin(),simHitTPList->end(),simHitTPAssociationListGreater);
+
+std::vector<const PSimHit *> simHits;
+for (TrackingParticleCollection::size_type itp = 0; itp < TPCollectionH.product()->size(); ++itp) {
+ TrackingParticleRef trackingParticle(TPCollectionH, itp);
+ auto range = std::equal_range(simHitTPList->begin(), simHitTPList->end(),
+                               std::make_pair(trackingParticle, TrackPSimHitRef()),
+                               simHitTPAssociationListGreater);
+ for(auto iHit=range.first; iHit!= range.second; ++iHit) {
+   simHits.push_back(&(*(iHit->second)));
+ }
+ std::sort(simHits.begin(), simHits.end(), [](const PSimHit *a, const PSimHit *b) {
+   return a->timeOfFlight() < b->timeOfFlight();
+ });
+
+ std::cout << "TrackingParticle " << itp << '\n';
+ for(const PSimHit *simHit: simHits) {
+    std::cout << simHit->detUnitId() << " " << simHit->timeOfFlight() << ' ' << simHit->pabs() << std::endl;
+ }
+
+ simHits.clear();
+}
+
   iEvent.put(std::move(simHitTPList));
 
 }
