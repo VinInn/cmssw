@@ -18,7 +18,7 @@
 namespace {
   class SharingHitTrackSelector final : public edm::global::EDProducer<> {
    public:
-    using Product = std::vector<int>;
+    using Product = std::vector<std::array<int,3>>;
     using TkView=edm::View<reco::Track>;
    public:
     explicit SharingHitTrackSelector(const edm::ParameterSet& conf) :
@@ -43,17 +43,31 @@ namespace {
   SharingHitTrackSelector::produce(edm::StreamID, edm::Event& evt, const edm::EventSetup&) const {
     auto product = std::make_unique<Product>();
 
-   Handle<TkView> trackCollectionHandle;
-   iEvent.getByToken(trackTag,trackCollectionHandle);
-   auto const & tracks = *trackCollectionHandle;
-   auto nt = tracks.size();
-   if (nt>1)
-   for (unsigned int i=0; i<nt-1; ++i) {
-     auto const & tk1 = tracks[i];
-     
-     for (unsigned int j=i+1; j<nt; ++j) {
- 
-   }
+    auto share = // use_sharesInput_ ?
+      [](TrackingRecHit const * it, TrackingRecHit const * jt)->bool { return it->sharesInput(jt,TrackingRecHit::some); };
+
+
+    edm::Handle<TkView> trackCollectionHandle;
+    evt.getByToken(trackTag,trackCollectionHandle);
+    auto const & tracks = *trackCollectionHandle;
+    int nt = tracks.size();
+    for (int i=0; i<nt-1; ++i) {
+      auto const & tk1 = tracks[i];
+      auto hb = tk1.recHitsBegin();
+      TrackingRecHit const * h1[2] = { (*hb), (*(hb+1)) };
+      for (int j=i+1; j<nt; ++j) {
+        auto const & tk2 = tracks[j];
+        auto hb = tk2.recHitsBegin();
+        TrackingRecHit const * h2[2] = { (*hb), (*(hb+1)) };
+        for (int k1=0;k1<2;++k1) for (int k2=0;k2<2;++k2) {
+          if ( share(h1[k1],h2[k2]) ) {
+            break;
+            Product::value_type v = {{i,j,k1}};
+            (*product).push_back(v);
+          }
+        }
+      } 
+    }
 
 
     evt.put(std::move(product));
@@ -61,3 +75,7 @@ namespace {
 
 
 }
+#include "FWCore/PluginManager/interface/ModuleDef.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+
+DEFINE_FWK_MODULE(SharingHitTrackSelector);
