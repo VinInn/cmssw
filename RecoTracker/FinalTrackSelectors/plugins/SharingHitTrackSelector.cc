@@ -18,7 +18,7 @@
 namespace {
   class SharingHitTrackSelector final : public edm::global::EDProducer<> {
    public:
-    using Product = std::vector<std::array<int,3>>;
+    using Product = std::vector<std::array<int,4>>;
     using TkView=edm::View<reco::Track>;
    public:
     explicit SharingHitTrackSelector(const edm::ParameterSet& conf) :
@@ -62,13 +62,17 @@ namespace {
         for (int k1=0;k1<2;++k1) for (int k2=0;k2<2;++k2) {
           if ( share(h1[k1],h2[k2]) ) {
             break;
-            Product::value_type v = {{i,j,k1}};
+            Product::value_type v = {{i,j,k1,k2}};
             (*product).push_back(v);
           }
         }
       } 
     }
 
+    std::cout << product->size() << std::endl;
+    for (auto const & v : *product)
+      std::cout << v[0] << ','<<v[1]<<": " << v[2] << ','<<v[3]<<": " 
+                << (*(tracks[v[0]].recHitsBegin()+v[2]))->globalPosition().perp() << std::endl;
 
     evt.put(std::move(product));
   }
