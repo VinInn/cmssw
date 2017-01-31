@@ -70,7 +70,7 @@ namespace {
       } 
     }
 
-    std::cout << "size " << product->size() << std::endl;
+    std::cout << "size " << product->size() << '/' << tracks.size() << std::endl;
     for (auto const & v : *product)
       std::cout << v[0] << ','<<v[1]<<": " << v[2] << ','<<v[3]<<": " 
                 << (*(tracks[v[0]].recHitsBegin()+v[2]))->globalPosition().perp() << std::endl;
