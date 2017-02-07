@@ -73,7 +73,10 @@ namespace {
     std::cout << "size " << product->size() << '/' << tracks.size() << std::endl;
     for (auto const & v : *product)
       std::cout << v[0] << ','<<v[1]<<": " << v[2] << ','<<v[3]<<": " 
-                << (*(tracks[v[0]].recHitsBegin()+v[2]))->globalPosition().perp() << std::endl;
+               << tracks[v[0]].numberOfValidHits() << ',' << tracks[v[1]].numberOfValidHits() <<": "
+               << tracks[v[0]].charge() << ',' << tracks[v[1]].charge() <<": "
+               << tracks[v[0]].pt() << ',' << tracks[v[1]].pt() <<": "
+                 << (*(tracks[v[0]].recHitsBegin()+v[2]))->globalPosition().perp() << std::endl;
 
 
     evt.put(std::move(std::make_unique<FakeProduct>()));
