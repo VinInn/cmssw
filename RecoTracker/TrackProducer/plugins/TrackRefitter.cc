@@ -16,7 +16,8 @@
 TrackRefitter::TrackRefitter(const edm::ParameterSet& iConfig):
   KfTrackProducerBase(iConfig.getParameter<bool>("TrajectoryInEvent"),
 		      iConfig.getParameter<bool>("useHitsSplitting")),
-  theAlgo(iConfig)
+  theAlgo(iConfig),
+  hitReMatcher_( iConfig.exists("reMatchSplitHits") ?  iConfig.getParameter<bool>("reMatchSplitHits"): false)
 {
   setConf(iConfig);
   setSrc( consumes<edm::View<reco::Track>>(iConfig.getParameter<edm::InputTag>( "src" )), 
@@ -95,7 +96,7 @@ void TrackRefitter::produce(edm::Event& theEvent, const edm::EventSetup& setup)
       LogDebug("TrackRefitter") << "run the algorithm" << "\n";
 
       try {
-	theAlgo.runWithTrack(theG.product(), theMF.product(), *theTCollection, 
+	theAlgo.runWithTrack(hitReMatcher_, theG.product(), theMF.product(), *theTCollection, 
 			     theFitter.product(), thePropagator.product(), 
 			     theBuilder.product(), bs, algoResults);
       }catch (cms::Exception &e){ edm::LogError("TrackProducer") << "cms::Exception caught during theAlgo.runWithTrack." << "\n" << e << "\n"; throw; }

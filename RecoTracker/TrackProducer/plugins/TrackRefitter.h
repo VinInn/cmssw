@@ -10,6 +10,7 @@
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "RecoTracker/TrackProducer/interface/KfTrackProducerBase.h"
 #include "RecoTracker/TrackProducer/interface/TrackProducerAlgorithm.h"
+#include "RecoTracker/TrackProducer/interface/HitReMatcher.h"
 
 class TrackRefitter : public KfTrackProducerBase, public edm::stream::EDProducer<> {
 public:
@@ -25,7 +26,7 @@ private:
   enum Constraint { none, momentum, vertex, trackParameters };
   Constraint constraint_;
   edm::EDGetToken trkconstrcoll_;
-
+  HitReMatcher hitReMatcher_;
 };
 
 #endif
