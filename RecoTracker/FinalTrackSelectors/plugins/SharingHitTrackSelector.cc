@@ -15,10 +15,12 @@
 #include<vector>
 #include<memory>
 #include<cassert>
+#include "DataFormats/Common/interface/fakearray.h"
+
 namespace {
   class SharingHitTrackSelector final : public edm::global::EDProducer<> {
    public:
-    using FakeProduct = std::vector<int>;
+    using FakeProduct = std::vector<fakearray<int,4>>;
     using Product = std::vector<std::array<int,4>>;
     using TkView=edm::View<reco::Track>;
    public:
@@ -42,8 +44,9 @@ namespace {
 
   void
   SharingHitTrackSelector::produce(edm::StreamID, edm::Event& evt, const edm::EventSetup&) const {
-    auto product = std::make_unique<Product>();
-
+    auto fakeproduct = std::make_unique<FakeProduct>();
+    Product * product = (Product*)fakeproduct.get();
+    
     auto share = 
       [](TrackingRecHit const * it, TrackingRecHit const * jt)->bool { return it->sharesInput(jt,TrackingRecHit::some); };
 
@@ -70,7 +73,7 @@ namespace {
       } 
     }
 
-    std::cout << "size " << product->size() << '/' << tracks.size() << std::endl;
+    std::cout << "size " << fakeproduct->size() << '/' << tracks.size() << std::endl;
     for (auto const & v : *product)
       std::cout << v[0] << ','<<v[1]<<": " << v[2] << ','<<v[3]<<": " 
                << tracks[v[0]].numberOfValidHits() << ',' << tracks[v[1]].numberOfValidHits() <<": "
@@ -79,7 +82,8 @@ namespace {
                  << (*(tracks[v[0]].recHitsBegin()+v[2]))->globalPosition().perp() << std::endl;
 
 
-    evt.put(std::move(std::make_unique<FakeProduct>()));
+    evt.put(std::move(fakeproduct));
+
   }
 
 

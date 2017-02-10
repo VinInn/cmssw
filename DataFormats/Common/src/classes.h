@@ -31,6 +31,8 @@
 #include "DataFormats/Provenance/interface/EventAuxiliary.h"
 #include "FWCore/MessageLogger/interface/ErrorSummaryEntry.h"
 
+#include "DataFormats/Common/interface/fakearray.h"
+
 #include <vector>
 
 namespace DataFormats_Common {
@@ -78,5 +80,10 @@ namespace DataFormats_Common {
 
     edm::RefProd<std::vector<int> > rpvi;
     edm::RefToBaseProd<int> rtbpi;
+
+    fakearray<int,4> fai4;
+    std::vector<fakearray<int,4>> vfai4;
+    edm::Wrapper<std::vector<fakearray<int,4>>> wvfai4;
+
   };
 }
