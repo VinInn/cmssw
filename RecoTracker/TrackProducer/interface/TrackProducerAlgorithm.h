@@ -83,7 +83,7 @@ public:
 			AlgoProductCollection &);
 
   /// Run the Final Fit taking Tracks as input (for Refitter)
-  void runWithTrack(const HitFilterFromTrack&,
+  void runWithTrack(HitFilterFromTrack&,
 		    const TrackingGeometry *, 
 		    const MagneticField *, 
 		    const TrackView&,

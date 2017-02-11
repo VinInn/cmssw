@@ -10,8 +10,8 @@ public:
   virtual ~HitReMatcher(){}
   
   TransientTrackingRecHit::RecHitContainer
-  operator()(trackingRecHit_iterator first, trackingRecHit_iterator last,
-	     const TkTransientTrackingRecHitBuilder * builder) const override;
+  operator()(int,trackingRecHit_iterator first, trackingRecHit_iterator last,
+	     const TkTransientTrackingRecHitBuilder * builder) override;
 
 private:
 

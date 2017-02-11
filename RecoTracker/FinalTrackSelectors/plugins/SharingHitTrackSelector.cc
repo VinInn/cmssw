@@ -83,14 +83,14 @@ namespace {
     }
 
     product.erase(std::remove_if(product.begin(),product.end(),[](Product::value_type const & v){return -1==v[0];}),product.end());
-
+    std::sort(product.begin(),product.end(),[](const auto & a,const auto & b){return a[0]<b[0];});
     std::cout << "size " << product.size() << '/' << tracks.size() << std::endl;
     for (auto const & v : pairs)
       std::cout << v[0] << ','<<v[1]<<": " << v[2] << ','<<v[3]<<": " 
                << tracks[v[0]].numberOfValidHits() << ',' << tracks[v[1]].numberOfValidHits() <<": "
                << tracks[v[0]].charge() << ',' << tracks[v[1]].charge() <<": "
-               << tracks[v[0]].pt() << ',' << tracks[v[1]].pt() <<": "
-                 << (*(tracks[v[0]].recHitsBegin()+v[2]))->globalPosition().perp() << std::endl;
+               << tracks[v[0]].pt() << ',' << tracks[v[1]].pt() <<": " << std::endl;
+    //                 << (*(tracks[v[0]].recHitsBegin()+v[2]))->globalPosition().perp() << std::endl;
     for (auto const & v : product)
       std::cout << v[0] << ": " <<v[1]<<"," << v[2] << ','<<v[3]<<std::endl;
 

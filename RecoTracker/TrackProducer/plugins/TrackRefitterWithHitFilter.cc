@@ -7,11 +7,15 @@
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "RecoTracker/TrackProducer/interface/KfTrackProducerBase.h"
 #include "RecoTracker/TrackProducer/interface/TrackProducerAlgorithm.h"
-#include "HitReMatcher.h"
+#include "HitRemoverFromTrack.h"
+
+#include "DataFormats/Common/interface/fakearray.h"
 
 namespace {
 
   class TrackRefitterWithHitFilter final : public KfTrackProducerBase, public edm::stream::EDProducer<> {
+    using FakeHitList = std::vector<fakearray<int,4>>;
+    using HitList = HitRemoverFromTrack::HitList;
   public:
     
     /// Constructor
@@ -22,10 +26,8 @@ namespace {
     
   private:
     TrackProducerAlgorithm<reco::Track> theAlgo;
-    enum Constraint { none, momentum, vertex, trackParameters };
-    Constraint constraint_;
-    edm::EDGetToken trkconstrcoll_;
-    HitReMatcher hitReMatcher_;
+    edm::EDGetToken m_hitList;
+    HitRemoverFromTrack m_hitRemover;
   };
 }
 
@@ -43,31 +45,20 @@ namespace {
 #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
 #include "Geometry/Records/interface/TrackerTopologyRcd.h"
 
+
 namespace {
 
   TrackRefitterWithHitFilter::TrackRefitterWithHitFilter(const edm::ParameterSet& iConfig):
     KfTrackProducerBase(iConfig.getParameter<bool>("TrajectoryInEvent"),
 			iConfig.getParameter<bool>("useHitsSplitting")),
     theAlgo(iConfig),
-    hitReMatcher_( iConfig.exists("reMatchSplitHits") ?  iConfig.getParameter<bool>("reMatchSplitHits"): false)
+    m_hitList(consumes<FakeHitList>(iConfig.getParameter<edm::InputTag>( "hitList" )))
   {
     setConf(iConfig);
     setSrc( consumes<edm::View<reco::Track>>(iConfig.getParameter<edm::InputTag>( "src" )), 
 	    consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>( "beamSpot" )),
 	    consumes<MeasurementTrackerEvent>(iConfig.getParameter<edm::InputTag>( "MeasurementTrackerEvent") ));
     setAlias( iConfig.getParameter<std::string>( "@module_label" ) );
-    std::string  constraint_str = iConfig.getParameter<std::string>( "constraint" );
-    edm::InputTag trkconstrcoll = iConfig.getParameter<edm::InputTag>( "srcConstr" );
-    
-    
-    if (constraint_str == "") constraint_ = none;
-    else if (constraint_str == "momentum") { constraint_ = momentum; trkconstrcoll_ = consumes<TrackMomConstraintAssociationCollection>(trkconstrcoll); }
-    else if (constraint_str == "vertex")   { constraint_ = vertex;   trkconstrcoll_ = consumes<TrackVtxConstraintAssociationCollection>(trkconstrcoll); }
-    else if (constraint_str == "trackParameters") { constraint_ = trackParameters;  trkconstrcoll_ = consumes<TrackParamConstraintAssociationCollection>(trkconstrcoll); }
-    else {
-      edm::LogError("TrackRefitterWithHitFilter")<<"constraint: "<<constraint_str<<" not understood. Set it to 'momentum', 'vertex', 'trackParameters' or leave it empty";
-      throw cms::Exception("TrackRefitterWithHitFilter") << "unknown type of contraint! Set it to 'momentum', 'vertex', 'trackParameters' or leave it empty";    
-    }
     
     //register your products
     produces<reco::TrackCollection>().setBranchAlias( alias_ + "Tracks" );
@@ -110,86 +101,33 @@ namespace {
     //
     AlgoProductCollection algoResults;
     reco::BeamSpot bs;
-    switch(constraint_){
-    case none :
-      {
-	edm::Handle<edm::View<reco::Track>> theTCollection;
-	getFromEvt(theEvent,theTCollection,bs);
-	
-	LogDebug("TrackRefitterWithHitFilter") << "TrackRefitterWithHitFilter::produce(none):Number of Trajectories:" << (*theTCollection).size();
-	
-	if (bs.position()==math::XYZPoint(0.,0.,0.) && bs.type() == reco::BeamSpot::Unknown) {
-	  edm::LogError("TrackRefitterWithHitFilter") << " BeamSpot is (0,0,0), it is probably because is not valid in the event"; break; }
-	
-	if (theTCollection.failedToGet()){
-	  edm::EDConsumerBase::Labels labels;
-	  labelsForToken(src_, labels);
-	  edm::LogError("TrackRefitterWithHitFilter")<<"could not get the reco::TrackCollection." << labels.module; break;}
-	LogDebug("TrackRefitterWithHitFilter") << "run the algorithm" << "\n";
-	
-	try {
-	  theAlgo.runWithTrack(hitReMatcher_, theG.product(), theMF.product(), *theTCollection, 
-			       theFitter.product(), thePropagator.product(), 
-			       theBuilder.product(), bs, algoResults);
-	}catch (cms::Exception &e){ edm::LogError("TrackProducer") << "cms::Exception caught during theAlgo.runWithTrack." << "\n" << e << "\n"; throw; }
-	break;
-      }
-    case momentum :
-      {
-	edm::Handle<TrackMomConstraintAssociationCollection> theTCollectionWithConstraint;
-	theEvent.getByToken(trkconstrcoll_,theTCollectionWithConstraint);
-	
-	
-	edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
-	theEvent.getByToken(bsSrc_,recoBeamSpotHandle);
-	if (!recoBeamSpotHandle.isValid()) break;
-	bs = *recoBeamSpotHandle;      
-	if (theTCollectionWithConstraint.failedToGet()){
-	  //edm::LogError("TrackRefitterWithHitFilter")<<"could not get TrackMomConstraintAssociationCollection product.";
-	  break;}
-	LogDebug("TrackRefitterWithHitFilter") << "run the algorithm" << "\n";
-	try {
-	  theAlgo.runWithMomentum(theG.product(), theMF.product(), *theTCollectionWithConstraint, 
-				  theFitter.product(), thePropagator.product(), theBuilder.product(), bs, algoResults);
-	}catch (cms::Exception &e){ edm::LogError("TrackProducer") << "cms::Exception caught during theAlgo.runWithTrack." << "\n" << e << "\n"; throw; }
-	break;
-      }
-    case  vertex :
-      {
-	edm::Handle<TrackVtxConstraintAssociationCollection> theTCollectionWithConstraint;
-	theEvent.getByToken(trkconstrcoll_,theTCollectionWithConstraint);
-	edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
-	theEvent.getByToken(bsSrc_,recoBeamSpotHandle);
-	if (!recoBeamSpotHandle.isValid()) break;
-	bs = *recoBeamSpotHandle;      
-	if (theTCollectionWithConstraint.failedToGet()){
-	  edm::LogError("TrackRefitterWithHitFilter")<<"could not get TrackVtxConstraintAssociationCollection product."; break;}
-	LogDebug("TrackRefitterWithHitFilter") << "run the algorithm" << "\n";
-	try {
-	  theAlgo.runWithVertex(theG.product(), theMF.product(), *theTCollectionWithConstraint, 
-				theFitter.product(), thePropagator.product(), theBuilder.product(), bs, algoResults);      
-	}catch (cms::Exception &e){ edm::LogError("TrackProducer") << "cms::Exception caught during theAlgo.runWithTrack." << "\n" << e << "\n"; throw; }
-      }
-    case trackParameters :
-      {
-	edm::Handle<TrackParamConstraintAssociationCollection> theTCollectionWithConstraint;
-	theEvent.getByToken(trkconstrcoll_,theTCollectionWithConstraint);
-	edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
-	theEvent.getByToken(bsSrc_,recoBeamSpotHandle);
-	if (!recoBeamSpotHandle.isValid()) break;
-	bs = *recoBeamSpotHandle;      
-	if (theTCollectionWithConstraint.failedToGet()){
-	  //edm::LogError("TrackRefitterWithHitFilter")<<"could not get TrackParamConstraintAssociationCollection product.";
-	  break;}
-	LogDebug("TrackRefitterWithHitFilter") << "run the algorithm" << "\n";
-	try {
-	  theAlgo.runWithTrackParameters(theG.product(), theMF.product(), *theTCollectionWithConstraint, 
-					 theFitter.product(), thePropagator.product(), theBuilder.product(), bs, algoResults);      
-	}catch (cms::Exception &e){ edm::LogError("TrackProducer") << "cms::Exception caught during theAlgo.runWithTrack." << "\n" << e << "\n"; throw; }
-      }
-      //default... there cannot be any other possibility due to the check in the ctor
+    
+    edm::Handle<edm::View<reco::Track>> theTCollection;
+    getFromEvt(theEvent,theTCollection,bs);
+    
+    LogDebug("TrackRefitterWithHitFilter") << "TrackRefitterWithHitFilter::produce(none):Number of Trajectories:" << (*theTCollection).size();
+    
+    if (bs.position()==math::XYZPoint(0.,0.,0.) && bs.type() == reco::BeamSpot::Unknown) {
+      edm::LogError("TrackRefitterWithHitFilter") << " BeamSpot is (0,0,0), it is probably because is not valid in the event";
     }
     
+    if (theTCollection.failedToGet()){
+      edm::EDConsumerBase::Labels labels;
+      labelsForToken(src_, labels);
+      edm::LogError("TrackRefitterWithHitFilter")<<"could not get the reco::TrackCollection." << labels.module;
+    }
+    LogDebug("TrackRefitterWithHitFilter") << "run the algorithm" << "\n";
+    
+    try {
+      edm::Handle<FakeHitList> hitListHandle;
+      theEvent.getByToken(m_hitList, hitListHandle);
+      m_hitRemover.setHits((HitList const *)hitListHandle.product());
+      
+      theAlgo.runWithTrack(m_hitRemover, theG.product(), theMF.product(), *theTCollection, 
+			   theFitter.product(), thePropagator.product(), 
+			   theBuilder.product(), bs, algoResults);
+    }catch (cms::Exception &e){ edm::LogError("TrackProducer") << "cms::Exception caught during theAlgo.runWithTrack." << "\n" << e << "\n"; throw; }
+
     
     //put everything in th event
     putInEvt(theEvent, thePropagator.product(), theMeasTk.product(), outputRHColl, outputTColl, outputTEColl, outputTrajectoryColl,  outputIndecesInputColl, algoResults,theBuilder.product(), httopo.product());

@@ -6,8 +6,8 @@
 
 
 TransientTrackingRecHit::RecHitContainer
-HitReMatcher::operator()(trackingRecHit_iterator first, trackingRecHit_iterator last,
-			 const TkTransientTrackingRecHitBuilder * builder) const {
+HitReMatcher::operator()(int,trackingRecHit_iterator first, trackingRecHit_iterator last,
+			 const TkTransientTrackingRecHitBuilder * builder) {
   
   // WARNING: here we assume that the hits are correcly sorted according to seedDir
   TransientTrackingRecHit::RecHitContainer hits;       

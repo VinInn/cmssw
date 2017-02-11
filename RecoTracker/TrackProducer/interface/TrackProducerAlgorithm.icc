@@ -88,7 +88,7 @@ TrackProducerAlgorithm<T>::runWithCandidate(const TrackingGeometry * theG,
 // the following are called by the Refitter(s)
 
 template <class T> void
-TrackProducerAlgorithm<T>::runWithTrack(const HitFilterFromTrack& hitFilter,
+TrackProducerAlgorithm<T>::runWithTrack(HitFilterFromTrack& hitFilter,
 					const TrackingGeometry * theG,
 					const MagneticField * theMF,
 					const TrackView& theTCollection,
@@ -108,9 +108,9 @@ TrackProducerAlgorithm<T>::runWithTrack(const HitFilterFromTrack& hitFilter,
 	const T * theT = &(*i);
 	float ndof=0;
 	PropagationDirection seedDir = theT->seedDirection();
-
-	auto hits = hitFilter(theT->recHitsBegin(), theT->recHitsEnd(), builder);     
-
+	auto itr = i-theTCollection.begin();
+	auto hits = hitFilter(itr,theT->recHitsBegin(), theT->recHitsEnd(), builder);     
+	if (hits.empty()) continue;
 	TrajectoryStateOnSurface theInitialStateForRefitting = getInitialState(theT,hits,theG,theMF);
 
 	// the seed has dummy state and hits.What matters for the fitting is the seedDirection;

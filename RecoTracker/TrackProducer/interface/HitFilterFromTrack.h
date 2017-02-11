@@ -12,8 +12,9 @@ public:
   
   virtual
   TransientTrackingRecHit::RecHitContainer
-  operator()(trackingRecHit_iterator first, trackingRecHit_iterator last,
-	     const TkTransientTrackingRecHitBuilder * builder) const =0;
+  operator()(int itr,
+	     trackingRecHit_iterator first, trackingRecHit_iterator last,
+	     const TkTransientTrackingRecHitBuilder * builder)=0;
   
 };
 
