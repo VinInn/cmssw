@@ -4,7 +4,7 @@
 
 #include "RecoTracker/TrackProducer/interface/HitFilterFromTrack.h"
 
-class HitReMatcher final : public HitFilterFromTrack {
+class dso_hidden HitReMatcher final : public HitFilterFromTrack {
 public:
   explicit HitReMatcher(bool reMatch): reMatchSplitHits_(reMatch) {}
   virtual ~HitReMatcher(){}

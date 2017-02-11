@@ -1,4 +1,4 @@
-#include "RecoTracker/TrackProducer/interface/HitReMatcher.h"
+#include "HitReMatcher.h"
 
 #include "DataFormats/TrackerRecHit2D/interface/SiStripRecHit2D.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiStripMatchedRecHit2D.h"

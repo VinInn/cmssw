@@ -1,4 +1,4 @@
-/** \class TrackRefitter
+/** \class TrackRefitterWithHitFilter
  *  Refit Tracks: Produce Tracks from TrackCollection. It performs a new final fit on a TrackCollection.
  *
  *  \author cerati
@@ -11,11 +11,11 @@
 
 namespace {
 
-  class TrackRefitter final : public KfTrackProducerBase, public edm::stream::EDProducer<> {
+  class TrackRefitterWithHitFilter final : public KfTrackProducerBase, public edm::stream::EDProducer<> {
   public:
     
     /// Constructor
-    explicit TrackRefitter(const edm::ParameterSet& iConfig);
+    explicit TrackRefitterWithHitFilter(const edm::ParameterSet& iConfig);
     
     /// Implementation of produce method
     virtual void produce(edm::Event&, const edm::EventSetup&) override;
@@ -45,7 +45,7 @@ namespace {
 
 namespace {
 
-  TrackRefitter::TrackRefitter(const edm::ParameterSet& iConfig):
+  TrackRefitterWithHitFilter::TrackRefitterWithHitFilter(const edm::ParameterSet& iConfig):
     KfTrackProducerBase(iConfig.getParameter<bool>("TrajectoryInEvent"),
 			iConfig.getParameter<bool>("useHitsSplitting")),
     theAlgo(iConfig),
@@ -65,8 +65,8 @@ namespace {
     else if (constraint_str == "vertex")   { constraint_ = vertex;   trkconstrcoll_ = consumes<TrackVtxConstraintAssociationCollection>(trkconstrcoll); }
     else if (constraint_str == "trackParameters") { constraint_ = trackParameters;  trkconstrcoll_ = consumes<TrackParamConstraintAssociationCollection>(trkconstrcoll); }
     else {
-      edm::LogError("TrackRefitter")<<"constraint: "<<constraint_str<<" not understood. Set it to 'momentum', 'vertex', 'trackParameters' or leave it empty";
-      throw cms::Exception("TrackRefitter") << "unknown type of contraint! Set it to 'momentum', 'vertex', 'trackParameters' or leave it empty";    
+      edm::LogError("TrackRefitterWithHitFilter")<<"constraint: "<<constraint_str<<" not understood. Set it to 'momentum', 'vertex', 'trackParameters' or leave it empty";
+      throw cms::Exception("TrackRefitterWithHitFilter") << "unknown type of contraint! Set it to 'momentum', 'vertex', 'trackParameters' or leave it empty";    
     }
     
     //register your products
@@ -79,9 +79,9 @@ namespace {
     
   }
   
-  void TrackRefitter::produce(edm::Event& theEvent, const edm::EventSetup& setup)
+  void TrackRefitterWithHitFilter::produce(edm::Event& theEvent, const edm::EventSetup& setup)
   {
-    LogDebug("TrackRefitter") << "Analyzing event number: " << theEvent.id() << "\n";
+    LogDebug("TrackRefitterWithHitFilter") << "Analyzing event number: " << theEvent.id() << "\n";
     //
     // create empty output collections
     //
@@ -116,16 +116,16 @@ namespace {
 	edm::Handle<edm::View<reco::Track>> theTCollection;
 	getFromEvt(theEvent,theTCollection,bs);
 	
-	LogDebug("TrackRefitter") << "TrackRefitter::produce(none):Number of Trajectories:" << (*theTCollection).size();
+	LogDebug("TrackRefitterWithHitFilter") << "TrackRefitterWithHitFilter::produce(none):Number of Trajectories:" << (*theTCollection).size();
 	
 	if (bs.position()==math::XYZPoint(0.,0.,0.) && bs.type() == reco::BeamSpot::Unknown) {
-	  edm::LogError("TrackRefitter") << " BeamSpot is (0,0,0), it is probably because is not valid in the event"; break; }
+	  edm::LogError("TrackRefitterWithHitFilter") << " BeamSpot is (0,0,0), it is probably because is not valid in the event"; break; }
 	
 	if (theTCollection.failedToGet()){
 	  edm::EDConsumerBase::Labels labels;
 	  labelsForToken(src_, labels);
-	  edm::LogError("TrackRefitter")<<"could not get the reco::TrackCollection." << labels.module; break;}
-	LogDebug("TrackRefitter") << "run the algorithm" << "\n";
+	  edm::LogError("TrackRefitterWithHitFilter")<<"could not get the reco::TrackCollection." << labels.module; break;}
+	LogDebug("TrackRefitterWithHitFilter") << "run the algorithm" << "\n";
 	
 	try {
 	  theAlgo.runWithTrack(hitReMatcher_, theG.product(), theMF.product(), *theTCollection, 
@@ -145,9 +145,9 @@ namespace {
 	if (!recoBeamSpotHandle.isValid()) break;
 	bs = *recoBeamSpotHandle;      
 	if (theTCollectionWithConstraint.failedToGet()){
-	  //edm::LogError("TrackRefitter")<<"could not get TrackMomConstraintAssociationCollection product.";
+	  //edm::LogError("TrackRefitterWithHitFilter")<<"could not get TrackMomConstraintAssociationCollection product.";
 	  break;}
-	LogDebug("TrackRefitter") << "run the algorithm" << "\n";
+	LogDebug("TrackRefitterWithHitFilter") << "run the algorithm" << "\n";
 	try {
 	  theAlgo.runWithMomentum(theG.product(), theMF.product(), *theTCollectionWithConstraint, 
 				  theFitter.product(), thePropagator.product(), theBuilder.product(), bs, algoResults);
@@ -163,8 +163,8 @@ namespace {
 	if (!recoBeamSpotHandle.isValid()) break;
 	bs = *recoBeamSpotHandle;      
 	if (theTCollectionWithConstraint.failedToGet()){
-	  edm::LogError("TrackRefitter")<<"could not get TrackVtxConstraintAssociationCollection product."; break;}
-	LogDebug("TrackRefitter") << "run the algorithm" << "\n";
+	  edm::LogError("TrackRefitterWithHitFilter")<<"could not get TrackVtxConstraintAssociationCollection product."; break;}
+	LogDebug("TrackRefitterWithHitFilter") << "run the algorithm" << "\n";
 	try {
 	  theAlgo.runWithVertex(theG.product(), theMF.product(), *theTCollectionWithConstraint, 
 				theFitter.product(), thePropagator.product(), theBuilder.product(), bs, algoResults);      
@@ -179,9 +179,9 @@ namespace {
 	if (!recoBeamSpotHandle.isValid()) break;
 	bs = *recoBeamSpotHandle;      
 	if (theTCollectionWithConstraint.failedToGet()){
-	  //edm::LogError("TrackRefitter")<<"could not get TrackParamConstraintAssociationCollection product.";
+	  //edm::LogError("TrackRefitterWithHitFilter")<<"could not get TrackParamConstraintAssociationCollection product.";
 	  break;}
-	LogDebug("TrackRefitter") << "run the algorithm" << "\n";
+	LogDebug("TrackRefitterWithHitFilter") << "run the algorithm" << "\n";
 	try {
 	  theAlgo.runWithTrackParameters(theG.product(), theMF.product(), *theTCollectionWithConstraint, 
 					 theFitter.product(), thePropagator.product(), theBuilder.product(), bs, algoResults);      
@@ -193,9 +193,9 @@ namespace {
     
     //put everything in th event
     putInEvt(theEvent, thePropagator.product(), theMeasTk.product(), outputRHColl, outputTColl, outputTEColl, outputTrajectoryColl,  outputIndecesInputColl, algoResults,theBuilder.product(), httopo.product());
-    LogDebug("TrackRefitter") << "end" << "\n";
+    LogDebug("TrackRefitterWithHitFilter") << "end" << "\n";
   }
   
 }
 
-DEFINE_FWK_MODULE(TrackRefitter);
+DEFINE_FWK_MODULE(TrackRefitterWithHitFilter);
