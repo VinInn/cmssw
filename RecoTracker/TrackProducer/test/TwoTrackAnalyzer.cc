@@ -68,7 +68,7 @@ namespace {
 
     if(hitList.size()!=tracks2.size()) { COUT("2TrackA") << "some fit failed..." << std::endl; return;}
     int nt = tracks2.size();
-    for (int i=1; i<nt; ++i) {
+    for (int i=0; i<nt; ++i) {
       auto const & tk1 = tracks1[hitList[i][0]];
       auto const & tk2 = tracks2[i];
       COUT("2TrackA") << "nh/pt/dxy " << tk1.numberOfValidHits()  << ',' << tk2.numberOfValidHits() << ' '
