@@ -102,45 +102,46 @@ TrackProducerAlgorithm<T>::runWithTrack(HitFilterFromTrack& hitFilter,
   const TkTransientTrackingRecHitBuilder * builder = dynamic_cast<TkTransientTrackingRecHitBuilder const *>(gbuilder);
   assert(builder);
   int cont = 0;
-  for (auto i=theTCollection.begin(); i!=theTCollection.end();i++)
-    {
-      try{
-	const T * theT = &(*i);
-	float ndof=0;
-	PropagationDirection seedDir = theT->seedDirection();
-	auto itr = i-theTCollection.begin();
-	auto hits = hitFilter(itr,theT->recHitsBegin(), theT->recHitsEnd(), builder);     
-	if (hits.empty()) continue;
-	TrajectoryStateOnSurface theInitialStateForRefitting = getInitialState(theT,hits,theG,theMF);
+  for (auto i=theTCollection.begin(); i!=theTCollection.end();i++) {
+    try{
+      const T * theT = &(*i);
+      float ndof=0;
+      // hits in track are sorted along momentum...
+      PropagationDirection seedDir =  alongMomentum;
+      auto itr = i-theTCollection.begin();
+      auto hits = hitFilter(itr,theT->recHitsBegin(), theT->recHitsEnd(), builder);     
+      if (hits.empty()) continue;
+      auto theInitialStateForRefitting = getInitialState(theT,hits,theG,theMF);
+      // make sure the state is on the surface of the first hit 
+      theInitialStateForRefitting = 
+	thePropagator->propagate(theInitialStateForRefitting,*(hits[0]->surface()));
 
-	// the seed has dummy state and hits.What matters for the fitting is the seedDirection;
-	if (seedDir==anyDirection){//if anyDirection the seed direction is not stored in the root file: keep same order
-	  throw cms::Exception("TrackProducer") 
-	    << "ERROR: trying to refit a track which doesn't have a properly filled 'seed direction' data member" << std::endl;
-	}
-
-	const TrajectorySeed seed = TrajectorySeed(PTrajectoryStateOnDet(),
-						   TrajectorySeed::recHitContainer(), seedDir);
-	// =========================
-	//LogDebug("TrackProducer") << "seed.direction()=" << seed.direction();
-
-	//set the algo_ member in order to propagate the old alog name
-	algo_=theT->algo();	
-	originalAlgo_ = theT->originalAlgo();
-	algoMask_ = theT->algoMask();
-
-        stopReason_ = theT->stopReason();
-
-	//=====  the hits are in the same order as they were in the track::extra.
-        FitterCloner fc(theFitter,builder);        
-	bool ok = buildTrack(fc.fitter.get(),thePropagator,algoResults, hits, theInitialStateForRefitting, 
-			     seed, ndof, bs, theT->seedRef(),theT->qualityMask(),theT->nLoops());
-	if(ok) cont++;
-      }catch ( cms::Exception & e){
-	edm::LogError("TrackProducer") << "Genexception1: " << e.explainSelf() <<"\n";      
-        throw;
-      }
+      
+      // the seed has dummy state and hits.What matters for the fitting is the seedDirection
+      // it must be alongMomentum!
+      const TrajectorySeed seed = TrajectorySeed(PTrajectoryStateOnDet(),
+						 TrajectorySeed::recHitContainer(), seedDir);
+      // =========================
+      //LogDebug("TrackProducer") << "seed.direction()=" << seed.direction();
+      
+      //set the algo_ member in order to propagate the old alog name
+      algo_=theT->algo();	
+      originalAlgo_ = theT->originalAlgo();
+      algoMask_ = theT->algoMask();
+      
+      stopReason_ = theT->stopReason();
+      
+      //=====  the hits are in the same order as they were in the track::extra.
+      FitterCloner fc(theFitter,builder);        
+      bool ok = buildTrack(fc.fitter.get(),thePropagator,algoResults, hits, theInitialStateForRefitting, 
+			   seed, ndof, bs, theT->seedRef(),theT->qualityMask(),theT->nLoops());
+      if(ok) cont++;
+    }catch ( cms::Exception & e){
+      edm::LogError("TrackProducer") << "Genexception1: " << e.explainSelf() <<"\n";      
+      throw;
     }
+  }
+  std::cout << "TrackProducer " << "Number of Tracks found: " << cont << std::endl;
   LogDebug("TrackProducer") << "Number of Tracks found: " << cont << "\n";
   
 }

@@ -37,6 +37,9 @@ public:
       go(i);
     }
 
+    // remove invalid hits from head
+    while (!(**rtr.begin()).isValid()) rtr.erase(rtr.begin());
+    
     std::cout << "hits " << itr << ' '  << last-first  << ' ' << rtr.size() <<std::endl;
     ++ntr;
     return rtr;

@@ -14,6 +14,8 @@
 <use   name="root"/>
 <library   file="TrackAnalyzer.cc" name="TrackAnalyzer">
   <flags   EDM_PLUGIN="1"/>
+<library   file="TwoTrackAnalyzer.cc" name="TwoTrackAnalyzer">
+  <flags   EDM_PLUGIN="1"/>
 </library>
 <library   file="TrackValidator.cc" name="TrackValidator">
   <use   name="TrackingTools/TransientTrack"/>

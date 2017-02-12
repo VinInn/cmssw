@@ -128,6 +128,8 @@ namespace {
 			   theBuilder.product(), bs, algoResults);
     }catch (cms::Exception &e){ edm::LogError("TrackProducer") << "cms::Exception caught during theAlgo.runWithTrack." << "\n" << e << "\n"; throw; }
 
+    std::cout << "TrackRefit " << "Number of Tracks found: " << algoResults.size() << std::endl;
+
     
     //put everything in th event
     putInEvt(theEvent, thePropagator.product(), theMeasTk.product(), outputRHColl, outputTColl, outputTEColl, outputTrajectoryColl,  outputIndecesInputColl, algoResults,theBuilder.product(), httopo.product());
