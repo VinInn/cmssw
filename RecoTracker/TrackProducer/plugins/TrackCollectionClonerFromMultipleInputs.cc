@@ -82,16 +82,18 @@ namespace {
     edm::Handle<FakeHitList> hitListHandle;
     evt.getByToken(m_hitList, hitListHandle);
     auto const & hitList = *(HitList const *)hitListHandle.product();
-
+    
+    COUT("TrackCollectionClonerFromMultipleInputs") << "sizes: "
+						    << tracksGen.size() << ' ' << tracksOri.size() << ' ' << tracksRefit.size() << ' '  << hitList.size()<< std::endl;
+    
     product.reserve(tracksGen.size());
     if(hitList.size()!=tracksRefit.size()) {
       COUT("TrackCollectionClonerFromMultipleInputs") << "some fit failed..." << std::endl;
       for (auto const&tk:tracksGen) product.push_back(tk);
     } else {
-      product.reserve(tracksGen.size());
       auto pG = &tracksGen.front();
       auto eG = &tracksGen.back();
-      int nt = tracksOri.size();
+      int nt = tracksRefit.size();
       for (int i=0; i<nt; ++i) {
 	auto const & tkO = tracksOri[hitList[i][0]];
 	auto const & tkN = tracksRefit[i];
@@ -99,8 +101,10 @@ namespace {
 	assert(pN>=pG && pN<=eG);
 	for(;pG<pN; ++pG) product.push_back(*pG);
 	product.push_back(tkN);
+	assert(pN==pG);
+	++pG;
       }
-      assert(pG<=eG);
+      assert(pG<=(eG+1));
       for(;pG<=eG; ++pG) product.push_back(*pG);
     }
 
