@@ -32,14 +32,12 @@ using namespace edm;
 using namespace Geom;
 using namespace std;
 
-class queryField : public edm::EDAnalyzer {
+class TrackInField final : public edm::EDAnalyzer {
  public:
-  queryField(const edm::ParameterSet& pset) {    
-  }
 
-  ~queryField(){}
+  TrackInField(const edm::ParameterSet&){}
 
-  virtual void analyze(const edm::Event& event, const edm::EventSetup& setup) {
+  void analyze(const edm::Event& event, const edm::EventSetup& setup) override{
    ESHandle<MagneticField> magfield;
    setup.get<IdealMagneticFieldRecord>().get(magfield);
 
@@ -47,17 +45,16 @@ class queryField : public edm::EDAnalyzer {
 
    cout << "Field Nominal Value: " << field->nominalValue() << endl;
 
-   float x,y,z;
-
   auto start = std::chrono::high_resolution_clock::now();
   auto delta = start - start;
 
   long long n=0;
-   while (1) {
-     
-     cout << "Enter X Y Z (cm): ";
-
-     if (!(cin >> x >>  y >>  z)) exit(0);
+  int nsteps=1200.;
+  for (int kk=0; kk<1000; ++kk)
+  for (float dz=0; dz<10.f; dz+=0.1f) {
+    float x=0,y=0,z=0;
+    for (int i=0; i<nsteps; ++i) {
+     x+=1.f; y+=1.f; z+=dz;
     
      GlobalPoint g(x,y,z);
 
@@ -67,8 +64,10 @@ class queryField : public edm::EDAnalyzer {
      benchmark::keep(f);
      delta += (chrono::high_resolution_clock::now()-start);
      ++n;
-
-     cout << "At R=" << g.perp() << " phi=" << g.phi()<< " B=" << f << endl;
+     if (z>1100.f) break;
+     if (f.z()==0) break;
+//     cout << "At R=" << g.perp() << " phi=" << g.phi()<< " z " << g.z() << " B=" << f << endl;
+    }
    }
    std::cout << " query took "
               << std::chrono::duration_cast<chrono::milliseconds>(delta).count()/double(n)
@@ -82,5 +81,5 @@ class queryField : public edm::EDAnalyzer {
 };
 
 
-DEFINE_FWK_MODULE(queryField);
+DEFINE_FWK_MODULE(TrackInField);
 

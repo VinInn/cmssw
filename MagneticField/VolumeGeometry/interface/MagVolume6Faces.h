@@ -24,7 +24,7 @@
 template <class T>
 class MagneticFieldProvider;
 
-class MagVolume6Faces : public MagVolume {
+class MagVolume6Faces final : public MagVolume {
 public:
 
   MagVolume6Faces( const PositionType& pos, const RotationType& rot, 
@@ -33,7 +33,7 @@ public:
 		   double sf=1.);
 
   using MagVolume::inside;
-  virtual bool inside( const GlobalPoint& gp, double tolerance=0.) const;
+  virtual bool inside( const GlobalPoint& gp, double tolerance=0.) const override;
 
   /// Access to volume faces
   virtual const std::vector<VolumeSide>& faces() const {return theFaces;}
