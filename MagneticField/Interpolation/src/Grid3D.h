@@ -14,6 +14,8 @@
 #include <vector>
 #include "FWCore/Utilities/interface/Visibility.h"
 
+#include "zfp-0.5.0/interface/zfparray3.h"
+
 // the storage class
 // needed just because legacy software used () constructor
 struct BStorageArray {
@@ -37,15 +39,12 @@ public:
   //using BVector =  ValueType;
   using Container = std::vector<BVector>;
 
+  using ZipArray = zfp::array3<float>;
+
   Grid3D() {}
 
   Grid3D( const Grid1D& ga, const Grid1D& gb, const Grid1D& gc,
-	  std::vector<BVector>& data) : 
-    grida_(ga), gridb_(gb), gridc_(gc) {
-     data_.swap(data);
-     stride1_ = gridb_.nodes() * gridc_.nodes();
-     stride2_ = gridc_.nodes();
-  }
+	  std::vector<BVector>& data);
 
 
   //  Grid3D( const Grid1D& ga, const Grid1D& gb, const Grid1D& gc,
@@ -61,7 +60,8 @@ public:
   }
 
   ValueType operator()(int i, int j, int k) const {
-    return (*this)(index(i,j,k));
+    return ValueType(zipX(k,j,i),zipY(k,j,i),zipZ(k,j,i));
+   //  return (*this)(index(i,j,k));
   }
 
   const Grid1D& grida() const {return grida_;}
@@ -78,6 +78,8 @@ private:
   Grid1D gridb_;
   Grid1D gridc_;
 
+
+  ZipArray zipX,zipY,zipZ;
   Container data_;
 
   int stride1_;

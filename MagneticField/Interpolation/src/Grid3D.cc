@@ -1,5 +1,46 @@
 #include "Grid3D.h"
 #include <iostream>
+#include<atomic>
+
+namespace {
+  struct Stat {
+    Stat() : ng(0), stot(0){}
+    ~Stat() { 
+       std::cout << "MF Grid stats: ngrids, tot size, zip size " << ng << ' ' << stot << ' ' << ztot << std::endl;
+     }
+    std::atomic<long long> ng, stot, ztot;
+  };
+
+ Stat stat;
+
+}
+
+
+Grid3D::Grid3D( const Grid1D& ga, const Grid1D& gb, const Grid1D& gc,
+          std::vector<BVector>& data) :
+    grida_(ga), gridb_(gb), gridc_(gc),
+    zipX(gridc_.nodes(),gridb_.nodes(),grida_.nodes(),8),
+    zipY(gridc_.nodes(),gridb_.nodes(),grida_.nodes(),8),
+    zipZ(gridc_.nodes(),gridb_.nodes(),grida_.nodes(),8)
+    {
+     stride1_ = gridb_.nodes() * gridc_.nodes();
+     stride2_ = gridc_.nodes();
+
+//     std::cout << data.size() << '/' << zipX.size() << std::endl;
+//     std::cout << grida_.nodes()*gridb_.nodes() * gridc_.nodes()<< std::endl;
+
+     std::vector<float> tmp(data.size());
+     for (unsigned int i=0; i<data.size(); ++i) tmp[i] = data[i][0];
+     zipX.set(&tmp.front());
+     for (unsigned int i=0; i<data.size(); ++i) tmp[i] =	data[i][1];
+     zipY.set(&tmp.front());
+     for (unsigned int i=0; i<data.size(); ++i) tmp[i] =	data[i][2];
+     zipZ.set(&tmp.front());
+
+     data_.swap(data);
+
+     ++stat.ng; stat.stot+=sizeof(BVector)*data_.size();  stat.ztot+= zipX.compressed_size()+zipY.compressed_size()+zipZ.compressed_size();
+}
 
 
 /*

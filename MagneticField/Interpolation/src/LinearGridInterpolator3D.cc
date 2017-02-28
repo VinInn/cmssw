@@ -3,6 +3,8 @@
 #include "Grid3D.h"
 #include "MagneticField/VolumeGeometry/interface/MagExceptions.h"
 
+#include<iostream>
+
 void
 LinearGridInterpolator3D::throwGridInterpolator3DException(void)
 {
@@ -41,8 +43,10 @@ LinearGridInterpolator3D::interpolate( Scalar a, Scalar b, Scalar c)
   gridb.normalize(j,t);
   gridc.normalize(k,u);
 
+// #define DEBUG_LinearGridInterpolator3D
+
 #ifdef DEBUG_LinearGridInterpolator3D
-  if (InterpolationDebug::debug) {
+//  if (InterpolationDebug::debug) {
     using std::cout;
     using std::endl;
     cout << "LinearGridInterpolator3D called with a,b,c " << a << "," << b << "," << c << endl;
@@ -66,7 +70,7 @@ LinearGridInterpolator3D::interpolate( Scalar a, Scalar b, Scalar c)
 //       << (1-s)*   t *(1-u)*grid(i,  j+1,k) << " " << (1-s)*   t *u*grid(i,  j+1,k+1) << endl 
 //       << s    *(1-t)*(1-u)*grid(i+1,j,  k) << " " <<  s    *(1-t)*u*grid(i+1,j,  k+1) << endl 
 //       << s    *   t *(1-u)*grid(i+1,j+1,k) << " " << s    *   t *u*grid(i+1,j+1,k+1) << endl;
-  }
+//  }
 
 #endif
 
@@ -75,6 +79,7 @@ LinearGridInterpolator3D::interpolate( Scalar a, Scalar b, Scalar c)
   int s2 = grid.stride2(); 
   int s3 = grid.stride3(); 
   //chances are this is more numerically precise this way
+
 
 
 
@@ -94,7 +99,30 @@ LinearGridInterpolator3D::interpolate( Scalar a, Scalar b, Scalar c)
 
 
 #else
-  
+
+
+  //   fijk
+  auto f000 = grid(i,  j,  k);
+  auto f010 = grid(i,  j+1,k);
+  auto f001 = grid(i,  j,  k+1);
+  auto f011 = grid(i,  j+1,k+1);
+  auto f111 = grid(i+1,j+1,k+1);
+  auto f101 = grid(i+1,j,  k+1);
+  auto f110 = grid(i+1,j+1,k);
+  auto f100 = grid(i+1,j  ,k);
+
+
+  ValueType result = ((1.f-s)*(1.f-t)*u)*(f001 - f000);
+  result =  result + ((1.f-s)*     t *u)*(f011 - f010);
+  result =  result + (s      *(1.f-t)*u)*(f101 - f100);
+  result =  result + (s      *     t *u)*(f111 - f110);
+  result =  result + (        (1.f-s)*t)*(f010 - f000);
+  result =  result + (      s        *t)*(f110 - f100);
+  result =  result + (                s)*(f100 - f000);
+  result =  result +                             f000;
+
+
+/*  
   ValueType result = ((1.f-s)*(1.f-t)*u)*(grid(ind      +s3) - grid(ind      ));
   result =  result + ((1.f-s)*     t *u)*(grid(ind   +s2+s3) - grid(ind   +s2));
   result =  result + (s      *(1.f-t)*u)*(grid(ind+s1   +s3) - grid(ind+s1   ));
@@ -103,7 +131,7 @@ LinearGridInterpolator3D::interpolate( Scalar a, Scalar b, Scalar c)
   result =  result + (      s        *t)*(grid(ind+s1+s2   ) - grid(ind+s1   ));
   result =  result + (                s)*(grid(ind+s1      ) - grid(ind      ));
   result =  result +                                           grid(ind      );
-
+*/
 
 #endif
 

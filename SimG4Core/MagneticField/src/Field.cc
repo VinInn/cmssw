@@ -21,9 +21,9 @@ Field::~Field() {}
 
 void Field::GetFieldValue(const G4double xyz[4], G4double bfield[3]) const 
 { 
-  if (std::abs(oldx[0]-xyz[0])>theDelta ||
-      std::abs(oldx[1]-xyz[1])>theDelta ||
-      std::abs(oldx[2]-xyz[2])>theDelta) 
+  if unlikely( (std::abs(oldx[0]-xyz[0])>theDelta) |
+      (std::abs(oldx[1]-xyz[1])>theDelta) |
+      (std::abs(oldx[2]-xyz[2])>theDelta) ) 
     {
       static const float lunit = (float)(1.0/CLHEP::cm);
       GlobalPoint ggg((float)(xyz[0])*lunit,(float)(xyz[1])*lunit,(float)(xyz[2])*lunit);
