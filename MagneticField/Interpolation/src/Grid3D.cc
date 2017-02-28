@@ -19,9 +19,9 @@ namespace {
 Grid3D::Grid3D( const Grid1D& ga, const Grid1D& gb, const Grid1D& gc,
           std::vector<BVector>& data) :
     grida_(ga), gridb_(gb), gridc_(gc),
-    zipX(gridc_.nodes(),gridb_.nodes(),grida_.nodes(),8),
-    zipY(gridc_.nodes(),gridb_.nodes(),grida_.nodes(),8),
-    zipZ(gridc_.nodes(),gridb_.nodes(),grida_.nodes(),8)
+    zipX(gridc_.nodes(),gridb_.nodes(),grida_.nodes(),6),
+    zipY(gridc_.nodes(),gridb_.nodes(),grida_.nodes(),6),
+    zipZ(gridc_.nodes(),gridb_.nodes(),grida_.nodes(),6)
     {
      stride1_ = gridb_.nodes() * gridc_.nodes();
      stride2_ = gridc_.nodes();
