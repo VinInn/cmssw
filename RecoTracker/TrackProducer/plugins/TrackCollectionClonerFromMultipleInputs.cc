@@ -90,7 +90,7 @@ namespace {
     if(hitList.size()!=tracksRefit.size()) {
       COUT("TrackCollectionClonerFromMultipleInputs") << "some fit failed..." << std::endl;
       for (auto const&tk:tracksGen) product.push_back(tk);
-    } else {
+    } else if (!tracksGen.empty()) {
       auto pG = &tracksGen.front();
       auto eG = &tracksGen.back();
       int nt = tracksRefit.size();
