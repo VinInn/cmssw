@@ -22,6 +22,8 @@
 #include "RecoTracker/TransientTrackingRecHit/interface/TkTransientTrackingRecHitBuilder.h"
 #include "TrackingTools/TrackFitters/interface/TrajectoryFitter.h"
 
+#include "RecoTracker/TrackProducer/interface/HitFilterFromTrack.h"
+
 
 class MagneticField;
 class TrackingGeometry;
@@ -59,13 +61,10 @@ public:
     algo_(reco::TrackBase::algoByName(conf.getParameter<std::string>("AlgorithmName"))),
     originalAlgo_(reco::TrackBase::undefAlgorithm),
     stopReason_(0),
-    reMatchSplitHits_(false),
     usePropagatorForPCA_(false)
       {
         geometricInnerState_ = (conf.exists("GeometricInnerState") ?
 	  conf.getParameter<bool>( "GeometricInnerState" ) : true);
-	if (conf.exists("reMatchSplitHits"))
-	  reMatchSplitHits_=conf.getParameter<bool>("reMatchSplitHits");
         if (conf.exists("usePropagatorForPCA"))
           usePropagatorForPCA_ = conf.getParameter<bool>("usePropagatorForPCA");
       }
@@ -84,7 +83,8 @@ public:
 			AlgoProductCollection &);
 
   /// Run the Final Fit taking Tracks as input (for Refitter)
-  void runWithTrack(const TrackingGeometry *, 
+  void runWithTrack(HitFilterFromTrack&,
+		    const TrackingGeometry *, 
 		    const MagneticField *, 
 		    const TrackView&,
 		    const TrajectoryFitter *,
@@ -145,7 +145,6 @@ public:
   reco::TrackBase::AlgoMask algoMask_;
   uint8_t stopReason_;
 
-  bool reMatchSplitHits_;
   bool geometricInnerState_;
   bool usePropagatorForPCA_;
 

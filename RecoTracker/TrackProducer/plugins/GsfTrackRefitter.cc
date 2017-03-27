@@ -18,7 +18,9 @@
 GsfTrackRefitter::GsfTrackRefitter(const edm::ParameterSet& iConfig):
   GsfTrackProducerBase(iConfig.getParameter<bool>("TrajectoryInEvent"),
 		       iConfig.getParameter<bool>("useHitsSplitting")),
-  theAlgo(iConfig)
+  theAlgo(iConfig),
+  hitReMatcher_( iConfig.exists("reMatchSplitHits") ?  iConfig.getParameter<bool>("reMatchSplitHits"): false)
+
 {
   setConf(iConfig);
   setSrc( consumes<edm::View<reco::GsfTrack>>(iConfig.getParameter<edm::InputTag>( "src" )), 
@@ -88,7 +90,7 @@ void GsfTrackRefitter::produce(edm::Event& theEvent, const edm::EventSetup& setu
 	edm::LogError("GsfTrackRefitter")<<"could not get the reco::GsfTrackCollection."; return;}
       LogDebug("GsfTrackRefitter") << "run the algorithm" << "\n";
       try {
-	theAlgo.runWithTrack(theG.product(), theMF.product(), *theTCollection, 
+	theAlgo.runWithTrack(hitReMatcher_,theG.product(), theMF.product(), *theTCollection, 
 			     theFitter.product(), thePropagator.product(),  
 			     theBuilder.product(), bs, algoResults);
       }catch (cms::Exception &e){ edm::LogError("TrackProducer") << "cms::Exception caught during theAlgo.runWithTrack." << "\n" << e << "\n"; throw; }

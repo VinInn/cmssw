@@ -10,8 +10,9 @@
 #include "RecoTracker/TrackProducer/interface/TrackProducerAlgorithm.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "TrackingTools/GsfTracking/interface/GsfTrackConstraintAssociation.h"
+#include "HitReMatcher.h"
 
-class GsfTrackRefitter : public GsfTrackProducerBase, public edm::stream::EDProducer<> {
+class GsfTrackRefitter final : public GsfTrackProducerBase, public edm::stream::EDProducer<> {
 public:
 
   /// Constructor
@@ -27,6 +28,8 @@ private:
 		    vertex };
   Constraint constraint_;
   edm::EDGetTokenT<GsfTrackVtxConstraintAssociationCollection> gsfTrackVtxConstraintTag_;
+  HitReMatcher hitReMatcher_;
+  
 };
 
 #endif

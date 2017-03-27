@@ -31,7 +31,7 @@
 #include "RecoVertex/MultiVertexFit/interface/MultiVertexFitter.h"
 
 #include "RecoVertex/AdaptiveVertexFinder/interface/TTHelpers.h"
-//#define VTXDEBUG 1
+#define VTXDEBUG 1
 template <class InputContainer, class VTX>
 class TemplatedInclusiveVertexFinder : public edm::stream::EDProducer<> {
     public:
@@ -195,7 +195,8 @@ void TemplatedInclusiveVertexFinder<InputContainer,VTX>::produce(edm::Event &eve
 			std::cout << "V chi2/n: " << v->normalisedChiSquared() << " ndof: " <<v->degreesOfFreedom() ;
 			std::cout << " dlen: " << dlen.value() << " error: " << dlen.error() << " signif: " << dlen.significance();
 			std::cout << " dlen2: " << dlen2.value() << " error2: " << dlen2.error() << " signif2: " << dlen2.significance();
-			std::cout << " pos: " << vv.position() << " error: " <<vv.xError() << " " << vv.yError() << " " << vv.zError() << std::endl;
+			std::cout << " pos: " << vv.position() << std::endl;
+// << " error: " <<vv.xError() << " " << vv.yError() << " " << vv.zError() << std::endl;
 #endif
 			GlobalVector dir;  
 			std::vector<reco::TransientTrack> ts = v->originalTracks();

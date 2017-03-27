@@ -88,7 +88,8 @@ TrackProducerAlgorithm<T>::runWithCandidate(const TrackingGeometry * theG,
 // the following are called by the Refitter(s)
 
 template <class T> void
-TrackProducerAlgorithm<T>::runWithTrack(const TrackingGeometry * theG,
+TrackProducerAlgorithm<T>::runWithTrack(HitFilterFromTrack& hitFilter,
+					const TrackingGeometry * theG,
 					const MagneticField * theMF,
 					const TrackView& theTCollection,
 					const TrajectoryFitter * theFitter,
@@ -101,91 +102,46 @@ TrackProducerAlgorithm<T>::runWithTrack(const TrackingGeometry * theG,
   const TkTransientTrackingRecHitBuilder * builder = dynamic_cast<TkTransientTrackingRecHitBuilder const *>(gbuilder);
   assert(builder);
   int cont = 0;
-  for (auto i=theTCollection.begin(); i!=theTCollection.end();i++)
-    {
-      try{
-	const T * theT = &(*i);
-	float ndof=0;
-	PropagationDirection seedDir = theT->seedDirection();
+  for (auto i=theTCollection.begin(); i!=theTCollection.end();i++) {
+    try{
+      const T * theT = &(*i);
+      float ndof=0;
+      // hits in track are sorted along momentum...
+      PropagationDirection seedDir =  alongMomentum;
+      auto itr = i-theTCollection.begin();
+      auto hits = hitFilter(itr,theT->recHitsBegin(), theT->recHitsEnd(), builder);     
+      if (hits.empty()) continue;
+      auto theInitialStateForRefitting = getInitialState(theT,hits,theG,theMF);
+      // make sure the state is on the surface of the first hit 
+      theInitialStateForRefitting = 
+	thePropagator->propagate(theInitialStateForRefitting,*(hits[0]->surface()));
 
-	// WARNING: here we assume that the hits are correcly sorted according to seedDir
-	TransientTrackingRecHit::RecHitContainer hits;       
-	for (trackingRecHit_iterator i=theT->recHitsBegin(); i!=theT->recHitsEnd(); i++){
-	     if (reMatchSplitHits_){
-	   	//re-match hits that belong together
-      		trackingRecHit_iterator next = i; next++;
-                if (next != theT->recHitsEnd() && (*i)->isValid()){
-			//check whether hit and nexthit are on glued module
-			DetId hitId = (**i).geographicalId();
-
-			if(hitId.det() == DetId::Tracker) {
-                          if(GeomDetEnumerators::isTrackerStrip((**i).det()->subDetector())) {
-			    SiStripDetId stripId(hitId);
-			    if (stripId.partnerDetId() == (*next)->geographicalId().rawId()){
-			      //yes they are parterns in a glued geometry.
-			      DetId gluedId = stripId.glued();
-			      const SiStripRecHit2D *mono=0;
-			      const SiStripRecHit2D *stereo=0;
-			      if (stripId.stereo()==0){
-				mono=dynamic_cast<const SiStripRecHit2D *>(&**i);
-				stereo=dynamic_cast<const SiStripRecHit2D *>(&**next);
-			      }
-			      else{
-				mono=dynamic_cast<const SiStripRecHit2D *>(&**next);
-				stereo=dynamic_cast<const SiStripRecHit2D *>(&**i);
-			      }
-			      if (!mono	|| !stereo){
-					edm::LogError("TrackProducerAlgorithm")
-						<<"cannot get a SiStripRecHit2D from the rechit."<<hitId.rawId()
-						<<" "<<gluedId.rawId()
-						<<" "<<stripId.partnerDetId()
-						<<" "<<(*next)->geographicalId().rawId();
-				}
-			      LocalPoint pos;//null
-			      LocalError err;//null
-			      hits.push_back(std::make_shared<SiStripMatchedRecHit2D>(pos,err, *builder->geometry()->idToDet(gluedId), mono,stereo));
-			      //the local position and error is dummy but the fitter does not need that anyways
-			      i++;
-			      continue;//go to next.
-			    }//consecutive hits are on parterns module.
-		  }}//is a strip module
-	      }//next is not the end of hits
-	   }//if rematching option is on.
-
-
-	  if ((**i).geographicalId()!=0U)  hits.push_back( (**i).cloneForFit(*builder->geometry()->idToDet( (**i).geographicalId() ) ) );
-	}
-	
-	TrajectoryStateOnSurface theInitialStateForRefitting = getInitialState(theT,hits,theG,theMF);
-
-	// the seed has dummy state and hits.What matters for the fitting is the seedDirection;
-	if (seedDir==anyDirection){//if anyDirection the seed direction is not stored in the root file: keep same order
-	  throw cms::Exception("TrackProducer") 
-	    << "ERROR: trying to refit a track which doesn't have a properly filled 'seed direction' data member" << std::endl;
-	}
-
-	const TrajectorySeed seed = TrajectorySeed(PTrajectoryStateOnDet(),
-						   TrajectorySeed::recHitContainer(), seedDir);
-	// =========================
-	//LogDebug("TrackProducer") << "seed.direction()=" << seed.direction();
-
-	//set the algo_ member in order to propagate the old alog name
-	algo_=theT->algo();	
-	originalAlgo_ = theT->originalAlgo();
-	algoMask_ = theT->algoMask();
-
-        stopReason_ = theT->stopReason();
-
-	//=====  the hits are in the same order as they were in the track::extra.
-        FitterCloner fc(theFitter,builder);        
-	bool ok = buildTrack(fc.fitter.get(),thePropagator,algoResults, hits, theInitialStateForRefitting, 
-			     seed, ndof, bs, theT->seedRef(),theT->qualityMask(),theT->nLoops());
-	if(ok) cont++;
-      }catch ( cms::Exception & e){
-	edm::LogError("TrackProducer") << "Genexception1: " << e.explainSelf() <<"\n";      
-        throw;
-      }
+      
+      // the seed has dummy state and hits.What matters for the fitting is the seedDirection
+      // it must be alongMomentum!
+      const TrajectorySeed seed = TrajectorySeed(PTrajectoryStateOnDet(),
+						 TrajectorySeed::recHitContainer(), seedDir);
+      // =========================
+      //LogDebug("TrackProducer") << "seed.direction()=" << seed.direction();
+      
+      //set the algo_ member in order to propagate the old alog name
+      algo_=theT->algo();	
+      originalAlgo_ = theT->originalAlgo();
+      algoMask_ = theT->algoMask();
+      
+      stopReason_ = theT->stopReason();
+      
+      //=====  the hits are in the same order as they were in the track::extra.
+      FitterCloner fc(theFitter,builder);        
+      bool ok = buildTrack(fc.fitter.get(),thePropagator,algoResults, hits, theInitialStateForRefitting, 
+			   seed, ndof, bs, theT->seedRef(),theT->qualityMask(),theT->nLoops());
+      if(ok) cont++;
+    }catch ( cms::Exception & e){
+      edm::LogError("TrackProducer") << "Genexception1: " << e.explainSelf() <<"\n";      
+      throw;
     }
+  }
+  std::cout << "TrackProducer " << "Number of Tracks found: " << cont << std::endl;
   LogDebug("TrackProducer") << "Number of Tracks found: " << cont << "\n";
   
 }

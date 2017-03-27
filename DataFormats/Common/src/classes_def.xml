@@ -182,4 +182,8 @@
  <class name="edm::RefProd<std::vector<int> >"/>
  <class name="edm::RefToBaseProd<int>"/>
 
+ <class name="fakearray<int,4>"/>
+ <class name="std::vector<fakearray<int,4>>"/>
+ <class name="edm::Wrapper<std::vector<fakearray<int,4>>>"/>
+
 </lcgdict>
