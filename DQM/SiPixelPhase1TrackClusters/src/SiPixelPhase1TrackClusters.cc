@@ -150,8 +150,11 @@ void SiPixelPhase1TrackClusters::analyze(const edm::Event& iEvent, const edm::Ev
       // we could do subit-...->data().front() as well, but this seems cleaner.
       auto key = edmNew::makeRefTo(clusterColl, subit).key(); 
       bool is_ontrack = ontrack[key];
+      if(!is_ontrack) continue;
       float corrected_charge = corr_charge[key];
       SiPixelCluster const& cluster = *subit;
+
+      if (std::abs(etatk[key])>0.8f) continue;
 
       LocalPoint clustlp = topol.localPosition(MeasurementPoint(cluster.x(), cluster.y()));
       GlobalPoint clustgp = geomdetunit->surface().toGlobal(clustlp);
@@ -159,12 +162,14 @@ void SiPixelPhase1TrackClusters::analyze(const edm::Event& iEvent, const edm::Ev
      if (cluster.minPixelCol()==0) continue;
      if	(cluster.maxPixelCol()+1==topol. ncolumns()) continue;
 
-//     if ((cluster.minPixelCol()%topol.colsperroc()%2)==0) continue;
+     // if ((cluster.minPixelCol()%topol.colsperroc()%2)==1) continue;
 
      auto sizeY = cluster.sizeY();
+     if (sizeY!=2) continue;
      if (topol.containsBigPixelInY(cluster.minPixelCol(), cluster.maxPixelCol()) ) sizeY+=1;
 
-      if (is_ontrack) {
+      //if (is_ontrack) {
+      if((cluster.minPixelCol()%topol.colsperroc()%2)==1) {
         histo[ONTRACK_NCLUSTERS ].fill(id, &iEvent);
         histo[ONTRACK_CHARGE    ].fill(double(corrected_charge), id, &iEvent);
         histo[ONTRACK_SIZE      ].fill(double(cluster.size()  ), id, &iEvent);

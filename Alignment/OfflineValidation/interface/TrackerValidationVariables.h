@@ -9,6 +9,7 @@
 
 class MagneticField;
 class Trajectory;
+class TrackingRecHit;
 
 namespace edm {
   class ConsumesCollector;
@@ -27,6 +28,7 @@ class TrackerValidationVariables
       resYprime(-999.), resYprimeErr(-999.), phi(-999.), eta(-999.),
      inside(false), localX(-999.), localY(-999.), localXnorm(-999.), localYnorm(-999.), localAlpha(-999.), localBeta(-999.),
       rawDetId(0) {}
+    TrackingRecHit const * hit = nullptr;
     float resX;
     float resY;
     float resErrX;

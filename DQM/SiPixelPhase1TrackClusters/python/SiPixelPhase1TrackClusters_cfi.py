@@ -123,23 +123,23 @@ SiPixelPhase1TrackClustersOnTrackPositionF = DefaultHistoTrack.clone(
 
 SiPixelPhase1TrackClustersOffTrackCharge = \
   SiPixelPhase1TrackClustersOnTrackCharge.clone(topFolderName = "PixelPhase1/OffTrack", 
-  enabled = False,
+  enabled = True,
   title = "Cluster Charge")
 SiPixelPhase1TrackClustersOffTrackSize = \
   SiPixelPhase1TrackClustersOnTrackSize.clone(topFolderName = "PixelPhase1/OffTrack",
-  enabled = False)
+  enabled = True)
 
 SiPixelPhase1TrackClustersOffTrackNClusters = \
   SiPixelPhase1TrackClustersOnTrackNClusters.clone(topFolderName = "PixelPhase1/OffTrack",
-  enabled = False)
+  enabled = True)
 
 SiPixelPhase1TrackClustersOffTrackPositionB = \
   SiPixelPhase1TrackClustersOnTrackPositionB.clone(topFolderName = "PixelPhase1/OffTrack",
-  enabled = False)
+  enabled = True)
 
 SiPixelPhase1TrackClustersOffTrackPositionF = \
   SiPixelPhase1TrackClustersOnTrackPositionF.clone(topFolderName = "PixelPhase1/OffTrack",
-  enabled = False)
+  enabled = True)
 
 SiPixelPhase1TrackClustersNTracks = DefaultHistoTrack.clone(
   name = "ntracks",

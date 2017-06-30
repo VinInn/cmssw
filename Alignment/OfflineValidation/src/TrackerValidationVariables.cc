@@ -85,6 +85,7 @@ void TrackerValidationVariables::fillHitQuantities(reco::Track const & track, st
 
       auto gtrkdirup= hit->surface()->toGlobal(lVTrk);
 
+      hitStruct.hit = hit->hit();
       hitStruct.rawDetId = IntRawDetID;
       hitStruct.phi = gtrkdirup.phi();  // direction, not position
       hitStruct.eta = gtrkdirup.eta();  // same
@@ -425,6 +426,7 @@ TrackerValidationVariables::fillHitQuantities(const Trajectory* trajectory, std:
     hitStruct.resXprimeErr = resXprimeErr;
     hitStruct.resYprimeErr = resYprimeErr;
     
+    hitStruct.hit = hit->hit();
     hitStruct.rawDetId = IntRawDetID;
     hitStruct.phi = tsos.globalDirection().phi();
     hitStruct.eta = tsos.globalDirection().eta();

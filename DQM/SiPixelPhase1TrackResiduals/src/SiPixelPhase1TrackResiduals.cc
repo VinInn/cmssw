@@ -45,6 +45,7 @@ void SiPixelPhase1TrackResiduals::analyze(const edm::Event& iEvent, const edm::E
     [&](const reco::Track& track) -> bool { 
     return (!applyVertexCut_ || (
        track.pt() > 1.5 && track.numberOfValidHits()>=8
+       && std::abs(track.eta())<1. 
        && std::abs( track.dxy(vertices->at(0).position()) ) < 5*track.dxyError()));
     }, vtracks);
 
@@ -53,6 +54,26 @@ void SiPixelPhase1TrackResiduals::analyze(const edm::Event& iEvent, const edm::E
       auto id = DetId(it.rawDetId);
       auto isPixel = id.subdetId() == 1 || id.subdetId() == 2;
       if (!isPixel) continue; 
+
+      auto pixhit = dynamic_cast<const SiPixelRecHit*>(it.hit);
+      if (!pixhit) continue;
+
+      // get the cluster
+      auto const & cluster = *pixhit->cluster();
+      auto geomdetunit = dynamic_cast<const PixelGeomDetUnit*> (pixhit->detUnit());
+      auto const & topol = geomdetunit->specificTopology();
+
+
+     if (cluster.minPixelCol()==0) continue;
+     if (cluster.maxPixelCol()+1==topol.ncolumns()) continue;
+
+     if (cluster.sizeY()!=2) continue;
+
+     if (topol.containsBigPixelInY(cluster.minPixelCol(), cluster.maxPixelCol()) ) continue;
+
+     
+     if ((cluster.minPixelCol()%topol.colsperroc()%2)==1) continue;
+
 
       //TO BE UPDATED WITH VINCENZO STUFF
       /*
