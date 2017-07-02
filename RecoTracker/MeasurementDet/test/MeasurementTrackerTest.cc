@@ -90,6 +90,21 @@ void MeasurementTrackerTest::analyze(const edm::Event& iEvent, const edm::EventS
   std::cout << "number of dets " << dus.size() << std::endl;
   std::cout << "Bl/Fw loc " << firstBarrel<< '/' << firstForward << std::endl;
 
+  {
+     edm::ESHandle<TrackerTopology> tTopoHandle;
+     iSetup.get<TrackerTopologyRcd>().get(tTopoHandle);
+     auto const & tt = *tTopoHandle;
+     for (auto i=firstBarrel; i<firstForward; ++i) {
+       auto id = dus[i]->geographicalId();
+       std::cout << "det " << i 
+                 << ' ' << tt.pxbLayer(id)
+                 << '/' << tt.pxbLadder(id)   
+                 << '/' << tt.pxbModule(id)
+                 << std::endl;
+     }
+
+  }
+
   edm::ESHandle<MagneticField> magfield;
   iSetup.get<IdealMagneticFieldRecord>().get(magfield);
 
