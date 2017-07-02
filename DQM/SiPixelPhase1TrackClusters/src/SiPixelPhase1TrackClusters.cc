@@ -28,9 +28,10 @@
 
 
 namespace {
-  constexpr int NCols = 416;
+  constexpr int oneNCols = 416;
+  constexpr int NCols = 2*416;  // account for two x cols...
   struct Module {
-    using Cols = std::array<unsigned short,416>;
+    using Cols = std::array<unsigned short,NCols>;
     Cols left={{0}};
     Cols right={{0}};
   };
@@ -198,7 +199,7 @@ void SiPixelPhase1TrackClusters::analyze(const edm::Event& iEvent, const edm::Ev
     if( subdetid != PixelSubdetector::PixelBarrel) continue;
     auto seqnum = geomdetunit->index();
 
-    std::bitset<416> cols;
+    std::bitset<NCols> cols;
 
     const PixelTopology& topol = geomdetunit->specificTopology();
 
@@ -212,8 +213,9 @@ void SiPixelPhase1TrackClusters::analyze(const edm::Event& iEvent, const edm::Ev
       {
         auto const & off = cluster.pixelOffset();
         auto sz = off.size();
-        auto mm = cluster.minPixelCol();
-        for (auto i=1U; i<sz; i+=2) cols.set(mm+off[i]);
+        auto my = cluster.minPixelCol();
+        auto mx = cluster.minPixelRow();
+        for (auto i=1U; i<sz; i+=2) { if (mx+off[i-1]<80) cols.set(my+off[i]); else cols.set(my+off[i]+oneNCols);}
       }
       if (std::abs(etatk[key])<1.4f) continue;
 
