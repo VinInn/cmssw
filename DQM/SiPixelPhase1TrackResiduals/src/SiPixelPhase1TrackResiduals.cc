@@ -15,6 +15,7 @@
 #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
 #include "Geometry/CommonTopologies/interface/PixelTopology.h"
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
 
@@ -32,6 +33,11 @@ void SiPixelPhase1TrackResiduals::analyze(const edm::Event& iEvent, const edm::E
   edm::ESHandle<TrackerGeometry> tracker;
   iSetup.get<TrackerDigiGeometryRecord>().get(tracker);
   assert(tracker.isValid());
+
+  edm::ESHandle<TrackerTopology> tTopoHandle;
+  iSetup.get<TrackerTopologyRcd>().get(tTopoHandle);
+  auto const & tkTpl = *tTopoHandle;
+ 
 
   edm::Handle<reco::VertexCollection> vertices;
   iEvent.getByToken(offlinePrimaryVerticesToken_, vertices);
@@ -67,7 +73,7 @@ void SiPixelPhase1TrackResiduals::analyze(const edm::Event& iEvent, const edm::E
      if (cluster.minPixelCol()==0) continue;
      if (cluster.maxPixelCol()+1==topol.ncolumns()) continue;
 
-     if (cluster.sizeY()!=1) continue;
+     // if (cluster.sizeY()!=1) continue;
 
      if (topol.containsBigPixelInY(cluster.minPixelCol(), cluster.maxPixelCol()) ) continue;
 
@@ -89,7 +95,8 @@ void SiPixelPhase1TrackResiduals::analyze(const edm::Event& iEvent, const edm::E
       int col = (int) mp.y();
       */
       
-      if ((cluster.minPixelCol()%topol.colsperroc()%2)==0)
+//      if ((cluster.minPixelCol()%topol.colsperroc()%2)==0)
+      if (tkTpl.pxbLadder(id)%2 ==0)
         histo[RESIDUAL_X].fill(it.resYprime, id, &iEvent);
       else
         histo[RESIDUAL_Y].fill(it.resYprime, id, &iEvent);

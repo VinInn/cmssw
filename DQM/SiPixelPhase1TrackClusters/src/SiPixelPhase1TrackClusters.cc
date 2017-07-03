@@ -12,6 +12,7 @@
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
 #include "Geometry/CommonTopologies/interface/PixelTopology.h"
@@ -61,7 +62,8 @@ namespace {
        std::cout << dump(left) << std::endl;
        std::cout << dump(right) << std::endl;
        int pl=0,pr=0,dl=0,dr=0; for(int j=2;j<50;j+=2) {dl+=left[j];dr+=right[j];pl+=left[j+1];pr+=right[j+1];}
-       std::cout << "eff " << kk++ << ' ' << float(dl)/float(dr) << ' ' << float(pl)/float(pr) << std::endl;
+       std::cout << "eff " << kk++ << ' ' << float(dl)/float(dr) << ' ' << float(pl)/float(pr) 
+                 << ' '<< dl << ' '<< dr << ' '<< pl << ' '<< pr << std::endl;
       }
      }
   };
@@ -87,6 +89,11 @@ void SiPixelPhase1TrackClusters::analyze(const edm::Event& iEvent, const edm::Ev
   edm::ESHandle<TrackerGeometry> tracker;
   iSetup.get<TrackerDigiGeometryRecord>().get(tracker);
   assert(tracker.isValid());
+
+  edm::ESHandle<TrackerTopology> tTopoHandle;
+  iSetup.get<TrackerTopologyRcd>().get(tTopoHandle);
+  auto const & tkTpl = *tTopoHandle;
+
   
   edm::Handle<reco::VertexCollection> vertices;
   iEvent.getByToken(offlinePrimaryVerticesToken_, vertices);
@@ -156,20 +163,21 @@ void SiPixelPhase1TrackClusters::analyze(const edm::Event& iEvent, const edm::Ev
 
       // correct charge for track impact angle
       auto const & ltp = trajParams[h];
-      LocalVector localDir = ltp.momentum()/ltp.momentum().mag();
-     
+      /*
+      LocalVector localDir = ltp.momentum()/ltp.momentum().mag();     
       float clust_alpha = atan2(localDir.z(), localDir.x());
       float clust_beta  = atan2(localDir.z(), localDir.y());
       double corrCharge = clust->charge() * sqrt( 1.0 / ( 1.0/pow( tan(clust_alpha), 2 ) + 
                                                           1.0/pow( tan(clust_beta ), 2 ) + 
                                                           1.0 ));
+      */
       /*
       if (subdetid == PixelSubdetector::PixelBarrel)
       std::cout << "corr charge " << clust->sizeY() << ' ' << clust->charge() << ' ' 
                 << ltp.absdz() << ' ' << track.pt()/track.p() << ' ' <<  track.eta() << ' '
                 << corrCharge << ' ' << clust->charge() *ltp.absdz() << std::endl;
       */
-      corr_charge[clust.key()] = (float) corrCharge;
+      corr_charge[clust.key()] = clust->charge()*ltp.absdz();
       etatk[clust.key()]=track.eta();
     }
 
@@ -203,6 +211,8 @@ void SiPixelPhase1TrackClusters::analyze(const edm::Event& iEvent, const edm::Ev
 
     const PixelTopology& topol = geomdetunit->specificTopology();
 
+    // if (tkTpl.pxbLadder(id)%2 ==0) continue;
+
     for(auto subit = it->begin(); subit != it->end(); ++subit) {
       // we could do subit-...->data().front() as well, but this seems cleaner.
       auto key = edmNew::makeRefTo(clusterColl, subit).key(); 
@@ -210,6 +220,7 @@ void SiPixelPhase1TrackClusters::analyze(const edm::Event& iEvent, const edm::Ev
       if(!is_ontrack) continue;
       float corrected_charge = corr_charge[key];
       SiPixelCluster const& cluster = *subit;
+      
       {
         auto const & off = cluster.pixelOffset();
         auto sz = off.size();
@@ -217,13 +228,15 @@ void SiPixelPhase1TrackClusters::analyze(const edm::Event& iEvent, const edm::Ev
         auto mx = cluster.minPixelRow();
         for (auto i=1U; i<sz; i+=2) { if (mx+off[i-1]<80) cols.set(my+off[i]); else cols.set(my+off[i]+oneNCols);}
       }
-      if (std::abs(etatk[key])<1.4f) continue;
+      
+
+      // if (std::abs(etatk[key])<1.4f) continue;
 
       LocalPoint clustlp = topol.localPosition(MeasurementPoint(cluster.x(), cluster.y()));
       GlobalPoint clustgp = geomdetunit->surface().toGlobal(clustlp);
         
      if (cluster.minPixelCol()==0) continue;
-     if	(cluster.maxPixelCol()+1==topol. ncolumns()) continue;
+     if	(cluster.maxPixelCol()+1==topol.ncolumns()) continue;
 
      // if ((cluster.minPixelCol()%topol.colsperroc()%2)==1) continue;
 
@@ -234,16 +247,20 @@ void SiPixelPhase1TrackClusters::analyze(const edm::Event& iEvent, const edm::Ev
 
       //if (is_ontrack) {
       //if((cluster.minPixelCol()%topol.colsperroc()%2)==1) {
-      if (sizeY<=2) {
+      // if (sizeY<=2) {
+      
+      histo[ONTRACK_SIZE_VS_ETA].fill(etatk[key], sizeY, id, &iEvent);
+//      if (std::abs(etatk[key])>1.4f) {
         histo[ONTRACK_NCLUSTERS ].fill(id, &iEvent);
         histo[ONTRACK_CHARGE    ].fill(double(corrected_charge), id, &iEvent);
         histo[ONTRACK_SIZE      ].fill(double(cluster.size()  ), id, &iEvent);
         histo[ONTRACK_POSITION_B].fill(clustgp.z(),   clustgp.phi(),   id, &iEvent);
         histo[ONTRACK_POSITION_F].fill(clustgp.x(),   clustgp.y(),     id, &iEvent);
-	histo[ONTRACK_SIZE_VS_ETA].fill(etatk[key], sizeY, id, &iEvent);
-      } else if (sizeY>=4){
+//      } // else if (sizeY>=4)
+      if (std::abs(etatk[key])<0.8f) {
         histo[OFFTRACK_NCLUSTERS ].fill(id, &iEvent);
-        histo[OFFTRACK_CHARGE    ].fill(double(cluster.charge()), id, &iEvent);
+        histo[OFFTRACK_CHARGE    ].fill(double(corrected_charge), id, &iEvent);
+//        histo[OFFTRACK_CHARGE    ].fill(double(cluster.charge()), id, &iEvent);
         histo[OFFTRACK_SIZE      ].fill(double(cluster.size()  ), id, &iEvent);
         histo[OFFTRACK_POSITION_B].fill(clustgp.z(),   clustgp.phi(),   id, &iEvent);
         histo[OFFTRACK_POSITION_F].fill(clustgp.x(),   clustgp.y(),     id, &iEvent);
