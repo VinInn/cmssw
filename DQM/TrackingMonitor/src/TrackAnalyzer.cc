@@ -74,7 +74,8 @@ TrackAnalyzer::TrackAnalyzer(const edm::ParameterSet& iConfig, edm::ConsumesColl
   pvToken_            = iC.consumes<reco::VertexCollection>(primaryVertexInputTag);
   pixelClustersToken_ = iC.mayConsume<edmNew::DetSetVector<SiPixelCluster> >(pixelClusterInputTag);
   lumiscalersToken_   = iC.mayConsume<LumiScalersCollection>(scalInputTag);
-  
+  historyProducerToken_ = iC.mayConsume<EventWithHistory>(edm::InputTag("consecutiveHEs"));
+
   if(useBPixLayer1_) 
     lumi_factor_per_bx_ = GetLumi::FREQ_ORBIT * GetLumi::SECONDS_PER_LS / GetLumi::XSEC_PIXEL_CLUSTER  ;
   else
@@ -971,7 +972,10 @@ void TrackAnalyzer::setNumberOfGoodVertices(const edm::Event & iEvent) {
 }
 
 void TrackAnalyzer::setBX(const edm::Event & iEvent) {
-  bx_ = iEvent.bunchCrossing();
+  edm::Handle<EventWithHistory> he;
+  iEvent.getByToken(historyProducerToken_,he);
+  bx_ = (he.isValid() && !he.failedToGet()) ? he->deltaBX() : 609999;
+//  bx_ = iEvent.bunchCrossing();
 }
 
 #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"

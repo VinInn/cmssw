@@ -297,10 +297,14 @@ trackingDQMgoodOfflinePrimaryVertices.src=cms.InputTag('offlinePrimaryVertices')
 trackingDQMgoodOfflinePrimaryVertices.filter = cms.bool(False)
 
 
+# Event History Producer
+from DPGAnalysis.SiStripTools.eventwithhistoryproducerfroml1abc_cfi import *
+
+
 # Sequence
 TrackingDQMSourceTier0 = cms.Sequence()
 # dEdx monitoring
-TrackingDQMSourceTier0 += dedxHarmonicSequence * dEdxMonCommon * dEdxHitMonCommon   
+TrackingDQMSourceTier0 += consecutiveHEs * dedxHarmonicSequence * dEdxMonCommon * dEdxHitMonCommon   
 #    # temporary patch in order to have BXlumi
 #    * lumiProducer
 # track collections
@@ -336,7 +340,7 @@ TrackingDQMSourceTier0 += dqmInfoTracking
 
 TrackingDQMSourceTier0Common = cms.Sequence()
 # dEdx monitoring
-TrackingDQMSourceTier0Common += (dedxHarmonicSequence * dEdxMonCommon * dEdxHitMonCommon)    
+TrackingDQMSourceTier0Common += (consecutiveHEs * dedxHarmonicSequence * dEdxMonCommon * dEdxHitMonCommon)    
 ## monitor track collections
 for tracks in selectedTracks :
     if tracks != 'generalTracks':
@@ -355,7 +359,7 @@ TrackingDQMSourceTier0Common += dqmInfoTracking
 
 TrackingDQMSourceTier0MinBias = cms.Sequence()
 # dEdx monitoring
-TrackingDQMSourceTier0MinBias += dedxHarmonicSequence * dEdxMonCommon * dEdxHitMonCommon    
+TrackingDQMSourceTier0MinBias += consecutiveHEs * dedxHarmonicSequence * dEdxMonCommon * dEdxHitMonCommon    
 #    * lumiProducer
 #    * trackingDQMgoodOfflinePrimaryVertices
 # monitor track collections
