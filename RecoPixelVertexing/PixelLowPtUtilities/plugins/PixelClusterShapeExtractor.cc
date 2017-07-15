@@ -205,17 +205,20 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
       int i = (part * (exMax + 1) +
                meas.front().first) * (eyMax + 1) +
                meas.front().second;
-#ifdef DO_DEBUG
-      if (meas.front().second==0 && std::abs(pred.second)>3)
+//#ifdef DO_DEBUG
+      if (std::abs(pred.second)>6)
       {
+        auto const & cl = *recHit.cluster();
         Lock(theMutex[0]);
         int id = recHit.geographicalId();
         std::cout << id << " bigpred " << meas.front().first << '/'<<meas.front().second 
-                  << ' ' << pred.first << '/' << pred.second << ' ' << ldir << ' ' << ldir.mag()<< std::endl;
+                  << ' ' << pred.first << '/' << pred.second << ' ' << ldir << ' ' << ldir.mag() << ' '
+        << cl.minPixelCol() <<'/'<<cl.maxPixelCol()<<'/'<<cl.minPixelRow()<<'/'<<cl.maxPixelRow()
+        << std::endl;
       }
-#endif
-      Lock(theMutex[i]);
-      histo[i]->Fill(pred.first, pred.second);
+//#endif
+//      Lock(theMutex[i]);
+//      histo[i]->Fill(pred.first, pred.second);
     }
 }
 
@@ -257,7 +260,7 @@ void PixelClusterShapeExtractor::processPixelRecHits(
    const SiPixelClusterShapeCache& clusterShapeCache) const
 {
   struct Elem { const SiPixelRecHit * rhit; PSimHit shit; unsigned int size;};
-  std::map<pair<unsigned int, float>, Elem> simHitMap;
+  std::map<pair<unsigned int, float>, std::vector<Elem>> simHitMap;
 
   PSimHit simHit;
   pair<unsigned int, float> key;
@@ -266,13 +269,16 @@ void PixelClusterShapeExtractor::processPixelRecHits(
   for(auto const & recHit : recHits) {
     if(!checkSimHits(recHit, theHitAssociator, simHit, key,ss)) continue;
           // Fill map
+          simHitMap[key].emplace_back(Elem{&recHit,simHit,ss});
+/*
           if(simHitMap.count(key) == 0)
               { simHitMap[key] = {&recHit,simHit,ss}; }
           else if( recHit.cluster()->size() >
                    simHitMap[key].rhit->cluster()->size())
                    simHitMap[key] = {&recHit,simHit,std::max(ss,simHitMap[key].size)};
+*/
   }
-  for (auto const & elem : simHitMap)  {
+  for (auto const & melem : simHitMap)  {
    /* irrelevant
    auto const rh = *elem.second.rhit;
    auto const& topol = reinterpret_cast<const PixelGeomDetUnit*>(rh.detUnit())->specificTopology();
@@ -282,9 +288,12 @@ void PixelClusterShapeExtractor::processPixelRecHits(
    if (cl.minPixelRow()==0) continue; 
    if (cl.maxPixelRow()+1==topol.nrows()) continue;
    */
-   if (elem.second.size==1)
-       processSim(*elem.second.rhit, theFilter, elem.second.shit, clusterShapeCache, hspc);
+   if (melem.second.size()>1)
+   for (auto const & elem : melem.second)
+     if (elem.size==1)
+        processSim(*elem.rhit, theFilter, elem.shit, clusterShapeCache, hspc);
   }
+  
 }
 
 
