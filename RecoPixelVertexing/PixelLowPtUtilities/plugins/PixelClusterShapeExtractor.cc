@@ -32,6 +32,7 @@
 #include <map>
 #include <vector>
 #include <fstream>
+#include <sstream>
 
 #include<mutex>
 
@@ -65,13 +66,10 @@ class PixelClusterShapeExtractor final : public edm::global::EDAnalyzer<>
 
    bool isSuitable(const PSimHit & simHit, const GeomDetUnit & gdu) const;
 
-   // Sim
-   void processSim(const SiPixelRecHit &   recHit, ClusterShapeHitFilter const & theClusterFilter,
-                   const PSimHit & simHit, const SiPixelClusterShapeCache& clusterShapeCache, vector<TH2F *> & histo) const;
-
    // Rec
    void processRec(const SiPixelRecHit &   recHit, ClusterShapeHitFilter const & theFilter,
-                   LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, vector<TH2F *> & histo) const;
+                   LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, 
+                   std::ostringstream & ss) const;
 
    bool checkSimHits
     (const TrackingRecHit & recHit, TrackerHitAssociator const & theAssociator,
@@ -106,6 +104,7 @@ class PixelClusterShapeExtractor final : public edm::global::EDAnalyzer<>
 /*****************************************************************************/
 void PixelClusterShapeExtractor::init()
 {
+  std::cout << "PixelClusterShapeExtractor::init()" << std::endl;
   // Declare histograms
   char histName[256];
 
@@ -191,7 +190,7 @@ bool PixelClusterShapeExtractor::isSuitable(const PSimHit & simHit, const GeomDe
 
 /*****************************************************************************/
 void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, ClusterShapeHitFilter const & theClusterShape,
-    LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, vector<TH2F *> & histo) const
+    LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, std::ostringstream & oss) const
 {
   int part;
   ClusterData::ArrayType meas;
@@ -209,26 +208,17 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
       if (std::abs(pred.second)>6)
       {
         auto const & cl = *recHit.cluster();
-        Lock(theMutex[0]);
         int id = recHit.geographicalId();
-        std::cout << id << " bigpred " << meas.front().first << '/'<<meas.front().second 
+        oss << id << ' ' << meas.front().first << '/'<<meas.front().second 
                   << ' ' << pred.first << '/' << pred.second << ' ' << ldir << ' ' << ldir.mag() << ' '
-        << cl.minPixelCol() <<'/'<<cl.maxPixelCol()<<'/'<<cl.minPixelRow()<<'/'<<cl.maxPixelRow()
-        << std::endl;
+        << cl.minPixelCol() <<'/'<<cl.maxPixelCol()<<'/'<<cl.minPixelRow()<<'/'<<cl.maxPixelRow() <<" ?? ";
       }
 //#endif
-//      Lock(theMutex[i]);
+//      Lock locl(theMutex[i]);
 //      histo[i]->Fill(pred.first, pred.second);
     }
 }
 
-/*****************************************************************************/
-void PixelClusterShapeExtractor::processSim(const SiPixelRecHit & recHit, ClusterShapeHitFilter const & theClusterFilter,
-     const PSimHit & simHit, const SiPixelClusterShapeCache& clusterShapeCache, vector<TH2F *> & histo) const
-{
-  LocalVector ldir = simHit.exitPoint() - simHit.entryPoint(); 
-  processRec(recHit, theClusterFilter, ldir, clusterShapeCache, histo);
-}
 
 /*****************************************************************************/
 bool PixelClusterShapeExtractor::checkSimHits
@@ -266,6 +256,9 @@ void PixelClusterShapeExtractor::processPixelRecHits(
   pair<unsigned int, float> key;
   unsigned int ss;
 
+  std::ostringstream oss;
+
+
   for(auto const & recHit : recHits) {
     if(!checkSimHits(recHit, theHitAssociator, simHit, key,ss)) continue;
           // Fill map
@@ -288,12 +281,17 @@ void PixelClusterShapeExtractor::processPixelRecHits(
    if (cl.minPixelRow()==0) continue; 
    if (cl.maxPixelRow()+1==topol.nrows()) continue;
    */
-   if (melem.second.size()>1)
+   // if (melem.second.size()>1)
    for (auto const & elem : melem.second)
-     if (elem.size==1)
-        processSim(*elem.rhit, theFilter, elem.shit, clusterShapeCache, hspc);
+     if (elem.size==1) {
+          LocalVector ldir = elem.shit.exitPoint() - elem.shit.entryPoint();
+          processRec(*elem.rhit, theFilter, ldir, clusterShapeCache, oss);
+     }
+    oss << '\n';
   }
-  
+  oss << '\n';
+  Lock lock(theMutex[0]);
+  std::cout << oss.str();
 }
 
 
@@ -346,7 +344,7 @@ void PixelClusterShapeExtractor::analyzeRecTracks
   edm::Handle<SiPixelClusterShapeCache> clusterShapeCache;
   ev.getByToken(clusterShapeCache_token, clusterShapeCache);
 
-
+  std::ostringstream oss;
  for (auto const & track : *tracks) 
  {
     if (!track.quality(reco::Track::highPurity)) continue;
@@ -373,7 +371,7 @@ void PixelClusterShapeExtractor::analyzeRecTracks
           dynamic_cast<const SiPixelRecHit *>(recHit);
 
         if(pixelRecHit != 0)
-          processRec(*pixelRecHit, theClusterShape, ldir, *clusterShapeCache, hrpc);
+          processRec(*pixelRecHit, theClusterShape, ldir, *clusterShapeCache, oss);
       }
     }
   }
