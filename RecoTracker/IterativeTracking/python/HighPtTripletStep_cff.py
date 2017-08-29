@@ -154,7 +154,7 @@ import RecoTracker.CkfPattern.GroupedCkfTrajectoryBuilder_cfi as _GroupedCkfTraj
 highPtTripletStepTrajectoryBuilder = _GroupedCkfTrajectoryBuilder_cfi.GroupedCkfTrajectoryBuilder.clone(
     trajectoryFilter = dict(refToPSet_ = 'highPtTripletStepTrajectoryFilter'),
     alwaysUseInvalidHits = True,
-    maxCand = 3,
+    maxCand = 4,
     estimator = 'highPtTripletStepChi2Est',
     maxDPhiForLooperReconstruction = cms.double(2.0),
     # 0.63 GeV is the maximum pT for a charged particle to loop within the 1.1m radius

@@ -21,7 +21,6 @@ public:
     return score(a) < score(b);
   }
 
-private:
   template<typename T>
   float looperPenalty(const T&t) const {
     return (t.dPhiCacheForLoopersReconstruction()==0) ? 0.f : 

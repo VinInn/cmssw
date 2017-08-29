@@ -196,7 +196,7 @@ pixelLessStepTrajectoryBuilder = RecoTracker.CkfPattern.GroupedCkfTrajectoryBuil
     MeasurementTrackerName = '',
     trajectoryFilter = cms.PSet(refToPSet_ = cms.string('pixelLessStepTrajectoryFilter')),
     minNrOfHitsForRebuild = 4,
-    maxCand = 2,
+    maxCand = 3,
     alwaysUseInvalidHits = False,
     estimator = cms.string('pixelLessStepChi2Est'),
     maxDPhiForLooperReconstruction = cms.double(2.0),

@@ -350,13 +350,25 @@ GroupedCkfTrajectoryBuilder::groupedLimitedCandidates (const TrajectorySeed& see
 
       LogDebug("CkfPattern")<<"newCand(1): after advanced one layer:\n"<<PrintoutHelper::dumpCandidates(newCand);
 
+      GroupedTrajCandLess candLess(theLostHitPenalty,theFoundHitBonus);
+
       if ((int)newCand.size() > theMaxCand) {
 	//ShowCand()(newCand);
 
- 	std::nth_element( newCand.begin(), newCand.begin()+theMaxCand, newCand.end(), GroupedTrajCandLess(theLostHitPenalty,theFoundHitBonus));
+ 	std::nth_element( newCand.begin(), newCand.begin()+theMaxCand, newCand.end(), candLess);
  	newCand.erase( newCand.begin()+theMaxCand, newCand.end());
       }
       LogDebug("CkfPattern")<<"newCand(2): after removing extra candidates.\n"<<PrintoutHelper::dumpCandidates(newCand);
+
+      auto res = std::minmax_element(newCand.begin(),newCand.end(),candLess);
+      auto minScore = candLess.score(*res.first);
+//      auto maxScore = candLess.score(*res.second);
+      auto thrScore = minScore +2.f*std::max(theLostHitPenalty,theFoundHitBonus);
+ 
+      auto s1 = newCand.size();
+      newCand.erase(std::remove_if(newCand.begin(),newCand.end(),[&](auto const& t){return candLess.score(t)>thrScore;}),newCand.end());
+//      if (s1 !=newCand.size()) std::cout << "cleanup Cand " << s1 << '/' << newCand.size()  << ' ' << minScore << '/' << maxScore << std::endl;
+
     }
 
     LogDebug("CkfPattern") << "newCand.size() at end = " << newCand.size();
