@@ -25,6 +25,8 @@
 #include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
 #include "TrackingTools/Records/interface/TransientRecHitRecord.h"
 
+#include "DataFormats/TrackerRecHit2D/interface/BaseTrackerRecHit.h"
+
 BaseCkfTrajectoryBuilder::BaseCkfTrajectoryBuilder(const edm::ParameterSet& conf,
                                                    TrajectoryFilter *filter,
                                                    TrajectoryFilter *inOutFilter):
@@ -86,7 +88,7 @@ BaseCkfTrajectoryBuilder::seedMeasurements(const TrajectorySeed& seed,  TempTraj
       //TSOS updatedState = outerstate;
       result.emplace(invalidState, outerState, recHit, 0, hitLayer);
     }
-    else if(theNoSeedState){
+    else if(theNoSeedState &&  trackerHitRTTI::isSingle(*recHit)){
       result.emplace(invalidState, invalidState, recHit, 0, hitLayer);
     } else {
       TSOS innerState   = backwardPropagator(seed)->propagate(outerState,hitGeomDet->surface());
