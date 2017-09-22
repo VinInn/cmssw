@@ -57,6 +57,7 @@ void
 BaseCkfTrajectoryBuilder::seedMeasurements(const TrajectorySeed& seed,  TempTrajectory & result) const
 {
   
+  bool theNoSeedState = true;
 
   TrajectorySeed::range hitRange = seed.recHits();
 
@@ -85,7 +86,9 @@ BaseCkfTrajectoryBuilder::seedMeasurements(const TrajectorySeed& seed,  TempTraj
       //TSOS updatedState = outerstate;
       result.emplace(invalidState, outerState, recHit, 0, hitLayer);
     }
-    else {
+    else if(theNoSeedState){
+      result.emplace(invalidState, invalidState, recHit, 0, hitLayer);
+    } else {
       TSOS innerState   = backwardPropagator(seed)->propagate(outerState,hitGeomDet->surface());
 
       // try to recover if propagation failed

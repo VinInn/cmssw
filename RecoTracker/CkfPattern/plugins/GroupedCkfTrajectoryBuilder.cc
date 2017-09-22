@@ -864,7 +864,7 @@ GroupedCkfTrajectoryBuilder::rebuildSeedingRegion(const TrajectorySeed&seed,
 
     auto && reFitted = backwardFit(*it,nSeed,fitter,seedHits);
     if unlikely( !reFitted.isValid() ) {
-	rebuiltTrajectories.push_back(std::move(*it));
+	// rebuiltTrajectories.push_back(std::move(*it));
 	LogDebug("CkfPattern")<< "RebuildSeedingRegion skipped as backward fit failed";
 	//			    << "after reFitted.size() " << reFitted.size();
 	continue;
@@ -885,7 +885,7 @@ GroupedCkfTrajectoryBuilder::rebuildSeedingRegion(const TrajectorySeed&seed,
 
     if ( nRebuilt==0 && !theKeepOriginalIfRebuildFails ) it->invalidate();  // won't use original in-out track
 
-    if ( nRebuilt<0 ) rebuiltTrajectories.push_back(std::move(*it));
+    // if ( nRebuilt<0 ) rebuiltTrajectories.push_back(std::move(*it));
   }
   //
   // Replace input trajectories with new ones
@@ -1081,7 +1081,7 @@ GroupedCkfTrajectoryBuilder::backwardFit (TempTrajectory& candidate, unsigned in
   //
   // Fit only if required number of valid hits can be used
   //
-  if unlikely( nHit<nHitMin ) return TempTrajectory();
+  // if unlikely( nHit<nHitMin ) return TempTrajectory();
 
   //
   // Do the backward fit (important: start from scaled, not random cov. matrix!)
