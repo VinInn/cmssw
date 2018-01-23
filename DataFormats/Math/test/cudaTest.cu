@@ -31,6 +31,19 @@ inline float myExp(float x) {
   return  unsafe_expf<6>(x);
 }
 
+#ifdef __NVCC__
+#define inline __host__ __device__ inline
+#include<vdt/sin.h>
+#undef inline
+#else
+#include<vdt/sin.h>
+#endif
+
+__host__ __device__
+inline float mySin(float x) {
+  return vdt::fast_sin(x);
+}
+
 
 #include<DataFormats/Math/interface/approx_log.h>
 __host__ __device__ 
@@ -43,6 +56,8 @@ __host__ __device__
 inline float testFunc(float x, float y) { return 
 #ifdef USEEXP
   myExp(x)
+#elif defined(USESIN)
+  mySin(x)
 #else
   myLog(x)
 #endif

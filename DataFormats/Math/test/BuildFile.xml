@@ -102,7 +102,23 @@
   <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
 </bin>
 
+<bin file="*.cu" name="DFM_VectorSindef">
+<flags CXXFLAGS="-DUSESIN"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorSinrep">
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+  <flags CXXFLAGS="-DUSESIN -ffp-contract=off"/>
+</bin>
 
+<bin file="*.cu" name="DFM_VectorSinfast">
+   <flags CXXFLAGS="-DUSESIN -Ofast -mavx2 -mfma"/>
+   <flags CUDA_FLAGS="-ftz=true -prec-div=false -prec-sqrt=false"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorSincpufast">
+  <flags CXXFLAGS="-DUSESIN -Ofast -mavx2 -mfma"/>
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+</bin>
+ 
 
 <bin file="*.cu" name="DFM_VectorAdddef">
   <flags CXXFLAGS="-DADDY"/>
