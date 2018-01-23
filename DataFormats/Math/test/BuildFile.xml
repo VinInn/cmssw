@@ -77,6 +77,7 @@
 </bin>
 
 <bin file="*.cu" name="DFM_VectorLogfast">
+   <flags CUDA_FLAGS="-ftz=true -prec-div=false -prec-sqrt=false"/>
    <flags CXXFLAGS="-Ofast -mavx2 -mfma"/>
 </bin>
 <bin file="*.cu" name="DFM_VectorLogcpufast">
@@ -94,6 +95,7 @@
 
 <bin file="*.cu" name="DFM_VectorExpfast">
    <flags CXXFLAGS="-DUSEEXP -Ofast -mavx2 -mfma"/>
+   <flags CUDA_FLAGS="-ftz=true -prec-div=false -prec-sqrt=false"/>
 </bin>
 <bin file="*.cu" name="DFM_VectorExpcpufast">
   <flags CXXFLAGS="-DUSEEXP -Ofast -mavx2 -mfma"/>
@@ -113,7 +115,7 @@
 
 <bin file="*.cu" name="DFM_VectorAddfast">
    <flags CXXFLAGS="-DADDY -Ofast -mavx2 -mfma"/>
-   <flags CUDA_FLAGS="-DADDY"/>
+   <flags CUDA_FLAGS="-ftz=true -prec-div=false -prec-sqrt=false"/>
 </bin>
 
 <bin file="*.cu" name="DFM_VectorAddcpufast">
