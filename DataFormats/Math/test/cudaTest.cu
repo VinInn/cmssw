@@ -41,7 +41,7 @@ inline float myExp(float x) {
 
 __host__ __device__
 inline float mySin(float x) {
-  return vdt::fast_sin(x);
+  return vdt::fast_sinf(x);
 }
 
 
