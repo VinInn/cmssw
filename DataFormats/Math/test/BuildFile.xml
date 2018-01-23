@@ -65,3 +65,41 @@
 
 <bin file="testGraph.cpp">
 </bin>
+
+
+
+<use name="cuda"/>
+<bin file="*.cu" name="DFM_VectorLogdef">
+</bin>
+<bin file="*.cu" name="DFM_VectorLogrep">
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+  <flags CXXFLAGS="-ffp-contract=off"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorLogfast">
+   <flags CXXFLAGS="-Ofast -mavx2 -mfma"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorLogcpufast">
+  <flags CXXFLAGS="-Ofast -mavx2 -mfma"/>
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorAdddef">
+  <flags CXXFLAGS="-DADDY"/>
+  <flags CUDA_FLAGS="-DADDY"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorAddrep">
+  <flags CUDA_FLAGS="-DADDY -fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+  <flags CXXFLAGS="-DADDY -ffp-contract=off"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorAddfast">
+   <flags CXXFLAGS="-DADDY -Ofast -mavx2 -mfma"/>
+   <flags CUDA_FLAGS="-DADDY"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorAddcpufast">
+  <flags CXXFLAGS="-DADDY -Ofast -mavx2 -mfma"/>
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+</bin>
+
