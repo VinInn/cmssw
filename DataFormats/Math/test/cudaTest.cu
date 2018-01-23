@@ -8,7 +8,15 @@
  *
  * Use this reasonably. If you want to discuss licensing formalities, please
  * contact the author.
+ *
+ *  Modified by VinInn for testing math funcs
  */
+
+/* to run test
+foreach f ( $CMSSW_BASE/test/$SCRAM_ARCH/DFM_Vector* )
+echo $f; $f
+end
+*/
 
 #include "cuda/api_wrappers.h"
 
@@ -17,14 +25,27 @@
 #include <memory>
 #include <algorithm>
 
+#include<DataFormats/Math/interface/approx_exp.h>
+__host__ __device__
+inline float myExp(float x) {
+  return  unsafe_expf<6>(x);
+}
+
+
 #include<DataFormats/Math/interface/approx_log.h>
 __host__ __device__ 
 inline float myLog(float x) {
   return  unsafe_logf<6>(x);
 }
 
+
 __host__ __device__
-inline float testFunc(float x, float y) { return myLog(x)
+inline float testFunc(float x, float y) { return 
+#ifdef USEEXP
+  myExp(x)
+#else
+  myLog(x)
+#endif
 #ifdef ADDY
 + y
 #endif
