@@ -153,6 +153,7 @@ int main(void)
 		{ blocksPerGrid, threadsPerBlock },
 		d_A.get(), d_B.get(), d_C.get(), numElements
 	);
+        cudaStreamSynchronize(0); // not needed??
         delta = std::chrono::high_resolution_clock::now()-start;
         std::cout <<"cuda computation took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
@@ -164,6 +165,7 @@ int main(void)
                 { blocksPerGrid, threadsPerBlock },
                 d_A.get(), d_B.get(), d_C.get(), numElements
         );
+        cudaStreamSynchronize(0); // not needed??
         delta = std::chrono::high_resolution_clock::now()-start;
         std::cout <<"cuda computation took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
