@@ -24,6 +24,14 @@ end
 #include <iomanip>
 #include <memory>
 #include <algorithm>
+#include <chrono>
+#include<random>
+
+
+std::mt19937 eng;
+std::mt19937 eng2;
+std::uniform_real_distribution<float> rgen(0.,1.);
+
 
 #include<DataFormats/Math/interface/approx_exp.h>
 __host__ __device__
@@ -73,8 +81,19 @@ __global__ void vectorAdd(const float *A, const float *B, float *C, int numEleme
 	if (i < numElements) { C[i] = testFunc(A[i],B[i]); }
 }
 
+
+void vectorAddH(const float *A, const float *B, float *C, int numElements)
+{
+        for (int i=0; i<numElements; ++i)
+           { C[i] = testFunc(A[i],B[i]); }
+}
+
+
 int main(void)
 {
+  auto start = std::chrono::high_resolution_clock::now();
+  auto delta = start - start;
+
 	if (cuda::device::count() == 0) {
 		std::cerr << "No CUDA devices on this system" << "\n";
 		exit(EXIT_FAILURE);
@@ -88,11 +107,13 @@ int main(void)
 	auto h_A = std::make_unique<float[]>(numElements);
 	auto h_B = std::make_unique<float[]>(numElements);
 	auto h_C = std::make_unique<float[]>(numElements);
+        auto h_C2 = std::make_unique<float[]>(numElements);
 
-	auto generator = []() { return rand() / (float) RAND_MAX; };
-	std::generate(h_A.get(), h_A.get() + numElements, generator);
-	std::generate(h_B.get(), h_B.get() + numElements, generator);
+	std::generate(h_A.get(), h_A.get() + numElements, [&](){return rgen(eng);});
+	std::generate(h_B.get(), h_B.get() + numElements, [&](){return rgen(eng);});
 
+
+        delta -= (std::chrono::high_resolution_clock::now()-start);
 	auto current_device = cuda::device::current::get();
 	auto d_A = cuda::memory::device::make_unique<float[]>(current_device, numElements);
 	auto d_B = cuda::memory::device::make_unique<float[]>(current_device, numElements);
@@ -100,6 +121,11 @@ int main(void)
 
 	cuda::memory::copy(d_A.get(), h_A.get(), size);
 	cuda::memory::copy(d_B.get(), h_B.get(), size);
+        delta += (std::chrono::high_resolution_clock::now()-start);
+        std::cout <<"cuda alloc+copy took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+              << " ms" << std::endl;
+
 
 	// Launch the Vector Add CUDA Kernel
 	int threadsPerBlock = 256;
@@ -108,13 +134,46 @@ int main(void)
 		<< "CUDA kernel launch with " << blocksPerGrid
 		<< " blocks of " << threadsPerBlock << " threads\n";
 
+        delta -= (std::chrono::high_resolution_clock::now()-start);
 	cuda::launch(
 		vectorAdd,
 		{ blocksPerGrid, threadsPerBlock },
 		d_A.get(), d_B.get(), d_C.get(), numElements
 	);
+        delta += (std::chrono::high_resolution_clock::now()-start);
+        std::cout <<"cuda computation took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+              << " ms" << std::endl;
+
+        delta -= (std::chrono::high_resolution_clock::now()-start);
+        cuda::launch(
+                vectorAdd,
+                { blocksPerGrid, threadsPerBlock },
+                d_A.get(), d_B.get(), d_C.get(), numElements
+        );
+        delta += (std::chrono::high_resolution_clock::now()-start);
+        std::cout <<"cuda computation took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+              << " ms" << std::endl;
+
 
 	cuda::memory::copy(h_C.get(), d_C.get(), size);
+
+
+        delta -= (std::chrono::high_resolution_clock::now()-start);
+        vectorAddH(h_A.get(),h_B.get(),h_C2.get(),size);        
+        delta += (std::chrono::high_resolution_clock::now()-start);
+        std::cout <<"host computation took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+              << " ms" << std::endl;
+
+        delta -= (std::chrono::high_resolution_clock::now()-start);
+        vectorAddH(h_A.get(),h_B.get(),h_C2.get(),size);
+        delta += (std::chrono::high_resolution_clock::now()-start);
+        std::cout <<"host computation took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+              << " ms" << std::endl;
+
 
 	// Verify that the result vector is correct
         double ave = 0;
