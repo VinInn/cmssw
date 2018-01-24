@@ -112,7 +112,7 @@
 </bin>
 
 <bin file="*.cu" name="DFM_VectorSinfast">
-   <flags CXXFLAGS="-DUSESIN -Ofast -mavx2 -mfma"/>
+   <flags CXXFLAGS="-DUSESIN -Ofast -march=native"/>
    <flags CUDA_FLAGS="-ftz=true -prec-div=false -prec-sqrt=false"/>
 </bin>
 <bin file="*.cu" name="DFM_VectorSincpufast">

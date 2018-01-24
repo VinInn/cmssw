@@ -77,11 +77,32 @@ inline float testFunc(float x, float y) { return
 #endif
 ;}
 
+__device__
+inline float devFunc(float x, float y) { return
+#ifdef USEEXP
+  expf(x)
+#elif defined(USESIN)
+  sinf(x)
+#else
+  logf(x)
+#endif
+#ifdef ADDY
++ y
+#endif
+;}
+
+
 
 __global__ void vectorAdd(const float *A, const float *B, float *C, int numElements)
 {
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	if (i < numElements) { C[i] = testFunc(A[i],B[i]); }
+}
+
+__global__ void native(const float *A, const float *B, float *C, int numElements)
+{
+        int i = blockDim.x * blockIdx.x + threadIdx.x;
+        if (i < numElements) { C[i] = devFunc(A[i],B[i]); }
 }
 
 
@@ -113,7 +134,7 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 
-	int numElements = 100000;
+	int numElements = 256*1000;
 	size_t size = numElements * sizeof(float);
 	std::cout << "[Vector evaluation of " << numElements << " elements]\n";
 
@@ -173,6 +194,18 @@ int main(void)
 
 
 	cuda::memory::copy(h_C.get(), d_C.get(), size);
+
+        start = std::chrono::high_resolution_clock::now();
+        for (int j=0; j<1000;++j) cuda::launch(
+                native,
+                { blocksPerGrid, threadsPerBlock },
+                d_A.get(), d_B.get(), d_C.get(), numElements
+        );
+        cudaStreamSynchronize(0); // not needed??
+ 	delta = std::chrono::high_resolution_clock::now()-start;
+        std::cout <<"cuda native took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+              << " ms" << std::endl;
 
 
         start = std::chrono::high_resolution_clock::now();
