@@ -27,6 +27,9 @@ end
 #include <chrono>
 #include<random>
 
+#include "tbb/parallel_for.h"
+#include "tbb/task_scheduler_init.h"
+
 
 std::mt19937 eng;
 std::mt19937 eng2;
@@ -84,24 +87,35 @@ __global__ void vectorAdd(const float *A, const float *B, float *C, int numEleme
 
 void vectorAddH(const float *A, const float *B, float *C, int numElements)
 {
-        for (int i=0; i<numElements; ++i)
+   tbb::parallel_for(
+    tbb::blocked_range<size_t>(0,numElements),
+    [&](const tbb::blocked_range<size_t>& r) {
+      for (auto i=r.begin();i<r.end();++i)         
            { C[i] = testFunc(A[i],B[i]); }
+    }
+   );
 }
 
 
 int main(void)
 {
+  
+    std::cerr << "default num of thread " << tbb::task_scheduler_init::default_num_threads() << std::endl;
+
+  //tbb::task_scheduler_init init;  // Automatic number of threads
+   tbb::task_scheduler_init init(tbb::task_scheduler_init::default_num_threads());  // Explicit number of threads
+
+
   auto start = std::chrono::high_resolution_clock::now();
   auto delta = start - start;
-
 	if (cuda::device::count() == 0) {
 		std::cerr << "No CUDA devices on this system" << "\n";
 		exit(EXIT_FAILURE);
 	}
 
-	int numElements = 50000;
+	int numElements = 100000;
 	size_t size = numElements * sizeof(float);
-	std::cout << "[Vector addition of " << numElements << " elements]\n";
+	std::cout << "[Vector evaluation of " << numElements << " elements]\n";
 
 	// If we could rely on C++14, we would  use std::make_unique
 	auto h_A = std::make_unique<float[]>(numElements);
@@ -112,8 +126,7 @@ int main(void)
 	std::generate(h_A.get(), h_A.get() + numElements, [&](){return rgen(eng);});
 	std::generate(h_B.get(), h_B.get() + numElements, [&](){return rgen(eng);});
 
-
-        delta -= (std::chrono::high_resolution_clock::now()-start);
+        start = std::chrono::high_resolution_clock::now();
 	auto current_device = cuda::device::current::get();
 	auto d_A = cuda::memory::device::make_unique<float[]>(current_device, numElements);
 	auto d_B = cuda::memory::device::make_unique<float[]>(current_device, numElements);
@@ -121,7 +134,7 @@ int main(void)
 
 	cuda::memory::copy(d_A.get(), h_A.get(), size);
 	cuda::memory::copy(d_B.get(), h_B.get(), size);
-        delta += (std::chrono::high_resolution_clock::now()-start);
+        delta = (std::chrono::high_resolution_clock::now()-start);
         std::cout <<"cuda alloc+copy took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
               << " ms" << std::endl;
@@ -134,24 +147,24 @@ int main(void)
 		<< "CUDA kernel launch with " << blocksPerGrid
 		<< " blocks of " << threadsPerBlock << " threads\n";
 
-        delta -= (std::chrono::high_resolution_clock::now()-start);
-	cuda::launch(
+        start = std::chrono::high_resolution_clock::now();
+	for (int j=0; j<1000;++j) cuda::launch(
 		vectorAdd,
 		{ blocksPerGrid, threadsPerBlock },
 		d_A.get(), d_B.get(), d_C.get(), numElements
 	);
-        delta += (std::chrono::high_resolution_clock::now()-start);
+        delta = std::chrono::high_resolution_clock::now()-start;
         std::cout <<"cuda computation took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
               << " ms" << std::endl;
 
-        delta -= (std::chrono::high_resolution_clock::now()-start);
-        cuda::launch(
+        start = std::chrono::high_resolution_clock::now();
+        for (int j=0; j<1000;++j) cuda::launch(
                 vectorAdd,
                 { blocksPerGrid, threadsPerBlock },
                 d_A.get(), d_B.get(), d_C.get(), numElements
         );
-        delta += (std::chrono::high_resolution_clock::now()-start);
+        delta = std::chrono::high_resolution_clock::now()-start;
         std::cout <<"cuda computation took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
               << " ms" << std::endl;
@@ -160,16 +173,18 @@ int main(void)
 	cuda::memory::copy(h_C.get(), d_C.get(), size);
 
 
-        delta -= (std::chrono::high_resolution_clock::now()-start);
-        vectorAddH(h_A.get(),h_B.get(),h_C2.get(),size);        
-        delta += (std::chrono::high_resolution_clock::now()-start);
+        start = std::chrono::high_resolution_clock::now();
+        for (int j=0; j<1000;++j) vectorAddH(h_A.get(),h_B.get(),h_C2.get(),numElements);        
+        delta = std::chrono::high_resolution_clock::now()-start;
         std::cout <<"host computation took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
               << " ms" << std::endl;
 
-        delta -= (std::chrono::high_resolution_clock::now()-start);
-        vectorAddH(h_A.get(),h_B.get(),h_C2.get(),size);
-        delta += (std::chrono::high_resolution_clock::now()-start);
+        start = std::chrono::high_resolution_clock::now();
+        for (int j=0; j<1000;++j) {
+        vectorAddH(h_A.get(),h_B.get(),h_C2.get(),numElements);
+        }
+        delta = std::chrono::high_resolution_clock::now()-start;
         std::cout <<"host computation took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
               << " ms" << std::endl;

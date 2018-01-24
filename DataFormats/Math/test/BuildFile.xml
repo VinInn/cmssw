@@ -69,11 +69,12 @@
 
 
 <use name="cuda"/>
+<use name="tbb"/>
 <bin file="*.cu" name="DFM_VectorLogdef">
 </bin>
 <bin file="*.cu" name="DFM_VectorLogrep">
   <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
-  <flags CXXFLAGS="-ffp-contract=off"/>
+  <flags CXXFLAGS="-fopt-info-vec -ffp-contract=off"/>
 </bin>
 
 <bin file="*.cu" name="DFM_VectorLogfast">
@@ -90,7 +91,7 @@
 </bin>
 <bin file="*.cu" name="DFM_VectorExprep">
   <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
-  <flags CXXFLAGS="-DUSEEXP -ffp-contract=off"/>
+  <flags CXXFLAGS="-fopt-info-vec -DUSEEXP -ffp-contract=off"/>
 </bin>
 
 <bin file="*.cu" name="DFM_VectorExpfast">
@@ -107,7 +108,7 @@
 </bin>
 <bin file="*.cu" name="DFM_VectorSinrep">
   <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
-  <flags CXXFLAGS="-DUSESIN -ffp-contract=off"/>
+  <flags CXXFLAGS="-fopt-info-vec -DUSESIN -ffp-contract=off"/>
 </bin>
 
 <bin file="*.cu" name="DFM_VectorSinfast">
@@ -121,7 +122,7 @@
  
 
 <bin file="*.cu" name="DFM_VectorAdddef">
-  <flags CXXFLAGS="-DADDY"/>
+  <flags CXXFLAGS="-fopt-info-vec -DADDY"/>
   <flags CUDA_FLAGS="-DADDY"/>
 </bin>
 <bin file="*.cu" name="DFM_VectorAddrep">
@@ -135,7 +136,7 @@
 </bin>
 
 <bin file="*.cu" name="DFM_VectorAddcpufast">
-  <flags CXXFLAGS="-DADDY -Ofast -mavx2 -mfma"/>
+  <flags CXXFLAGS="-fopt-info-vec -DADDY -Ofast -mavx2 -mfma"/>
   <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
 </bin>
 
