@@ -62,10 +62,14 @@ inline float myLog(float x) {
   return  unsafe_logf<6>(x);
 }
 
+__host__ __device__
+inline float nopf(float x) { return x;}
 
 __host__ __device__
 inline float testFunc(float x, float y) { return 
-#ifdef USEEXP
+#ifdef USENOP
+  nopf(x)
+#elif defined(USEEXP)
   myExp(x)
 #elif defined(USESIN)
   mySin(x)
@@ -79,7 +83,9 @@ inline float testFunc(float x, float y) { return
 
 __device__
 inline float devFunc(float x, float y) { return
-#ifdef USEEXP
+#ifdef USENOP
+  nopf(x)
+#elif defined(USEEXP)
   expf(x)
 #elif defined(USESIN)
   sinf(x)

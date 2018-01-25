@@ -70,6 +70,18 @@
 
 <use name="cuda"/>
 <use name="tbb"/>
+
+<bin file="*.cu" name="DFM_VectorNOPfast">
+   <flags CUDA_FLAGS="-ftz=true -prec-div=false -prec-sqrt=false"/>
+   <flags CXXFLAGS="-DUSENOP -Ofast -mavx2 -mfma"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorNOPdef">
+   <flags CXXFLAGS="-DUSENOP"/>
+</bin>
+
+
+
+
 <bin file="*.cu" name="DFM_VectorLogdef">
 </bin>
 <bin file="*.cu" name="DFM_VectorLogrep">
