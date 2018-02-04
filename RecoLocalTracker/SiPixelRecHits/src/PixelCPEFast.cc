@@ -1,5 +1,7 @@
 #include "RecoLocalTracker/SiPixelRecHits/interface/PixelCPEFast.h"
 
+#include "RecoLocalTracker/SiPixelRecHits/interface/phase1PixelTopology.h"
+
 #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
 #include "Geometry/TrackerGeometryBuilder/interface/RectangularPixelTopology.h"
 
@@ -160,50 +162,47 @@ PixelCPEFast::localPosition(DetParam const & theDetParam, ClusterParam & theClus
    //--- subtract these two points in the formula.
    
    //--- Upper Right corner of Lower Left pixel -- in measurement frame
-   MeasurementPoint meas_URcorn_LLpix( theClusterParam.theCluster->minPixelRow()+1.0,
-                                      theClusterParam.theCluster->minPixelCol()+1.0 );
+   uint16_t llx = theClusterParam.theCluster->minPixelRow()+1;
+   uint16_t lly = theClusterParam.theCluster->minPixelCol()+1;
    
    //--- Lower Left corner of Upper Right pixel -- in measurement frame
-   MeasurementPoint meas_LLcorn_URpix( theClusterParam.theCluster->maxPixelRow(),
-                                      theClusterParam.theCluster->maxPixelCol() );
+   uint16_t urx = theClusterParam.theCluster->maxPixelRow();
+   uint16_t ury = theClusterParam.theCluster->maxPixelCol();
    
-   //--- These two now converted into the local
-   LocalPoint local_URcorn_LLpix;
-   LocalPoint local_LLcorn_URpix;
-   
-      local_URcorn_LLpix = theDetParam.theTopol->localPosition(meas_URcorn_LLpix);
-      local_LLcorn_URpix = theDetParam.theTopol->localPosition(meas_LLcorn_URpix);
-   
-   
+   auto llxl = phase1PixelTopology::localX(llx);   
+   auto	llyl = phase1PixelTopology::localY(lly);
+   auto	urxl = phase1PixelTopology::localX(urx);
+   auto uryl = phase1PixelTopology::localY(ury);
+
    
    float xPos =
    generic_position_formula( theClusterParam.theCluster->sizeX(),
                             Q_f_X, Q_l_X,
-                            local_URcorn_LLpix.x(), local_LLcorn_URpix.x(),
+                            llxl, urxl,
                             chargeWidthX,   // lorentz shift in cm
                             theDetParam.theThickness,
                             theClusterParam.cotalpha,
                             theDetParam.thePitchX,
-                            theDetParam.theRecTopol->isItBigPixelInX( theClusterParam.theCluster->minPixelRow() ),
-                            theDetParam.theRecTopol->isItBigPixelInX( theClusterParam.theCluster->maxPixelRow() )
+                            phase1PixelTopology::isBigPixX( theClusterParam.theCluster->minPixelRow() ),
+                            phase1PixelTopology::isBigPixX( theClusterParam.theCluster->maxPixelRow() )
                            );   
    
    // apply the lorentz offset correction
-   xPos = xPos + shiftX;
+   xPos = xPos + shiftX + theDetParam.thePitchX*float(phase1PixelTopology::xOffset);
    
    float yPos =
    generic_position_formula( theClusterParam.theCluster->sizeY(),
                             Q_f_Y, Q_l_Y,
-                            local_URcorn_LLpix.y(), local_LLcorn_URpix.y(),
+                            llyl, uryl,
                             chargeWidthY,   // lorentz shift in cm
                             theDetParam.theThickness,
                             theClusterParam.cotbeta,
                             theDetParam.thePitchY,
-                            theDetParam.theRecTopol->isItBigPixelInY( theClusterParam.theCluster->minPixelCol() ),
-                            theDetParam.theRecTopol->isItBigPixelInY( theClusterParam.theCluster->maxPixelCol() )
+                            phase1PixelTopology::isBigPixY( theClusterParam.theCluster->minPixelCol() ),
+                            phase1PixelTopology::isBigPixY( theClusterParam.theCluster->maxPixelCol() )
                            );   
    // apply the lorentz offset correction
-   yPos = yPos + shiftY;
+   yPos = yPos + shiftY + theDetParam.thePitchY*float(phase1PixelTopology::yOffset);
    
    //--- Now put the two together
    LocalPoint pos_in_local( xPos, yPos );
@@ -223,8 +222,8 @@ PixelCPEFast::
 generic_position_formula( int size,                //!< Size of this projection.
                          int Q_f,              //!< Charge in the first pixel.
                          int Q_l,              //!< Charge in the last pixel.
-                         float upper_edge_first_pix, //!< As the name says.
-                         float lower_edge_last_pix,  //!< As the name says.
+                         uint16_t upper_edge_first_pix, //!< As the name says.
+                         uint16_t lower_edge_last_pix,  //!< As the name says.
                          float lorentz_shift,   //!< L-shift at half thickness
                          float theThickness,   //detector thickness
                          float cot_angle,        //!< cot of alpha_ or beta_
@@ -234,7 +233,7 @@ generic_position_formula( int size,                //!< Size of this projection.
 ) const
 {
    
-   float geom_center = 0.5f * ( upper_edge_first_pix + lower_edge_last_pix );
+   float geom_center = 0.5f * pitch*float( upper_edge_first_pix + lower_edge_last_pix );
    
    //--- The case of only one pixel in this projection is separate.  Note that
    //--- here first_pix == last_pix, so the average of the two is still the
@@ -246,7 +245,8 @@ generic_position_formula( int size,                //!< Size of this projection.
    if (size==2) {   
      //--- Width of the clusters minus the edge (first and last) pixels.
      //--- In the note, they are denoted x_F and x_L (and y_F and y_L)
-     float W_inner      = lower_edge_last_pix - upper_edge_first_pix;  // in cm
+     assert(lower_edge_last_pix>=upper_edge_first_pix);
+     float W_inner      =  pitch * float(lower_edge_last_pix-upper_edge_first_pix);  // in cm
    
      //--- Predicted charge width from geometry
      float W_pred = theThickness * cot_angle                     // geometric correction (in cm)
@@ -358,8 +358,8 @@ PixelCPEFast::localError(DetParam const & theDetParam,  ClusterParam & theCluste
    int minPixelCol = theClusterParam.theCluster->minPixelCol();
    int minPixelRow = theClusterParam.theCluster->minPixelRow();
    
-   bool edgex = ( theDetParam.theRecTopol->isItEdgePixelInX( minPixelRow ) ) || ( theDetParam.theRecTopol->isItEdgePixelInX( maxPixelRow ) );
-   bool edgey = ( theDetParam.theRecTopol->isItEdgePixelInY( minPixelCol ) ) || ( theDetParam.theRecTopol->isItEdgePixelInY( maxPixelCol ) );
+   bool edgex =  phase1PixelTopology::isEdgeX(minPixelRow) | phase1PixelTopology::isEdgeX(maxPixelRow);
+   bool edgey =  phase1PixelTopology::isEdgeY(minPixelCol) | phase1PixelTopology::isEdgeY(maxPixelCol);
    
    unsigned int sizex = theClusterParam.theCluster->sizeX();
    unsigned int sizey = theClusterParam.theCluster->sizeY();

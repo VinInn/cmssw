@@ -133,7 +133,7 @@ int main() {
 
   for (uint16_t iy=0; iy<52*8; ++iy) {
     auto ori = localYori(iy);
-    auto yl = phase1PixelTopology::localy(iy);
+    auto yl = phase1PixelTopology::localY(iy);
     auto bp = phase1PixelTopology::isBigPixY(iy);
     if (std::get<0>(ori)!=yl) std::cout << "Error " << std::get<0>(ori) << "!=" << yl << std::endl;
     assert(std::get<1>(ori)==bp);

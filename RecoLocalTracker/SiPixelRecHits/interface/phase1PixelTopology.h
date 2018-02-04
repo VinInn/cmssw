@@ -15,8 +15,8 @@ namespace phase1PixelTopology {
   constexpr uint16_t lastColInModule  = 8*52-1;
 
   // can be computed, I prefer hardwired
-  constexpr uint16_t xOffset = 81;
-  constexpr uint16_t yOffset = 54*4;
+  constexpr int16_t xOffset = -81;
+  constexpr int16_t yOffset = -54*4;
     
   
   constexpr uint32_t numPixsInModule  =  uint32_t(numRowsInModule)* uint32_t(numColsInModule);
@@ -68,7 +68,7 @@ namespace phase1PixelTopology {
   }
 
   constexpr
-  uint16_t localy(uint16_t py) {
+  uint16_t localY(uint16_t py) {
     auto roc = divu52(py);
     auto shift = 2*roc;
     auto yInRoc = py - 52*roc;

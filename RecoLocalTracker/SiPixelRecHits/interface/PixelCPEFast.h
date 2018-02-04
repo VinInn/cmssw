@@ -55,8 +55,8 @@ private:
    generic_position_formula( int size,                //!< Size of this projection.
                             int Q_f,              //!< Charge in the first pixel.
                             int Q_l,              //!< Charge in the last pixel.
-                            float upper_edge_first_pix, //!< As the name says.
-                            float lower_edge_last_pix,  //!< As the name says.
+                            uint16_t upper_edge_first_pix, //!< As the name says.
+                            uint16_t lower_edge_last_pix,  //!< As the name says.
                             float lorentz_shift,   //!< L-width
                             float theThickness,   //detector thickness
                             float cot_angle,            //!< cot of alpha_ or beta_

@@ -100,8 +100,7 @@ namespace cms
           std::atomic<uint32_t> c;
           float maxx=0.f, maxd=0.0f;
         };
-        Stat stat;
- 
+        Stat statx, staty; 
   }
 
   //---------------------------------------------------------------------------
@@ -151,10 +150,12 @@ namespace cms
         auto lef = std::get<1>(tuplef);
 
 
-        if(std::abs(lp.x()-lpf.x())>0.001) {++stat.c; stat.maxx=std::max(stat.maxx,lp.x());}
-        stat.maxd=std::max(std::abs(lp.x()-lpf.x()), stat.maxd);
+        if(std::abs(lp.x()-lpf.x())>0.001) {++statx.c; statx.maxx=std::max(statx.maxx,lp.x());}
+        statx.maxd=std::max(std::abs(lp.x()-lpf.x()), statx.maxd);
+        if(std::abs(lp.y()-lpf.y())>0.001) {++staty.c; staty.maxx=std::max(staty.maxx,lp.y());}
+        staty.maxd=std::max(std::abs(lp.y()-lpf.y()), staty.maxd);
         // if(std::abs(lp.x()-lpf.x())>0.001) std::cout << lp.x() <<'/'<<lpf.x() << ' ' << lp.y() <<'/'<<lpf.y() << ' ' << le.xx() <<'/'<<lef.xx() <<std::endl;
-        assert(lp.y()==lpf.y());
+        // assert(lp.y()==lpf.y());
        	assert(le.xx()==lef.xx() && le.yy()==lef.yy());
 
 
