@@ -76,7 +76,12 @@ namespace cms
     std::string cpeName_ = conf_.getParameter<std::string>("CPE");
     es.get<TkPixelCPERecord>().get(cpeName_,hCPE);
     cpe_ = dynamic_cast< const PixelCPEBase* >(&(*hCPE));
-    
+
+    edm::ESHandle<PixelClusterParameterEstimator> hCPEf;
+    es.get<TkPixelCPERecord>().get("PixelCPEFast",hCPEf);
+    cpeFast_ = dynamic_cast< const PixelCPEBase* >(hCPEf.product());
+    assert(cpeFast_);
+
     // Step C: Iterate over DetIds and invoke the strip CPE algorithm
     // on each DetUnit
 
@@ -85,6 +90,18 @@ namespace cms
     output->shrink_to_fit();
     e.put(std::move(output));
 
+  }
+
+  namespace {
+
+        struct Stat {
+          Stat():c(0){}
+          ~Stat(){std::cout << "CPE stat " << c << ' ' << maxx << ' ' << maxd << std::endl;}
+          std::atomic<uint32_t> c;
+          float maxx=0.f, maxd=0.0f;
+        };
+        Stat stat;
+ 
   }
 
   //---------------------------------------------------------------------------
@@ -124,8 +141,23 @@ namespace cms
       for ( ; clustIt != clustEnd; clustIt++) {
 	numberOfClusters++;
 	std::tuple<LocalPoint, LocalError,SiPixelRecHitQuality::QualWordType> tuple = cpe_->getParameters( *clustIt, *genericDet );
+        auto tuplef = cpeFast_->getParameters( *clustIt, *genericDet );
+//        auto tuplef = cpe_->getParameters( *clustIt, *genericDet );
+
 	LocalPoint lp( std::get<0>(tuple) );
 	LocalError le( std::get<1>(tuple) );
+
+        auto lpf = std::get<0>(tuplef);
+        auto lef = std::get<1>(tuplef);
+
+
+        if(std::abs(lp.x()-lpf.x())>0.001) {++stat.c; stat.maxx=std::max(stat.maxx,lp.x());}
+        stat.maxd=std::max(std::abs(lp.x()-lpf.x()), stat.maxd);
+        // if(std::abs(lp.x()-lpf.x())>0.001) std::cout << lp.x() <<'/'<<lpf.x() << ' ' << lp.y() <<'/'<<lpf.y() << ' ' << le.xx() <<'/'<<lef.xx() <<std::endl;
+        assert(lp.y()==lpf.y());
+       	assert(le.xx()==lef.xx() && le.yy()==lef.yy());
+
+
         SiPixelRecHitQuality::QualWordType rqw( std::get<2>(tuple) );
 	// Create a persistent edm::Ref to the cluster
 	edm::Ref< edmNew::DetSetVector<SiPixelCluster>, SiPixelCluster > cluster = edmNew::makeRefTo( inputhandle, clustIt);

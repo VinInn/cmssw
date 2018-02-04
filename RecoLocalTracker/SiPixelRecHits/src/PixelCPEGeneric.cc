@@ -174,7 +174,8 @@ PixelCPEGeneric::localPosition(DetParam const & theDetParam, ClusterParam & theC
    float shiftY = 0.5f*theDetParam.lorentzShiftInCmY;
    
    //cout<<" main la width "<<chargeWidthX<<" "<<chargeWidthY<<endl;
-   
+
+   assert(UseErrorsFromTemplates_);   
    if ( UseErrorsFromTemplates_ ) {
       
       float qclus = theClusterParam.theCluster->charge();
@@ -268,6 +269,7 @@ PixelCPEGeneric::localPosition(DetParam const & theDetParam, ClusterParam & theC
    LocalPoint local_URcorn_LLpix;
    LocalPoint local_LLcorn_URpix;
    
+   // assert(!theClusterParam.with_track_angle);
    // PixelCPEGeneric can be used with or without track angles
    // If PixelCPEGeneric is called with track angles, use them to correct for bows/kinks:
    if ( theClusterParam.with_track_angle ) {
@@ -347,6 +349,7 @@ PixelCPEGeneric::localPosition(DetParam const & theDetParam, ClusterParam & theC
    yPos = yPos + shiftY;
    
    // Apply irradiation corrections. NOT USED FOR NOW
+   assert(!IrradiationBiasCorrection_);
    if ( IrradiationBiasCorrection_ ) {
       if ( theClusterParam.theCluster->sizeX() == 1 ) {  // size=1
          // ggiurgiu@jhu.edu, 02/03/09 : for size = 1, the Lorentz shift is already accounted by the irradiation correction
@@ -449,9 +452,9 @@ generic_position_formula( int size,                //!< Size of this projection.
    //--- length of the edge pixels.
    //
    //  bool usedEdgeAlgo = false;
-   if ( (size >= size_cut) || (
-                               ( W_eff/pitch < eff_charge_cut_low ) |
-                               ( W_eff/pitch > eff_charge_cut_high ) ) )
+   if ( (size >= int(size_cut)) || (
+                               ( W_eff < eff_charge_cut_low*pitch ) |
+                               ( W_eff > eff_charge_cut_high*pitch ) ) )
    {
       W_eff = pitch * 0.5f * sum_of_edge;  // ave. length of edge pixels (first+last) (cm)
       //  usedEdgeAlgo = true;

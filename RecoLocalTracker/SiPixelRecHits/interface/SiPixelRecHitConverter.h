@@ -93,6 +93,7 @@ namespace cms
     std::string cpeName_="None";                   // what the user said s/he wanted
     /// const PixelClusterParameterEstimator * cpe_;  // what we got (for now, one ptr to base class)
     PixelCPEBase const * cpe_=nullptr;                    // What we got (for now, one ptr to base class)
+    PixelCPEBase const * cpeFast_=nullptr;                    // What we got (for now, one ptr to base class)
     edm::InputTag src_;
     edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> tPixelCluster;
     bool m_newCont; // save also in emdNew::DetSetVector
