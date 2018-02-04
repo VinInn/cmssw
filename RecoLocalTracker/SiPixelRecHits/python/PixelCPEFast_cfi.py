@@ -9,6 +9,11 @@ PixelCPEFastESProducer = cms.ESProducer("PixelCPEFastESProducer",
     EdgeClusterErrorX = cms.double( 50.0 ),                                      
     EdgeClusterErrorY = cms.double( 85.0 ),                                                     
 
+    # these for CPEBase
+    useLAWidthFromDB = cms.bool(True),
+    useLAAlignmentOffsets = cms.bool(False),
+
+
     # Can use errors predicted by the template code
     # If UseErrorsFromTemplates is False, must also set
     # TruncatePixelCharge and LoadTemplatesFromDB to be False                                        

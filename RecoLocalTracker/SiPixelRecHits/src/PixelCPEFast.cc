@@ -33,7 +33,7 @@ PixelCPEFast::PixelCPEFast(edm::ParameterSet const & conf,
                                  const TrackerTopology& ttopo,
                                  const SiPixelLorentzAngle * lorentzAngle,
                                  const SiPixelGenErrorDBObject * genErrorDBObject,
-                                 const SiPixelLorentzAngle * lorentzAngleWidth=nullptr)
+                                 const SiPixelLorentzAngle * lorentzAngleWidth)
 : PixelCPEBase(conf, mag, geom, ttopo, lorentzAngle, genErrorDBObject, nullptr,lorentzAngleWidth,0) {
    
    if (theVerboseLevel > 0)
