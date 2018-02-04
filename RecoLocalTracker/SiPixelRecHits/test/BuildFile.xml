@@ -34,3 +34,5 @@
 <flags   EDM_PLUGIN="1"/>
 <library   file="CPEAccessTester.cc" name="CPEAccessTester">
 </library>
+
+<bin file="phase1PixelTopology_t.cpp" />
