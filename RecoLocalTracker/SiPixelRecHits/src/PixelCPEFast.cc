@@ -39,14 +39,6 @@ PixelCPEFast::PixelCPEFast(edm::ParameterSet const & conf,
       << " constructing a generic algorithm for ideal pixel detector.\n"
       << " CPEGeneric:: VerboseLevel = " << theVerboseLevel;
    
-   // Externally settable cuts
-   the_eff_charge_cut_lowX = conf.getParameter<double>("eff_charge_cut_lowX");
-   the_eff_charge_cut_lowY = conf.getParameter<double>("eff_charge_cut_lowY");
-   the_eff_charge_cut_highX = conf.getParameter<double>("eff_charge_cut_highX");
-   the_eff_charge_cut_highY = conf.getParameter<double>("eff_charge_cut_highY");
-   the_size_cutX = conf.getParameter<double>("size_cutX");
-   the_size_cutY = conf.getParameter<double>("size_cutY");
-   
    EdgeClusterErrorX_ = conf.getParameter<double>("EdgeClusterErrorX");
    EdgeClusterErrorY_ = conf.getParameter<double>("EdgeClusterErrorY");
    
@@ -103,6 +95,8 @@ PixelCPEFast::localPosition(DetParam const & theDetParam, ClusterParam & theClus
 {
    
    ClusterParamGeneric & theClusterParam = static_cast<ClusterParamGeneric &>(theClusterParamBase);
+
+   assert(!theClusterParam.with_track_angle); 
    
    float chargeWidthX = (theDetParam.lorentzShiftInCmX * theDetParam.widthLAFractionX);
    float chargeWidthY = (theDetParam.lorentzShiftInCmY * theDetParam.widthLAFractionY);
@@ -191,11 +185,8 @@ PixelCPEFast::localPosition(DetParam const & theDetParam, ClusterParam & theClus
                             theClusterParam.cotalpha,
                             theDetParam.thePitchX,
                             theDetParam.theRecTopol->isItBigPixelInX( theClusterParam.theCluster->minPixelRow() ),
-                            theDetParam.theRecTopol->isItBigPixelInX( theClusterParam.theCluster->maxPixelRow() ),
-                            the_eff_charge_cut_lowX,
-                            the_eff_charge_cut_highX,
-                            the_size_cutX);           // cut for eff charge width &&&
-   
+                            theDetParam.theRecTopol->isItBigPixelInX( theClusterParam.theCluster->maxPixelRow() )
+                           );   
    
    // apply the lorentz offset correction
    xPos = xPos + shiftX;
@@ -209,11 +200,8 @@ PixelCPEFast::localPosition(DetParam const & theDetParam, ClusterParam & theClus
                             theClusterParam.cotbeta,
                             theDetParam.thePitchY,
                             theDetParam.theRecTopol->isItBigPixelInY( theClusterParam.theCluster->minPixelCol() ),
-                            theDetParam.theRecTopol->isItBigPixelInY( theClusterParam.theCluster->maxPixelCol() ),
-                            the_eff_charge_cut_lowY,
-                            the_eff_charge_cut_highY,
-                            the_size_cutY);           // cut for eff charge width &&&
-   
+                            theDetParam.theRecTopol->isItBigPixelInY( theClusterParam.theCluster->maxPixelCol() )
+                           );   
    // apply the lorentz offset correction
    yPos = yPos + shiftY;
    
@@ -242,10 +230,7 @@ generic_position_formula( int size,                //!< Size of this projection.
                          float cot_angle,        //!< cot of alpha_ or beta_
                          float pitch,            //!< thePitchX or thePitchY
                          bool first_is_big,       //!< true if the first is big
-                         bool last_is_big,        //!< true if the last is big
-                         float eff_charge_cut_low, //!< Use edge if > W_eff  &&&
-                         float eff_charge_cut_high,//!< Use edge if < W_eff  &&&
-                         float size_cut         //!< Use edge when size == cuts
+                         bool last_is_big        //!< true if the last is big
 ) const
 {
    
@@ -255,37 +240,34 @@ generic_position_formula( int size,                //!< Size of this projection.
    //--- here first_pix == last_pix, so the average of the two is still the
    //--- center of the pixel.
    if ( size == 1 ) {return geom_center;}
+
+   float W_eff; // the compiler detects the logic below (and warns if buggy!!!!0 
+   bool simple=true;
+   if (size==2) {   
+     //--- Width of the clusters minus the edge (first and last) pixels.
+     //--- In the note, they are denoted x_F and x_L (and y_F and y_L)
+     float W_inner      = lower_edge_last_pix - upper_edge_first_pix;  // in cm
    
-   //--- Width of the clusters minus the edge (first and last) pixels.
-   //--- In the note, they are denoted x_F and x_L (and y_F and y_L)
-   float W_inner      = lower_edge_last_pix - upper_edge_first_pix;  // in cm
+     //--- Predicted charge width from geometry
+     float W_pred = theThickness * cot_angle                     // geometric correction (in cm)
+                    - lorentz_shift;                    // (in cm) &&& check fpix!
    
-   //--- Predicted charge width from geometry
-   float W_pred = theThickness * cot_angle                     // geometric correction (in cm)
-   - lorentz_shift;                    // (in cm) &&& check fpix!
-   
-   //cout<<" in PixelCPEFast:generic_position_formula - "<<W_inner<<" "<<W_pred<<endl; //dk
-   
-   //--- Total length of the two edge pixels (first+last)
-   float sum_of_edge = 2.0f;
-   if (first_is_big) sum_of_edge += 1.0f;
-   if (last_is_big)  sum_of_edge += 1.0f;
-   
-   
-   //--- The `effective' charge width -- particle's path in first and last pixels only
-   float W_eff = std::abs( W_pred ) - W_inner;
-   
-   
-   //--- If the observed charge width is inconsistent with the expectations
-   //--- based on the track, do *not* use W_pred-W_innner.  Instead, replace
-   //--- it with an *average* effective charge width, which is the average
-   //--- length of the edge pixels.
-   //
-   if ( (size >= size_cut) || (
-                               ( W_eff/pitch < eff_charge_cut_low ) |
-                               ( W_eff/pitch > eff_charge_cut_high ) ) )
-   {
-      W_eff = pitch * 0.5f * sum_of_edge;  // ave. length of edge pixels (first+last) (cm)
+     W_eff = std::abs( W_pred ) - W_inner;
+
+     //--- If the observed charge width is inconsistent with the expectations
+     //--- based on the track, do *not* use W_pred-W_innner.  Instead, replace
+     //--- it with an *average* effective charge width, which is the average
+     //--- length of the edge pixels.
+     //
+     simple = ( W_eff < 0.0f ) | ( W_eff > pitch );
+
+   }
+   if (simple) {
+     //--- Total length of the two edge pixels (first+last)
+     float sum_of_edge = 2.0f;
+     if (first_is_big) sum_of_edge += 1.0f;
+     if (last_is_big)  sum_of_edge += 1.0f;
+     W_eff = pitch * 0.5f * sum_of_edge;  // ave. length of edge pixels (first+last) (cm)
    }
    
    
@@ -318,8 +300,8 @@ collect_edge_charges(ClusterParam & theClusterParamBase,  //!< input, the cluste
    ClusterParamGeneric & theClusterParam = static_cast<ClusterParamGeneric &>(theClusterParamBase);
    
    // Initialize return variables.
-   Q_f_X = Q_l_X = 0.0;
-   Q_f_Y = Q_l_Y = 0.0;
+   Q_f_X = Q_l_X = 0;
+   Q_f_Y = Q_l_Y = 0;
    
    
    // Obtain boundaries in index units

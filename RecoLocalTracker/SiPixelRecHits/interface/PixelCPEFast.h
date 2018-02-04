@@ -62,10 +62,7 @@ private:
                             float cot_angle,            //!< cot of alpha_ or beta_
                             float pitch,            //!< thePitchX or thePitchY
                             bool first_is_big,       //!< true if the first is big
-                            bool last_is_big,        //!< true if the last is big
-                            float eff_charge_cut_low, //!< Use edge if > W_eff (in pix) &&&
-                            float eff_charge_cut_high,//!< Use edge if < W_eff (in pix) &&&
-                            float size_cut           //!< Use edge when size == cuts
+                            bool last_is_big        //!< true if the last is big
    ) const;
    
    void
@@ -75,19 +72,6 @@ private:
                         int & Q_f_Y,              //!< output, Q first  in Y
                         int & Q_l_Y               //!< output, Q last   in Y
    ) const;
-   
-   
-   //--- Errors squared in x and y.  &&& Need to be revisited.
-   float err2X(bool&, int&) const;
-   float err2Y(bool&, int&) const;
-   
-   //--- Cuts made externally settable
-   float the_eff_charge_cut_lowX;
-   float the_eff_charge_cut_lowY;
-   float the_eff_charge_cut_highX;
-   float the_eff_charge_cut_highY;
-   float the_size_cutX;
-   float the_size_cutY;
    
    
    bool UseErrorsFromTemplates_;
