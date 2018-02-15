@@ -19,7 +19,9 @@
 
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 
+#include<cassert>
 #include <iostream>
+
 
   namespace {
 
@@ -99,6 +101,7 @@ void PixelCPEFast::fillParamsForGpu() {
   m_commonParamsGPU.thePitchY = m_DetParams[0].thePitchY;
 
   uint32_t oldLayer = 0;
+  int crl=0;
   m_detParamsGPU.resize(m_DetParams.size());
   for (auto i=0U; i<m_DetParams.size(); ++i) {
     auto & p=m_DetParams[i];
@@ -123,7 +126,9 @@ void PixelCPEFast::fillParamsForGpu() {
 
     if (oldLayer != g.layer) {
       oldLayer = g.layer;
-      std::cout << "new layer at " << i << (g.isBarrel ? " B  " :  (g.isPosZ ? " E+ " : " E- ")) << g.layer << " starting at " << g.rawId << std::endl;
+      std::cout << "new layer " << crl << " at " << i 
+                << (g.isBarrel ? " B  " :  (g.isPosZ ? " E+ " : " E- ")) << g.layer << " starting at " << g.rawId << std::endl;
+      assert(phase1PixelTopology::layerStart[crl++]==i);
     }
 
     g.shiftX = 0.5f*p.lorentzShiftInCmX;
