@@ -73,6 +73,10 @@
 <use   name="vdt_headers"/>
 <bin file="*.cu" name="DFM_VectorLogdef">
 </bin>
+<bin file="*.cu" name="DFM_VectorLognative">
+   <flags CXXFLAGS="-O3 -march=native"/>
+</bin>
+
 <bin file="*.cu" name="DFM_VectorLogrep">
   <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
   <flags CXXFLAGS="-ffp-contract=off"/>
@@ -106,6 +110,9 @@
 
 <bin file="*.cu" name="DFM_VectorSindef">
 <flags CXXFLAGS="-DUSESIN"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorSinnative">
+<flags CXXFLAGS="-DUSESIN -march=native"/>
 </bin>
 <bin file="*.cu" name="DFM_VectorSinrep">
   <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
