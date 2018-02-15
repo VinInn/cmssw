@@ -65,3 +65,79 @@
 
 <bin file="testGraph.cpp">
 </bin>
+
+
+
+<use name="cuda"/>
+<use name="cuda-api-wrappers"/>
+<use   name="vdt_headers"/>
+<bin file="*.cu" name="DFM_VectorLogdef">
+</bin>
+<bin file="*.cu" name="DFM_VectorLogrep">
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+  <flags CXXFLAGS="-ffp-contract=off"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorLogfast">
+   <flags CUDA_FLAGS="-ftz=true -prec-div=false -prec-sqrt=false"/>
+   <flags CXXFLAGS="-Ofast -march=native"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorLogcpufast">
+  <flags CXXFLAGS="-Ofast -march=native"/>
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorExpdef">
+<flags CXXFLAGS="-DUSEEXP"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorExprep">
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+  <flags CXXFLAGS="-DUSEEXP -ffp-contract=off"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorExpfast">
+   <flags CXXFLAGS="-DUSEEXP -Ofast -march=native"/>
+   <flags CUDA_FLAGS="-ftz=true -prec-div=false -prec-sqrt=false"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorExpcpufast">
+  <flags CXXFLAGS="-DUSEEXP -Ofast -march=native"/>
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorSindef">
+<flags CXXFLAGS="-DUSESIN"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorSinrep">
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+  <flags CXXFLAGS="-DUSESIN -ffp-contract=off"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorSinfast">
+   <flags CXXFLAGS="-DUSESIN -Ofast -march=native"/>
+   <flags CUDA_FLAGS="-ftz=true -prec-div=false -prec-sqrt=false"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorSincpufast">
+  <flags CXXFLAGS="-DUSESIN -Ofast -march=native"/>
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+</bin>
+ 
+
+<bin file="*.cu" name="DFM_VectorAdddef">
+  <flags CXXFLAGS="-DADDY"/>
+  <flags CUDA_FLAGS="-DADDY"/>
+</bin>
+<bin file="*.cu" name="DFM_VectorAddrep">
+  <flags CUDA_FLAGS="-DADDY -fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+  <flags CXXFLAGS="-DADDY -ffp-contract=off"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorAddfast">
+   <flags CXXFLAGS="-DADDY -Ofast -march=native"/>
+   <flags CUDA_FLAGS="-ftz=true -prec-div=false -prec-sqrt=false"/>
+</bin>
+
+<bin file="*.cu" name="DFM_VectorAddcpufast">
+  <flags CXXFLAGS="-DADDY -Ofast -march=native"/>
+  <flags CUDA_FLAGS="-fmad=false -ftz=false -prec-div=true -prec-sqrt=true"/>
+</bin>
+

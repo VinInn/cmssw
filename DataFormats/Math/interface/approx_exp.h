@@ -43,10 +43,10 @@ Not sure it makes that much sense in the vector context.
 #define APPROX_MATH_N
 namespace approx_math {
   union binary32 {
-    binary32() : ui32(0) {};
-    binary32(float ff) : f(ff) {};
-    binary32(int32_t ii) : i32(ii){}
-    binary32(uint32_t ui) : ui32(ui){}
+    inline binary32() : ui32(0) {};
+    inline binary32(float ff) : f(ff) {};
+    inline binary32(int32_t ii) : i32(ii){}
+    inline binary32(uint32_t ui) : ui32(ui){}
     
     uint32_t ui32; /* unsigned int */                
     int32_t i32; /* Signed int */                
