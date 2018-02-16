@@ -27,6 +27,7 @@ end
 #include <chrono>
 #include<random>
 
+#include<cassert>
 
 std::mt19937 eng;
 std::mt19937 eng2;
@@ -37,10 +38,12 @@ std::uniform_real_distribution<float> rgen(0.,1.);
 #define inline __host__ __device__ inline
 #include<DataFormats/Math/interface/approx_exp.h>
 #include<DataFormats/Math/interface/approx_log.h>
+#include<DataFormats/Math/interface/approx_atan2.h>
 #undef inline
 #else
 #include<DataFormats/Math/interface/approx_exp.h>
 #include<DataFormats/Math/interface/approx_log.h>
+#include<DataFormats/Math/interface/approx_atan2.h>
 #endif
 
 __host__ __device__
@@ -97,7 +100,6 @@ void vectorAddH(const float *A, const float *B, float *C, int numElements)
            { C[i] = testFunc(A[i],B[i]); }
 }
 
-
 int main(void)
 {
   auto start = std::chrono::high_resolution_clock::now();
@@ -107,6 +109,8 @@ int main(void)
 		std::cerr << "No CUDA devices on this system" << "\n";
 		exit(EXIT_FAILURE);
 	}
+
+        auto current_device = cuda::device::current::get(); 
 
 	int numElements = 50000;
 	size_t size = numElements * sizeof(float);
@@ -123,7 +127,6 @@ int main(void)
 
 
         delta -= (std::chrono::high_resolution_clock::now()-start);
-	auto current_device = cuda::device::current::get();
 	auto d_A = cuda::memory::device::make_unique<float[]>(current_device, numElements);
 	auto d_B = cuda::memory::device::make_unique<float[]>(current_device, numElements);
 	auto d_C = cuda::memory::device::make_unique<float[]>(current_device, numElements);
@@ -207,9 +210,10 @@ int main(void)
 	}
         std::cout << "ndiff ave, max " << ndiff << ' ' << ave/numElements << ' ' << maxDiff << std::endl;
         std::cout << "float ave, max " << fave/numElements << ' ' << fmaxDiff << std::endl;
-        if (ndiff) exit(0);
-	std::cout << "Test PASSED\n";
-	std::cout << "SUCCESS"<< std::endl;
+        if (! ndiff) {
+	  std::cout << "Test PASSED\n";
+	  std::cout << "SUCCESS"<< std::endl;
+        }
 	exit(0);
 }
 
