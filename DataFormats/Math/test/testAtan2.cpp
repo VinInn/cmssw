@@ -39,12 +39,20 @@ template<> float unsafe_atan2f<99>(float y,float x) { return std::atan2(y,x);}
 template<> int unsafe_atan2i<0>(float,float) { return 1;}
 template<> int unsafe_atan2i<99>(float y,float x) { return phi2int(std::atan2(y,x));}
 
+template<> short unsafe_atan2s<0>(float,float) { return 1;}
+template<> short unsafe_atan2s<99>(float y,float x) { return phi2short(std::atan2(y,x));}
+
+template<> short unsafe_atan2s<11>(float y,float x) { return unsafe_atan2s<9>(y,x);}
+template<> short unsafe_atan2s<13>(float y,float x) { return unsafe_atan2s<9>(y,x);}
+template<> short unsafe_atan2s<15>(float y,float x) { return unsafe_atan2s<9>(y,x);}
+
 
 
 template<int DEGREE>
 void diff() {
   float mdiff=0;
   int idiff=0;
+  short sdiff=0;
   constexpr float xmin=-100.001;  // avoid 0
   constexpr float incr = 0.04;
   constexpr int N = 2.*std::abs(xmin)/incr;
@@ -54,15 +62,20 @@ void diff() {
     for (int i=0; i<N; ++i) {
       auto approx = unsafe_atan2f<DEGREE>(y,x);
       auto iapprox = unsafe_atan2i<DEGREE>(y,x);
+      auto sapprox = unsafe_atan2s<DEGREE>(y,x);
       auto std = std::atan2(y,x);
       mdiff = std::max(std::abs(std-approx),mdiff);
       idiff = std::max(std::abs(phi2int(std)-iapprox),idiff);
+      short dd = std::abs(phi2short(std)-sapprox);
+      sdiff = std::max(dd,sdiff);
       x+=incr;
     }
     y+=incr;
   }
   
-  std::cout << "for degree " << DEGREE << " max diff is " << mdiff << ' ' << idiff << ' ' << int2phi(idiff) <<  std::endl; 
+  std::cout << "for degree " << DEGREE << " max diff is " << mdiff 
+                             << ' ' << idiff << ' ' << int2phi(idiff) 
+                             << ' ' << sdiff << ' ' << short2phi(sdiff) <<  std::endl;
 
 }
 
