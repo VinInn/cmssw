@@ -46,8 +46,8 @@ end
   constexpr int Nsteps = 2.*std::abs(xmin)/incr;
 
 
-#define DEGREE 9
-// template<int DEGREE>
+// #define DEGREE 9
+template<int DEGREE>
 __global__ void diffAtan(int * diffs) {
 
 
@@ -73,9 +73,8 @@ __global__ void diffAtan(int * diffs) {
 
 }
 
-
-int main(void)
-{
+template<int DEGREE>
+void go() {
   auto start = std::chrono::high_resolution_clock::now();
   auto delta = start - start;
 
@@ -104,7 +103,7 @@ int main(void)
                 << " blocks of " << threadsPerBlock.y << " threads\n";
 
         cuda::launch(
-                diffAtan,
+                diffAtan<DEGREE>,
                 { blocksPerGrid, threadsPerBlock },
                 diff_d.get() );
 
@@ -124,6 +123,17 @@ int main(void)
               << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
               << " ms" << std::endl;
 
-	exit(0);
+	return;
 }
 
+
+int main() {
+
+  go<3>();
+  go<7>();
+  go<7>();
+  go<9>();
+
+
+  return 0;
+}
