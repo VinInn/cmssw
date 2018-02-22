@@ -124,6 +124,7 @@ inline float unsafe_logf_impl(float x) {
 
   constexpr float Log2=0xb.17218p-4; // 0.693147182464599609375 
   return float(e)*Log2 + p;
+  //return std::fma(float(e),Log2,p); // to force bitwise reproducibility on arch with fma
 
 }
 
