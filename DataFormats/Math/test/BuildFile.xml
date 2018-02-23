@@ -40,12 +40,18 @@
 </bin>
 <bin   file="arc.cpp" name="DataFormatsAsin_t">
 </bin>
-<bin file="testAtan2.cpp" />
+<bin file="testAtan2.cpp">
+   <flags CXXFLAGS="-fwrapv"/>
+</bin>
+<bin file="testAtan2.cpp" name="testAtan2Native">
+   <flags CXXFLAGS="-fwrapv -march=native"/>
+</bin>
 <bin file="testAtan2.cpp" name="testAtan2FastMath">
-   <flags CXXFLAGS="-ffast-math"/>
+   <flags CXXFLAGS="-ffast-math -fwrapv"/>
 </bin>
 <bin file="testAtan2.cpp" name="testAtan2VDT">
   <use   name="vdt"/>
+   <flags CXXFLAGS="-fwrapv"/>
 </bin>
 
 <bin   file="deltaR_t.cpp" name="DataFormatsDeltaR_t">
@@ -74,13 +80,14 @@
 
 <bin file="cudaAtan2Test.cu" name="DFM_Atan2">
   <flags CUDA_FLAGS="--expt-relaxed-constexpr"/>
+  <flags CXXFLAGS="-O3 -fwrapv"/>
 </bin>
 
 <bin file="cudaTest.cu" name="DFM_VectorLogdef">
   <flags CUDA_FLAGS="--expt-relaxed-constexpr"/>
 </bin>
 <bin file="cudaTest.cu" name="DFM_VectorLognative">
-  <flags CXXFLAGS="-O3 -march=native"/>
+  <flags CXXFLAGS="-O3 -march=native -fwrapv"/>
   <flags CUDA_FLAGS="--expt-relaxed-constexpr"/>
 </bin>
 
