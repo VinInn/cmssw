@@ -221,6 +221,21 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
       csv << loc.x() << ' ' << loc.y() << ' ' << ldir.x()/ldir.z() << ' ' << ldir.y()/ldir.z();
       csv << ' ' << recHit.localPosition().x() << ' ' <<  recHit.localPosition().y();
       auto const clus = *recHit.cluster();
+      float qx=0, qy=0, q2x=0, q2y=0 ,qxy=0, q=0;     
+      int isize = clus.pixelADC().size();
+      for (int i=0; i<isize; ++i) {
+        auto c = float(clus.pixelADC()[i]);
+        auto x = float(clus.pixelOffset()[i*2]);
+       	auto y = float(clus.pixelOffset()[i*2+1]);
+        q+=c; qx+=c*x;qy+=c*y; 
+        q2x+=c*x*x; q2y+=c*y*y;
+        qxy+=c*x*y;
+      }
+      qx /=q; qy /=q; 
+      q2x = q2x/q - qx*qx; q2y = q2y/q - qy*qy;
+      qxy = qxy/q - qx*qy;    
+      csv << ' ' << qx << ' ' << qy << ' ' << q2x << ' ' << q2y << ' ' << qxy;   
+      csv << ' ' << clus.sizeX() << ' ' << clus.sizeY();
       {
         Lock lock(theMutex[i]);
         histo[i]->Fill(pred.first, pred.second);
