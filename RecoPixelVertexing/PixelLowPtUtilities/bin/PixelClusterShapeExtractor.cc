@@ -71,7 +71,7 @@ class PixelClusterShapeExtractor final : public edm::global::EDAnalyzer<>
 
    // Rec
    void processRec(const SiPixelRecHit &   recHit, ClusterShapeHitFilter const & theFilter,
-                   LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, const vector<TH2F *> & histo) const;
+                   LocalPoint loc, LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, const vector<TH2F *> & histo) const;
 
    bool checkSimHits
     (const TrackingRecHit & recHit, TrackerHitAssociator const & theAssociator,
@@ -88,8 +88,9 @@ class PixelClusterShapeExtractor final : public edm::global::EDAnalyzer<>
    void analyzeSimHits  (const edm::Event& ev, const edm::EventSetup& es) const;
    void analyzeRecTracks(const edm::Event& ev, const edm::EventSetup& es) const;
 
+   using Lock = std::unique_lock<std::mutex>; 
    TFile * file;
-
+  
    const bool hasSimHits;
    const bool hasRecTracks;
    const bool noBPIX1;
@@ -99,7 +100,6 @@ class PixelClusterShapeExtractor final : public edm::global::EDAnalyzer<>
    const edm::EDGetTokenT<SiPixelClusterShapeCache> clusterShapeCache_token;
    const    TrackerHitAssociator::Config trackerHitAssociatorConfig_;
 
-   using Lock = std::unique_lock<std::mutex>;
    std::unique_ptr<std::mutex[]> theMutex;
    std::vector<TH2F *> hspc; // simulated pixel cluster
    std::vector<TH2F *> hrpc; // reconstructed pixel cluster
@@ -194,7 +194,7 @@ bool PixelClusterShapeExtractor::isSuitable(const PSimHit & simHit, const GeomDe
 
 /*****************************************************************************/
 void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, ClusterShapeHitFilter const & theClusterShape,
-    LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, const vector<TH2F *> & histo) const
+    LocalPoint loc, LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, const vector<TH2F *> & histo) const
 {
   int part;
   ClusterData::ArrayType meas;
@@ -217,8 +217,16 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
                   << ' ' << pred.first << '/' << pred.second << ' ' << ldir << ' ' << ldir.mag()<< std::endl;
       }
 #endif
-      Lock lock(theMutex[i]);
-      histo[i]->Fill(pred.first, pred.second);
+      std::ostringstream csv;
+      csv << loc.x() << ' ' << loc.y() << ' ' << ldir.x()/ldir.z() << ' ' << ldir.y()/ldir.z();
+      csv << ' ' << recHit.localPosition().x() << ' ' <<  recHit.localPosition().y();
+      auto const clus = *recHit.cluster();
+      {
+        Lock lock(theMutex[i]);
+        histo[i]->Fill(pred.first, pred.second);
+      }
+      Lock lock(theMutex[0]);
+      std::cout << csv.str() << std::endl;
     }
 }
 
@@ -227,7 +235,8 @@ void PixelClusterShapeExtractor::processSim(const SiPixelRecHit & recHit, Cluste
      const PSimHit & simHit, const SiPixelClusterShapeCache& clusterShapeCache, const vector<TH2F *> & histo) const
 {
   LocalVector ldir = simHit.exitPoint() - simHit.entryPoint(); 
-  processRec(recHit, theClusterFilter, ldir, clusterShapeCache, histo);
+  LocalPoint loc(0.5f*(simHit.exitPoint().basicVector() + simHit.entryPoint().basicVector()));
+  processRec(recHit, theClusterFilter, loc, ldir, clusterShapeCache, histo);
 }
 
 /*****************************************************************************/
@@ -378,7 +387,7 @@ void PixelClusterShapeExtractor::analyzeRecTracks
           dynamic_cast<const SiPixelRecHit *>(recHit);
 
         if(pixelRecHit != nullptr)
-          processRec(*pixelRecHit, theClusterShape, ldir, *clusterShapeCache, hrpc);
+          processRec(*pixelRecHit, theClusterShape, LocalPoint(), ldir, *clusterShapeCache, hrpc);
       }
     }
   }
