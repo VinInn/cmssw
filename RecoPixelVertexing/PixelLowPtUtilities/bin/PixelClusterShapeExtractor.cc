@@ -67,11 +67,13 @@ class PixelClusterShapeExtractor final : public edm::global::EDAnalyzer<>
 
    // Sim
    void processSim(const SiPixelRecHit &   recHit, ClusterShapeHitFilter const & theClusterFilter,
-                   const PSimHit & simHit, const SiPixelClusterShapeCache& clusterShapeCache, const vector<TH2F *> & histo) const;
+                   const PSimHit & simHit, const SiPixelClusterShapeCache& clusterShapeCache, const TrackerTopology & tkTpl,
+                   const vector<TH2F *> & histo) const;
 
    // Rec
    void processRec(const SiPixelRecHit &   recHit, ClusterShapeHitFilter const & theFilter,
-                   LocalPoint loc, LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, const vector<TH2F *> & histo) const;
+                   LocalPoint loc, LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, const TrackerTopology & tkTpl,
+                   const vector<TH2F *> & histo) const;
 
    bool checkSimHits
     (const TrackingRecHit & recHit, TrackerHitAssociator const & theAssociator,
@@ -194,7 +196,7 @@ bool PixelClusterShapeExtractor::isSuitable(const PSimHit & simHit, const GeomDe
 
 /*****************************************************************************/
 void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, ClusterShapeHitFilter const & theClusterShape,
-    LocalPoint loc, LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, const vector<TH2F *> & histo) const
+    LocalPoint loc, LocalVector ldir, const SiPixelClusterShapeCache& clusterShapeCache, const TrackerTopology & tkTpl, const vector<TH2F *> & histo) const
 {
   int part;
   ClusterData::ArrayType meas;
@@ -218,7 +220,11 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
       }
 #endif
       std::ostringstream csv;
-      csv << loc.x() << ' ' << loc.y() << ' ' << ldir.x()/ldir.z() << ' ' << ldir.y()/ldir.z();
+      bool isBarrel = (recHit.geographicalId().subdetId() == int(PixelSubdetector::PixelBarrel));
+//      std::cout << "pitch " << recHit.det()->specificTopology().pitch().first << std::endl;
+      constexpr float ipx = 1.f/0.01f; constexpr float ipy = 1.f/0.015f;  
+      csv << isBarrel << ' ' << tkTpl.layer(recHit.geographicalId()) << ' ' << loc.x() << ' ' << loc.y() 
+          << ' ' << ldir.x()*std::copysign(ipx,ldir.z()) << ' ' << ldir.y()*std::copysign(ipy,ldir.z());
       csv << ' ' << recHit.localPosition().x() << ' ' <<  recHit.localPosition().y();
       auto const clus = *recHit.cluster();
       float qx=0, qy=0, q2x=0, q2y=0 ,qxy=0, q=0;     
@@ -233,8 +239,15 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
       }
       qx /=q; qy /=q; 
       q2x = q2x/q - qx*qx; q2y = q2y/q - qy*qy;
-      qxy = qxy/q - qx*qy;    
-      csv << ' ' << qx << ' ' << qy << ' ' << q2x << ' ' << q2y << ' ' << qxy;   
+      qxy = qxy/q - qx*qy;
+      auto tr = q2x+q2y; auto det = q2x*q2y-qxy*qxy;
+      auto l1 = 0.5f*(tr + std::sqrt(tr*tr-4.f*det));
+      // auto l2 = 0.5f*(tr - std::sqrt(tr*tr-4.f*det));  // ok ok not in this way....
+      auto ly = q2y>0 ? l1-q2x : 0.f; auto lx = q2y>0 ?  qxy : 1.f; auto norm = 4.f*std::sqrt(l1/(lx*lx+ly*ly));
+      // auto ll = 4.f*std::sqrt(l1);
+      lx *=norm; ly*=norm;
+      csv << ' ' << qx << ' ' << qy << ' ' << q2x << ' ' << q2y << ' ' << qxy;
+      csv << ' ' << lx << ' ' << ly;
       csv << ' ' << clus.sizeX() << ' ' << clus.sizeY();
       {
         Lock lock(theMutex[i]);
@@ -247,11 +260,11 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
 
 /*****************************************************************************/
 void PixelClusterShapeExtractor::processSim(const SiPixelRecHit & recHit, ClusterShapeHitFilter const & theClusterFilter,
-     const PSimHit & simHit, const SiPixelClusterShapeCache& clusterShapeCache, const vector<TH2F *> & histo) const
+     const PSimHit & simHit, const SiPixelClusterShapeCache& clusterShapeCache, const TrackerTopology & tkTpl, const vector<TH2F *> & histo) const
 {
   LocalVector ldir = simHit.exitPoint() - simHit.entryPoint(); 
   LocalPoint loc(0.5f*(simHit.exitPoint().basicVector() + simHit.entryPoint().basicVector()));
-  processRec(recHit, theClusterFilter, loc, ldir, clusterShapeCache, histo);
+  processRec(recHit, theClusterFilter, loc, ldir, clusterShapeCache, tkTpl, histo);
 }
 
 /*****************************************************************************/
@@ -312,7 +325,7 @@ void PixelClusterShapeExtractor::processPixelRecHits(
    if (cl.maxPixelRow()+1==topol.nrows()) continue;
    */
    if (elem.second.size==1)
-       processSim(*elem.second.rhit, theFilter, elem.second.shit, clusterShapeCache, hspc);
+       processSim(*elem.second.rhit, theFilter, elem.second.shit, clusterShapeCache, tkTpl, hspc);
   }
 }
 
@@ -402,7 +415,7 @@ void PixelClusterShapeExtractor::analyzeRecTracks
           dynamic_cast<const SiPixelRecHit *>(recHit);
 
         if(pixelRecHit != nullptr)
-          processRec(*pixelRecHit, theClusterShape, LocalPoint(), ldir, *clusterShapeCache, hrpc);
+          processRec(*pixelRecHit, theClusterShape, LocalPoint(), ldir, *clusterShapeCache, tkTpl, hrpc);
       }
     }
   }
