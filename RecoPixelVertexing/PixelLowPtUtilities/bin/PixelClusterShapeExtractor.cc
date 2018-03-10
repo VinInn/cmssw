@@ -92,6 +92,7 @@ class PixelClusterShapeExtractor final : public edm::global::EDAnalyzer<>
 
    using Lock = std::unique_lock<std::mutex>; 
    TFile * file;
+   mutable ofstream csvFile;
   
    const bool hasSimHits;
    const bool hasRecTracks;
@@ -135,6 +136,7 @@ void PixelClusterShapeExtractor::init()
 
 /*****************************************************************************/
 PixelClusterShapeExtractor::PixelClusterShapeExtractor(const edm::ParameterSet& pset) :
+  csvFile("clusterShape.csv"),
   hasSimHits(pset.getParameter<bool>("hasSimHits")),
   hasRecTracks(pset.getParameter<bool>("hasRecTracks")),
   noBPIX1(pset.getParameter<bool>("noBPIX1")),
@@ -146,6 +148,7 @@ PixelClusterShapeExtractor::PixelClusterShapeExtractor(const edm::ParameterSet& 
   clusterShapeCache_token(consumes<SiPixelClusterShapeCache>(pset.getParameter<edm::InputTag>("clusterShapeCacheSrc"))),
   trackerHitAssociatorConfig_(pset, consumesCollector())
 {
+  csvFile << "isBarrel layer simX simY simSX simSY recX recY x y xx yy xy dx dy sx sy s q" << std::endl;
   file = new TFile("clusterShape.root","RECREATE");
   file->cd();
   init();
@@ -219,20 +222,36 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
                   << ' ' << pred.first << '/' << pred.second << ' ' << ldir << ' ' << ldir.mag()<< std::endl;
       }
 #endif
+      auto const clus = *recHit.cluster();
+      auto const& topol = reinterpret_cast<const PixelGeomDetUnit*>(recHit.detUnit())->specificTopology();
+      if (clus.minPixelCol()==0) return;
+      if (clus.maxPixelCol()+1==topol.ncolumns()) return;
+      if (clus.minPixelRow()==0) return;
+      if (clus.maxPixelRow()+1==topol.nrows()) return;
+      if (clus.minPixelRow()<=79 && clus.maxPixelRow()>=80) return;
+
+      auto dc = 52-clus.minPixelCol()%52;
+      if (dc==52) return;
+      bool hasB = dc==52 || clus.size()>=dc;
+
       std::ostringstream csv;
       bool isBarrel = (recHit.geographicalId().subdetId() == int(PixelSubdetector::PixelBarrel));
 //      std::cout << "pitch " << recHit.det()->specificTopology().pitch().first << std::endl;
-      constexpr float ipx = 1.f/0.01f; constexpr float ipy = 1.f/0.015f;  
+      constexpr float ipx = 1.f/0.01f; constexpr float ipy = 1.f/0.015f;
+      auto dx = ldir.x()*std::copysign(ipx,ldir.z());
+      auto dy = ldir.y()*std::copysign(ipy,ldir.z());
+      if (dy<0) {dx = -dx;} dy = std::abs(dy);   
       csv << isBarrel << ' ' << tkTpl.layer(recHit.geographicalId()) << ' ' << loc.x() << ' ' << loc.y() 
-          << ' ' << ldir.x()*std::copysign(ipx,ldir.z()) << ' ' << ldir.y()*std::copysign(ipy,ldir.z());
+          << ' ' << dx << ' ' << dy;
       csv << ' ' << recHit.localPosition().x() << ' ' <<  recHit.localPosition().y();
-      auto const clus = *recHit.cluster();
       float qx=0, qy=0, q2x=0, q2y=0 ,qxy=0, q=0;     
       int isize = clus.pixelADC().size();
+      
       for (int i=0; i<isize; ++i) {
+        float yo = clus.pixelOffset()[i*2+1]<dc ? 0.0f : ( clus.pixelOffset()[i*2+1]==dc ? 0.5f : 1.f);
         auto c = float(clus.pixelADC()[i]);
         auto x = float(clus.pixelOffset()[i*2]);
-       	auto y = float(clus.pixelOffset()[i*2+1]);
+       	auto y = float(clus.pixelOffset()[i*2+1])+yo;
         q+=c; qx+=c*x;qy+=c*y; 
         q2x+=c*x*x; q2y+=c*y*y;
         qxy+=c*x*y;
@@ -248,13 +267,13 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
       lx *=norm; ly*=norm;
       csv << ' ' << qx << ' ' << qy << ' ' << q2x << ' ' << q2y << ' ' << qxy;
       csv << ' ' << lx << ' ' << ly;
-      csv << ' ' << clus.sizeX() << ' ' << clus.sizeY();
+      csv << ' ' << clus.sizeX() << ' ' << clus.sizeY() + (hasB?1:0) << ' ' << clus.size() << ' ' << q;
       {
         Lock lock(theMutex[i]);
         histo[i]->Fill(pred.first, pred.second);
       }
       Lock lock(theMutex[0]);
-      std::cout << csv.str() << std::endl;
+      csvFile << csv.str() << std::endl;
     }
 }
 
