@@ -148,7 +148,7 @@ PixelClusterShapeExtractor::PixelClusterShapeExtractor(const edm::ParameterSet& 
   clusterShapeCache_token(consumes<SiPixelClusterShapeCache>(pset.getParameter<edm::InputTag>("clusterShapeCacheSrc"))),
   trackerHitAssociatorConfig_(pset, consumesCollector())
 {
-  csvFile << "isBarrel layer simX simY simSX simSY recX recY x y xx yy xy dx dy sx sy s q" << std::endl;
+  csvFile << "isBarrel layer simX simY simSX simSY recX recY x y xx yy xy dx dy l2 sx sy s q" << std::endl;
   file = new TFile("clusterShape.root","RECREATE");
   file->cd();
   init();
@@ -181,7 +181,7 @@ bool PixelClusterShapeExtractor::isSuitable(const PSimHit & simHit, const GeomDe
   LocalVector  ldir = simHit.exitPoint() - simHit.entryPoint();
   
   // cut on size as well (pixel is 285um thick...
-  bool isOutgoing = std::abs(ldir.z())>0.01f && (lvec.z()*ldir.z() > 0); 
+  bool isOutgoing = std::abs(ldir.z())>0.02f && (lvec.z()*ldir.z() > 0); 
 
     ///  ?????
   const bool isRelevant = RelevantProcesses.count(simHit.processType());
@@ -261,12 +261,12 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
       qxy = qxy/q - qx*qy;
       auto tr = q2x+q2y; auto det = q2x*q2y-qxy*qxy;
       auto l1 = 0.5f*(tr + std::sqrt(tr*tr-4.f*det));
-      // auto l2 = 0.5f*(tr - std::sqrt(tr*tr-4.f*det));  // ok ok not in this way....
+      auto l2 = l1>0 ? det/l1 : 0;
       auto ly = q2y>0 ? l1-q2x : 0.f; auto lx = q2y>0 ?  qxy : 1.f; auto norm = 4.f*std::sqrt(l1/(lx*lx+ly*ly));
       // auto ll = 4.f*std::sqrt(l1);
       lx *=norm; ly*=norm;
       csv << ' ' << qx << ' ' << qy << ' ' << q2x << ' ' << q2y << ' ' << qxy;
-      csv << ' ' << lx << ' ' << ly;
+      csv << ' ' << lx << ' ' << ly << ' ' << 4.f*sqrt(l2);
       csv << ' ' << clus.sizeX() << ' ' << clus.sizeY() + (hasB?1:0) << ' ' << clus.size() << ' ' << q;
       {
         Lock lock(theMutex[i]);
