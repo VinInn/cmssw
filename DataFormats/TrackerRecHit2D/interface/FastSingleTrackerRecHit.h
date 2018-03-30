@@ -1,5 +1,6 @@
-#ifndef FastSingleTrackerRecHit_H
-#define FastSingleTrackerRecHit_H
+#pragma once
+
+
 
 #include "DataFormats/TrackerRecHit2D/interface/FastTrackerRecHit.h"
 #include <cstdint>
@@ -53,4 +54,4 @@ class FastSingleTrackerRecHit : public FastTrackerRecHit {
     
 };
 
-#endif
+

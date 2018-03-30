@@ -1,3 +1,4 @@
+#pragma once
 #ifndef DataFormats_TrackingRecHit_interface_KfComponentsHolder_h_
 #define DataFormats_TrackingRecHit_interface_KfComponentsHolder_h_
 

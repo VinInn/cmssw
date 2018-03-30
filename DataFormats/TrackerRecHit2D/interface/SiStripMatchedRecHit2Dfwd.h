@@ -1,4 +1,5 @@
-#ifndef DATAFORMATS_SISTRIPMATCHEDRECHIT2DFWD_H
-#define DATAFORMATS_SISTRIPMATCHEDRECHIT2DFWD_H
+#pragma once
+
+
 class SiStripMatchedRecHit2D;
-#endif // 
+

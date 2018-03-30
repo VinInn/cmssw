@@ -1,5 +1,6 @@
-#ifndef TrackingRecHit_RecSegment_h
-#define TrackingRecHit_RecSegment_h
+#pragma once
+
+
 
 /** \class RecSegment
  *
@@ -49,5 +50,5 @@ class RecSegment : public TrackingRecHit{
   int dimension() const override = 0 ;
 
 };
-#endif // TrackingRecHit_RecSegment_h
+
 

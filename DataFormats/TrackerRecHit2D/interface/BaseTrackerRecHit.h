@@ -1,5 +1,6 @@
-#ifndef BaseTrackerRecHit_H
-#define BaseTrackerRecHit_H
+#pragma once
+
+
 
 #include "DataFormats/TrackingRecHit/interface/TrackingRecHit.h"
 #include "DataFormats/TrackingRecHit/interface/TrackingRecHitGlobalState.h"
@@ -178,4 +179,4 @@ bool BaseTrackerRecHit::sameDetModule(TrackingRecHit const & hit) const {
 inline bool operator<( const BaseTrackerRecHit& one, const BaseTrackerRecHit& other) {
   return ( one.geographicalId() < other.geographicalId() );
 }
-#endif  // BaseTrackerRecHit_H
+

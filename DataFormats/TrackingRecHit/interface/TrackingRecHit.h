@@ -1,5 +1,6 @@
-#ifndef TrackingRecHit_h
-#define TrackingRecHit_h
+#pragma once
+
+
 
 #include "DataFormats/CLHEP/interface/AlgebraicObjects.h"
 #include "DataFormats/DetId/interface/DetId.h"
@@ -23,13 +24,8 @@ class KfComponentsHolder;
 class TrackingRecHit {
 public:
 
-#ifndef __GCCXML__
    using      RecHitPointer = std::shared_ptr<TrackingRecHit const>;  // requires to much editing
    using ConstRecHitPointer = std::shared_ptr<TrackingRecHit const>;   
-#else
-   typedef TrackingRecHit const *          RecHitPointer;
-   typedef TrackingRecHit const *     ConstRecHitPointer;
-#endif
 
   typedef std::vector<ConstRecHitPointer>                           RecHitContainer;
   typedef std::vector<ConstRecHitPointer>                           ConstRecHitContainer;
@@ -72,7 +68,6 @@ public:
 
   
   virtual TrackingRecHit * clone() const = 0;
-#ifndef __GCCXML__
   virtual RecHitPointer cloneSH() const { return RecHitPointer(clone());}
   // clone and add the geom (ready for refit)
   RecHitPointer cloneForFit(const GeomDet & idet) const {
@@ -80,7 +75,6 @@ public:
     const_cast<TrackingRecHit&>(*cl).setDet(idet); // const_cast (can be fixed editing some 100 files)
     return cl;  
   }
-#endif
   virtual void setDet(const GeomDet & idet) {m_det = &idet;}
 
   
@@ -102,7 +96,7 @@ public:
   virtual std::vector<TrackingRecHit*> recHits() = 0;
   virtual void recHitsV(std::vector<TrackingRecHit*> & );
 
-#ifndef __GCCXML__
+
   virtual ConstRecHitContainer transientHits() const {
     ConstRecHitContainer result;
     std::vector<const TrackingRecHit*> hits;
@@ -110,7 +104,7 @@ public:
     for (auto h : hits) result.push_back(h->cloneSH());
     return result;
   }
-#endif
+
 
   id_type rawId() const { return m_id;}
   DetId geographicalId() const {return m_id;}
@@ -171,12 +165,12 @@ private:
     assert("clone"==nullptr);
     return clone(); // default
   }
-#ifndef __GCCXML__
+
   virtual  RecHitPointer cloneSH(TkCloner const&, TrajectoryStateOnSurface const&) const {
     assert("cloneSH"==nullptr);
     return cloneSH(); // default
   }
-#endif
+
 
 protected:
   // used by muon...
@@ -195,4 +189,4 @@ private:
 
 };
 
-#endif
+

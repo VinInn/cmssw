@@ -1,5 +1,6 @@
-#ifndef ProjectedSiStripRecHit2D_H
-#define ProjectedSiStripRecHit2D_H
+#pragma once
+
+
 
 #include "DataFormats/TrackerRecHit2D/interface/SiStripRecHit2D.h"
 
@@ -76,15 +77,15 @@ private:
   ProjectedSiStripRecHit2D * clone(TkCloner const& cloner, TrajectoryStateOnSurface const& tsos) const override {
     return cloner(*this,tsos).release();
   }
-#ifndef __GCCXML__
+
    ConstRecHitPointer cloneSH(TkCloner const& cloner, TrajectoryStateOnSurface const& tsos) const override {
     return cloner.makeShared(*this,tsos);
   }
-#endif
+
 
 private:
   const GeomDet* theOriginalDet;
 
 };
 
-#endif
+

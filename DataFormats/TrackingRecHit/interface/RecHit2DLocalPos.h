@@ -1,5 +1,6 @@
-#ifndef RecHit2DLocalPos_H
-#define RecHit2DLocalPos_H
+#pragma once
+
+
 
 #include "DataFormats/TrackingRecHit/interface/TrackingRecHit.h"
 #include "DataFormats/GeometrySurface/interface/LocalError.h"
@@ -40,4 +41,4 @@ private:
   static const AlgebraicMatrix theProjectionMatrix;
 };
 
-#endif
+

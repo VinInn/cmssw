@@ -1,5 +1,6 @@
-#ifndef CMSSW_mayown_ptr_H
-#define CMSSW_mayown_ptr_H
+#pragma once
+
+
 
 #include<cassert>
 #include<cstring>
@@ -69,4 +70,4 @@ bool operator<(mayown_ptr<T> const & rh, mayown_ptr<T> const & lh) {
   return rh.raw() < lh.raw();
 }  
 
-#endif
+

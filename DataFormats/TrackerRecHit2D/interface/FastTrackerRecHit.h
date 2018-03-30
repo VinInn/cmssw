@@ -1,3 +1,4 @@
+#pragma once
 /**
  * base class for FastSim tracker RecHit containers
  * it inherits from BaseTrackerRecHit
@@ -7,8 +8,8 @@
  * - fast tracking emulation
  */
 
-#ifndef FastTrackerRecHit_H
-#define FastTrackerRecHit_H
+
+
 
 #include "DataFormats/TrackerRecHit2D/interface/BaseTrackerRecHit.h"
 
@@ -185,4 +186,4 @@ inline bool operator<( const FastTrackerRecHit& one, const FastTrackerRecHit& ot
     return ( one.geographicalId() < other.geographicalId() );
 }
 
-#endif
+

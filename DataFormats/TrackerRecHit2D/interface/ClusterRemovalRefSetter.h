@@ -1,5 +1,6 @@
-#ifndef RecoTracker_TrackProducer_ClusterRemovalRefSetter_h
-#define RecoTracker_TrackProducer_ClusterRemovalRefSetter_h
+#pragma once
+
+
 
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
@@ -36,4 +37,4 @@ private:
 };
 
 #include "ClusterRemovalRefSetter.icc"
-#endif
+

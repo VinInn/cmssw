@@ -1,5 +1,6 @@
-#ifndef TrackerSingleRecHit_H
-#define TrackerSingleRecHit_H
+#pragma once
+
+
 
 
 #include "DataFormats/TrackerRecHit2D/interface/BaseTrackerRecHit.h"
@@ -102,4 +103,4 @@ private:
  
 };
 
-#endif
+

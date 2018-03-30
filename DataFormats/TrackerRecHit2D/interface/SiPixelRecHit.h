@@ -1,5 +1,6 @@
-#ifndef DataFormats_SiPixelRecHit_h
-#define DataFormats_SiPixelRecHit_h 1
+#pragma once
+
+
 
 //---------------------------------------------------------------------------
 //!  \class SiPixelRecHit
@@ -41,9 +42,9 @@ public:
 
   
   SiPixelRecHit * clone() const override {return new SiPixelRecHit( * this); }
-#ifndef __GCCXML__
+
   RecHitPointer cloneSH() const override { return std::make_shared<SiPixelRecHit>(*this);}
-#endif
+
 
   
   ClusterRef cluster()  const { return cluster_pixel(); }
@@ -60,11 +61,11 @@ private:
   SiPixelRecHit * clone(TkCloner const& cloner, TrajectoryStateOnSurface const& tsos) const override {
     return cloner(*this,tsos).release();
   }
-#ifndef __GCCXML__
+
    RecHitPointer cloneSH(TkCloner const& cloner, TrajectoryStateOnSurface const& tsos) const override {
     return cloner.makeShared(*this,tsos);
   }
-#endif  
+
   
 public:
   //--- The overall probability.  flags is the 32-bit-packed set of flags that
@@ -129,4 +130,4 @@ public:
 
 };
 
-#endif
+

@@ -1,4 +1,5 @@
-#ifndef DATAFORMATS_SISTRIPRECHIT2DCOLLECTIONFWD_H
-#define DATAFORMATS_SISTRIPRECHIT2DCOLLECTIONFWD_H
+#pragma once
+
+
 class SiStripRecHit2DCollection;
-#endif
+

@@ -1,5 +1,6 @@
-#ifndef DataFormats_TrackerRecHit2D_ClusterRemovalInfo_h
-#define DataFormats_TrackerRecHit2D_ClusterRemovalInfo_h
+#pragma once
+
+
 
 #include "DataFormats/Common/interface/RefProd.h" 
 #include "DataFormats/Common/interface/Handle.h" 
@@ -84,4 +85,4 @@ namespace reco {
 
 }
 
-#endif
+

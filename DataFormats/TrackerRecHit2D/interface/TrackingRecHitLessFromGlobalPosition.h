@@ -1,5 +1,6 @@
-#ifndef DataFormats_TrackerRecHit2D_TrackingRecHitLessFromGlobalPosition_H
-#define DataFormats_TrackerRecHit2D_TrackingRecHitLessFromGlobalPosition_H
+#pragma once
+
+
 
 #include "DataFormats/TrajectorySeed/interface/PropagationDirection.h"
 #include "Geometry/CommonDetUnit/interface/GeomDet.h"
@@ -33,4 +34,4 @@ public:
   const TrackingGeometry * geometry;
   PropagationDirection theDir;
 };
-#endif
+

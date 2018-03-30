@@ -1,5 +1,6 @@
-#ifndef TrackerRecHit2D_OmniClusterRef_H
-#define TrackerRecHit2D_OmniClusterRef_H
+#pragma once
+
+
 
 #include "DataFormats/Common/interface/RefCoreWithIndex.h"
 
@@ -83,4 +84,4 @@ private:
   edm::RefCoreWithIndex me;
 };
 
-#endif // TrackerRecHit2D_OmniClusterRef_H
+

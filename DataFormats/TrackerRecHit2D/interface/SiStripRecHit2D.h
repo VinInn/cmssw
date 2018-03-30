@@ -1,5 +1,6 @@
-#ifndef SiStripRecHit2D_H
-#define SiStripRecHit2D_H
+#pragma once
+
+
 
 #include "DataFormats/TrackerRecHit2D/interface/TrackerSingleRecHit.h"
 #include "TkCloner.h"
@@ -30,9 +31,9 @@ public:
   void setClusterRef(ClusterRef const & ref)  {setClusterStripRef(ref);}
 
   SiStripRecHit2D * clone() const override {return new SiStripRecHit2D( * this); }
-#ifndef __GCCXML__
+
   RecHitPointer cloneSH() const override { return std::make_shared<SiStripRecHit2D>(*this);}
-#endif
+
   
   int dimension() const override {return 2;}
   void getKfComponents( KfComponentsHolder & holder ) const override { getKfComponents2D(holder); }
@@ -43,14 +44,14 @@ private:
   SiStripRecHit2D* clone(TkCloner const& cloner, TrajectoryStateOnSurface const& tsos) const override {
     return cloner(*this,tsos).release();
   }
-#ifndef __GCCXML__
+
    RecHitPointer cloneSH(TkCloner const& cloner, TrajectoryStateOnSurface const& tsos) const override {
     return cloner.makeShared(*this,tsos);
   }
-#endif 
+
   
 private:
  
 };
 
-#endif
+

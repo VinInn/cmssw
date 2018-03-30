@@ -1,5 +1,6 @@
-#ifndef DATAFORMATS_TRACKERRECHIT2D_PHASE2TRACKERRECHIT1D_H 
-#define DATAFORMATS_TRACKERRECHIT2D_PHASE2TRACKERRECHIT1D_H 
+#pragma once
+
+
 
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 
@@ -47,4 +48,4 @@ private:
 
 typedef edmNew::DetSetVector< Phase2TrackerRecHit1D > Phase2TrackerRecHit1DCollectionNew;
 
-#endif
+

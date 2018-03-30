@@ -1,5 +1,6 @@
-#ifndef SiStripMatchedRecHit2D_H
-#define SiStripMatchedRecHit2D_H
+#pragma once
+
+
 
 #include "DataFormats/TrackerRecHit2D/interface/SiStripRecHit2D.h"
 
@@ -42,9 +43,9 @@ class SiStripMatchedRecHit2D final : public BaseTrackerRecHit {
 
 
   SiStripMatchedRecHit2D * clone() const override {return new SiStripMatchedRecHit2D( * this);}
-#ifndef __GCCXML__
+
   RecHitPointer cloneSH() const override { return std::make_shared<SiStripMatchedRecHit2D>(*this);}
-#endif
+
 
  
   int dimension() const override {return 2;}
@@ -66,11 +67,11 @@ private:
   SiStripMatchedRecHit2D * clone(TkCloner const& cloner, TrajectoryStateOnSurface const& tsos) const override {
     return cloner(*this,tsos).release();
   }
-#ifndef __GCCXML__
+
    RecHitPointer cloneSH(TkCloner const& cloner, TrajectoryStateOnSurface const& tsos) const override {
     return cloner.makeShared(*this,tsos);
   }
-#endif 
+
     
  private:
    OmniClusterRef clusterMono_, clusterStereo_;
@@ -87,4 +88,4 @@ bool sharesClusters(SiStripMatchedRecHit2D const & h1, SiStripMatchedRecHit2D co
   
 } 
 
-#endif
+

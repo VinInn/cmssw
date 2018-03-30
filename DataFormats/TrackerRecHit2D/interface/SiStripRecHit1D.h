@@ -1,5 +1,6 @@
-#ifndef SiStripRecHit1D_H
-#define SiStripRecHit1D_H
+#pragma once
+
+
 
 
 
@@ -28,9 +29,9 @@ public:
 
 
   SiStripRecHit1D * clone() const override {return new SiStripRecHit1D( * this); }
-#ifndef __GCCXML__
+
   RecHitPointer cloneSH() const override { return std::make_shared<SiStripRecHit1D>(*this);}
-#endif
+
   
 
   int dimension() const override {return 1;}
@@ -42,13 +43,13 @@ private:
   SiStripRecHit1D * clone(TkCloner const& cloner, TrajectoryStateOnSurface const& tsos) const override {
     return cloner(*this,tsos).release();
   }
-#ifndef __GCCXML__
+
    RecHitPointer cloneSH(TkCloner const& cloner, TrajectoryStateOnSurface const& tsos) const override {
     return cloner.makeShared(*this,tsos);
   }
-#endif 
+
 
  
 };
 
-#endif
+

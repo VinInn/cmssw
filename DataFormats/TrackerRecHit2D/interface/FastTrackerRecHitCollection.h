@@ -1,5 +1,6 @@
-#ifndef FastTrackerRecHitCollection_H
-#define FastTrackerRecHitCollection_H
+#pragma once
+
+
 
 #include "DataFormats/TrackerRecHit2D/interface/FastTrackerRecHitFwd.h"
 #include "DataFormats/Common/interface/OwnVector.h"
@@ -12,4 +13,4 @@ typedef std::vector<FastTrackerRecHitRef> FastTrackerRecHitCombination;
 typedef std::vector<FastTrackerRecHitCombination> FastTrackerRecHitCombinationCollection;
 typedef edm::Ref<FastTrackerRecHitCombinationCollection> FastTrackerRecHitCombinationRef;
 
-#endif
+

@@ -1,5 +1,6 @@
-#ifndef FastProjectedTrackerRecHit_H
-#define FastProjectedTrackerRecHit_H
+#pragma once
+
+
 
 #include "DataFormats/TrackerRecHit2D/interface/FastTrackerRecHit.h"
 #include "DataFormats/TrackerRecHit2D/interface/FastSingleTrackerRecHit.h"
@@ -46,4 +47,4 @@ class FastProjectedTrackerRecHit : public FastTrackerRecHit {
     
 };
 
-#endif
+

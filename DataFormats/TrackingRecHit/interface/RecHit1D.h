@@ -1,5 +1,6 @@
-#ifndef TrackingRecHit_RecHit1D_H
-#define TrackingRecHit_RecHit1D_H
+#pragma once
+
+
 
 /** \class RecHit1D
  *
@@ -57,4 +58,4 @@ class RecHit1D : public TrackingRecHit {
  private:
   static const AlgebraicMatrix theProjectionMatrix;
 };
-#endif
+

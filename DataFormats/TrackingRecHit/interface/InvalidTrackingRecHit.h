@@ -1,5 +1,6 @@
-#ifndef InvalidTrackingRecHit_H
-#define InvalidTrackingRecHit_H
+#pragma once
+
+
 
 #include "DataFormats/TrackingRecHit/interface/TrackingRecHit.h"
 #include "DataFormats/GeometrySurface/interface/LocalError.h"
@@ -17,9 +18,9 @@ public:
   ~InvalidTrackingRecHit() override {}
 
   InvalidTrackingRecHit * clone() const override {return new InvalidTrackingRecHit(*this);}
-#ifndef __GCCXML__
+
   RecHitPointer cloneSH() const override { return RecHitPointer(clone());}
-#endif
+
 
   
   AlgebraicVector parameters() const override;
@@ -61,4 +62,4 @@ public:
 
 };
 
-#endif
+

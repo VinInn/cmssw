@@ -1,5 +1,6 @@
-#ifndef TrackingRecHit_TrackingRecHitFwd_h
-#define TrackingRecHit_TrackingRecHitFwd_h
+#pragma once
+
+
 #include <vector>
 #include "DataFormats/Common/interface/Ref.h"
 #include "DataFormats/Common/interface/RefProd.h"
@@ -18,4 +19,4 @@ typedef edm::RefVector<TrackingRecHitCollection> TrackingRecHitRefVector;
 /// iterator over a vector of reference to TrackingRecHit in the same collection
 typedef TrackingRecHitCollection::base::const_iterator trackingRecHit_iterator;
 
-#endif
+

@@ -1,5 +1,6 @@
-#ifndef DataFormats_SiPixelRecHitQuality_h
-#define DataFormats_SiPixelRecHitQuality_h 1
+#pragma once
+
+
 
 //--- pow():
 #include <cmath>
@@ -168,4 +169,4 @@ public:
   static const Packing   thePacking;
 };  
 
-#endif
+

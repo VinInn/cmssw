@@ -1,5 +1,6 @@
-#ifndef ALIGNMENT_POSITION_ERROR_H
-#define ALIGNMENT_POSITION_ERROR_H
+#pragma once
+
+
 
 #include "DataFormats/GeometryCommonDetAlgo/interface/GlobalError.h"
 
@@ -52,4 +53,4 @@ class AlignmentPositionError {
   GlobalErrorExtended theGlobalError;
 };
 
-#endif // ALIGNMENT_POSITION_ERROR_H
+

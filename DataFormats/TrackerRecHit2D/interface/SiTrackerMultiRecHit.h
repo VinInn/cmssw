@@ -1,5 +1,6 @@
-#ifndef SiTrackerMultiRecHit_H
-#define SiTrackerMultiRecHit_H
+#pragma once
+
+
 
 #include "DataFormats/TrackerRecHit2D/interface/BaseTrackerRecHit.h"
 #include "DataFormats/TrackingRecHit/interface/TrackingRecHitFwd.h"
@@ -25,9 +26,8 @@ public:
 		       const std::vector< std::pair<const TrackingRecHit*, float> >&, double);
   
   SiTrackerMultiRecHit* clone() const override {return new SiTrackerMultiRecHit(*this);}
-#ifdef NO_DICT
   virtual RecHitPointer cloneSH() const { return std::make_shared<SiTrackerMultiRecHit>(*this);}
-#endif
+
   
 //  virtual int dimension() const {return 2;}
   int dimension() const override; 
@@ -75,4 +75,4 @@ inline bool operator<( const SiTrackerMultiRecHit& one, const SiTrackerMultiRecH
   }
 }
 
-#endif
+

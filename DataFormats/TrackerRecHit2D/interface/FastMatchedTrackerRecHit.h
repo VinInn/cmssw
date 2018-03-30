@@ -1,5 +1,6 @@
-#ifndef FastMatchedTrackerRecHit_H
-#define FastMatchedTrackerRecHit_H
+#pragma once
+
+
 
 #include "DataFormats/TrackerRecHit2D/interface/FastTrackerRecHit.h"
 #include "DataFormats/TrackerRecHit2D/interface/FastSingleTrackerRecHit.h"
@@ -58,4 +59,4 @@ class FastMatchedTrackerRecHit : public FastTrackerRecHit{
     FastSingleTrackerRecHit componentStereo_;
 };
 
-#endif
+

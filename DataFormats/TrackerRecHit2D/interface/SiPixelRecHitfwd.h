@@ -1,4 +1,5 @@
-#ifndef DataFormats_SiPixelRecHitFWD_H
-#define DataFormats_SiPixelRecHitFWD_H
+#pragma once
+
+
 class SiPixelRecHit;
-#endif // 
+

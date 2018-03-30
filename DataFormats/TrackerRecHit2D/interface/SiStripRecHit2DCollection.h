@@ -1,5 +1,6 @@
-#ifndef DATAFORMATS_SISTRIPRECHIT2DCOLLECTION_H
-#define DATAFORMATS_SISTRIPRECHIT2DCOLLECTION_H
+#pragma once
+
+
 
 #include "DataFormats/TrackerRecHit2D/interface/SiStripRecHit2D.h"
 #include "DataFormats/Common/interface/RangeMap.h"
@@ -16,5 +17,5 @@ typedef edmNew::DetSetVector<SiStripRecHit2D> SiStripRecHit2DCollection;
 typedef SiStripRecHit2DCollection             SiStripRecHit2DCollectionNew;
 
 
-#endif
+
 

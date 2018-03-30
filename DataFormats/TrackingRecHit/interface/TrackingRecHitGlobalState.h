@@ -1,5 +1,6 @@
-#ifndef TrackingRecHitGlobalState_H
-#define TrackingRecHitGlobalState_H
+#pragma once
+
+
 
 
 #include "DataFormats/GeometryVector/interface/Basic3DVector.h"
@@ -17,4 +18,4 @@ struct TrackingRecHitGlobalState {
 };
 
 
-#endif
+
