@@ -148,10 +148,7 @@ PixelClusterShapeExtractor::PixelClusterShapeExtractor(const edm::ParameterSet& 
   hasSimHits(pset.getParameter<bool>("hasSimHits")),
   hasRecTracks(pset.getParameter<bool>("hasRecTracks")),
   noBPIX1(pset.getParameter<bool>("noBPIX1")),
-  tracks_token(hasRecTracks ?
-               consumes<reco::TrackCollection>(pset.getParameter<edm::InputTag>("tracks")) :
-               edm::EDGetTokenT<reco::TrackCollection>()
-              ),
+  tracks_token(consumes<reco::TrackCollection>(pset.getParameter<edm::InputTag>("tracks"))),
   pixelRecHits_token(consumes<edmNew::DetSetVector<SiPixelRecHit>>(edm::InputTag("siPixelRecHits"))),
   clusterShapeCache_token(consumes<SiPixelClusterShapeCache>(pset.getParameter<edm::InputTag>("clusterShapeCacheSrc"))),
   trackerHitAssociatorConfig_(pset, consumesCollector())
@@ -260,7 +257,10 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
           << ' ' << dx << ' ' << dy;
       csv << ' ' << recHit.localPosition().x() << ' ' <<  recHit.localPosition().y();
 
-      csv << ' ' << tp.dx << ' ' << tp.dy;      
+      dx = tp.dx*ipx;
+      dy = tp.dy*ipy;
+      if (dy<0) {dx = -dx;} dy = std::abs(dy);
+      csv << ' ' << dx << ' ' << dy;      
 
       float qx=0, qy=0, q2x=0, q2y=0 ,qxy=0, q=0;     
       int isize = clus.pixelADC().size();
