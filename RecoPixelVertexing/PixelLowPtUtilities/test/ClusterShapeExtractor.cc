@@ -35,6 +35,7 @@
 #include <vector>
 #include <fstream>
 #include <memory>
+#include <sstream>
 
 using namespace std;
 
@@ -85,6 +86,7 @@ class ClusterShapeExtractor : public edm::EDAnalyzer
    void analyzeRecTracks(const edm::Event& ev, const edm::EventSetup& es);
 
    TFile * file;
+   std::ostringstream csv;
 
    string trackProducer;
    bool hasSimHits;
@@ -108,6 +110,8 @@ class ClusterShapeExtractor : public edm::EDAnalyzer
 /*****************************************************************************/
 void ClusterShapeExtractor::beginRun(const edm::Run & run, const edm::EventSetup& es)
 {
+  std::cout << "ClusterShapeExtractor::beginRun!!!!" << std::endl;
+
   // Get tracker geometry
   edm::ESHandle<TrackerGeometry>          tracker;
   es.get<TrackerDigiGeometryRecord>().get(tracker);
@@ -249,6 +253,8 @@ void ClusterShapeExtractor::processRec(const SiPixelRecHit & recHit,
                meas.front().first) * (eyMax + 1) +
                meas.front().second;
       histo[i]->Fill(pred.first, pred.second);
+      csv << ' ' << recHit.localPosition().x() << ' ' <<  recHit.localPosition().y();         
+      std::cout << csv.str() << std::endl;
     }
 }
 
@@ -257,6 +263,8 @@ void ClusterShapeExtractor::processSim(const SiPixelRecHit & recHit,
      const PSimHit & simHit, const SiPixelClusterShapeCache& clusterShapeCache, vector<TH2F *> & histo)
 {
   LocalVector ldir = simHit.exitPoint() - simHit.entryPoint();
+  auto loc = 0.5f*(simHit.exitPoint().basicVector() + simHit.entryPoint().basicVector());
+  csv << loc.x() << ' ' << loc.y() << ' ' << ldir.x()/ldir.z() << ' ' << ldir.y()/ldir.z();
   processRec(recHit, ldir, clusterShapeCache, histo);
 }
 
@@ -315,7 +323,8 @@ void ClusterShapeExtractor::processPixelRecHits
         }
 
   for(  SiPixelRecHitCollection::DataContainer::const_iterator
-        recHit = recHits->begin(); recHit!= recHits->end(); recHit++)
+        recHit = recHits->begin(); recHit!= recHits->end(); recHit++) {
+      csv.str()="";
       if(checkSimHits(*recHit, simHit, key))
         {
           // Check whether the present rechit is the largest
@@ -324,8 +333,9 @@ void ClusterShapeExtractor::processPixelRecHits
                 ++counter;
             }
         }
-//    std::cout << "recHits->size() = " << recHits->size() << ", counter = " << counter
-//              << ", counter_2 = " << counter_2 << std::endl;
+   }
+    std::cout << "recHits->size() = " << recHits->size() << ", counter = " << counter
+              << ", counter_2 = " << counter_2 << std::endl;
 }
 
 /*****************************************************************************/
