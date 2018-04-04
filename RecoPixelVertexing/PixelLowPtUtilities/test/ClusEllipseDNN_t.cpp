@@ -34,11 +34,11 @@ void  go4() {
   dnnS[j].arg0_data()[1] = dnnD[j].arg0_data()[1] = (i%2) ? (j%3) : (j%4);
   dnnS[j].arg0_data()[2] = dnnD[j].arg0_data()[2] = float(i)/N;
   dnnS[j].arg0_data()[3] = dnnD[j].arg0_data()[3] = float(j)/100;
-  dnnS[j].arg0_data()[4] = dnnD[j].arg0_data()[4] = (j%3) ? (i%5) : -(j%10);;
+  dnnS[j].arg0_data()[4] = dnnD[j].arg0_data()[4] = 4*((j%3) ? (i%5) : -(j%10));
   dnnS[j].arg0_data()[5] = dnnD[j].arg0_data()[5] = (j%10);
   dnnS[j].arg0_data()[6] = dnnD[j].arg0_data()[6] = 0.5;
   dnnS[j].arg0_data()[7] = dnnD[j].arg0_data()[7] = (i%5);     
-  dnnS[j].arg0_data()[8] = dnnD[j].arg0_data()[8] = (j%10); 
+  dnnS[j].arg0_data()[8] = dnnD[j].arg0_data()[8] = 4*(j%10); 
 
 
   dnnD[j].Run();
