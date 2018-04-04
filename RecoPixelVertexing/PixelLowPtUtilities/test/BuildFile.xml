@@ -16,3 +16,7 @@
 <bin file="ClusterShapeHitFilter_t.cpp">
 	<use name="RecoPixelVertexing/PixelLowPtUtilities"/>
 </bin>
+<bin file="ClusEllipseDNN_t.cpp">
+        <use name="RecoPixelVertexing/PixelLowPtUtilities"/>
+        <flags   CXXFLAGS="-lClusEllipseDNN_sse  -lruntime  -lxla_compiled_cpu_function"/>
+</bin>
