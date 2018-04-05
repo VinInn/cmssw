@@ -34,7 +34,7 @@ namespace {
 
 
     Stat() : 
-      nhp(0), ntt(0), ntp(0),
+      nhp(0), ntt(0), ntp9(0), ntp12(0), ntp16(0),
       n(0),zx(0),zy(0),zx2(0),zy2(0) {}
     ~Stat() {
       auto x = double(zx)/fact/n;
@@ -44,14 +44,15 @@ namespace {
       auto sy = std::sqrt(double(zy2)/fact/n -y*y);
  
      
-      std::cout << "ClusEllipse Stat " << ntt << ' ' << ntp/double(ntt) << ' ' << n << ' ' << nhp/double(n)
+      std::cout << "ClusEllipse Stat " << ntt << ' ' << ntp9/double(ntt) << '/' << ntp12/double(ntt) << '/' << ntp16/double(ntt) 
+                << ' ' << n << ' ' << nhp/double(n)
                 << ' ' << x << '/' << y
        	       	<< ' ' << sx << '/' << sy
                 << std::endl;
 
      }
 
-    std::atomic<long long> nhp, ntt, ntp;
+    std::atomic<long long> nhp, ntt, ntp9, ntp12, ntp16;
     std::atomic<long long> n, zx,zy,zx2,zy2;
   }; 
 
@@ -169,7 +170,9 @@ namespace {
 
       } // hit loop
       ++stat.ntt;
-      if (nh==0 || chi2/float(nh)<9) ++stat.ntp;
+      if (nh==0 || chi2 < 18.f*float(nh) ) ++stat.ntp9;
+      if (nh==0 || chi2 < 24.f*float(nh) ) ++stat.ntp12;
+      if (nh==0 || chi2 < 32.f*float(nh) ) ++stat.ntp16;
     }  // track loop
 
   }
