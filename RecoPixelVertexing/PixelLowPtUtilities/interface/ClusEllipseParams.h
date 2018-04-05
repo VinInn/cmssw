@@ -14,9 +14,9 @@ class TrackerTopology;
 // input to the DNN
 struct ClusEllipseParams {
 
-  
   float m_isBarrel, m_layer=0, m_x, m_y, m_dx, m_dy, m_l2, m_sx, m_sy;
 
+  float const * data() const { return &m_isBarrel;}
   void fill(const SiPixelRecHit & recHit, const TrackerTopology & tkTpl, bool raw=false);
 
 };
