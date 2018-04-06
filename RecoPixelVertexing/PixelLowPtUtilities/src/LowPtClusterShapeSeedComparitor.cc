@@ -24,6 +24,15 @@
 #include "DataFormats/GeometryVector/interface/GlobalVector.h"
 #include "DataFormats/GeometryVector/interface/Basic2DVector.h"
 
+
+#include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
+#include "Geometry/CommonTopologies/interface/PixelTopology.h"
+
+#include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseParams.h"
+#include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseDim.h"
+#include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseSigma.h"
+
+
 #include<cmath>
 
 
@@ -116,7 +125,54 @@ void LowPtClusterShapeSeedComparitor::init(const edm::Event& e, const edm::Event
   es.get<TrackerTopologyRcd>().get(theTTopo);
 
   e.getByToken(thePixelClusterShapeCacheToken, thePixelClusterShapeCache);
+
+
 }
+
+constexpr bool useDNN = true;
+float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology const & tkTpl) {
+
+    ClusEllipseDim dnnD;
+    ClusEllipseSigma dnnS;
+ 
+   auto ldir = recHit.det()->toLocal(gdir);
+   
+   auto id = recHit.geographicalId();
+ 
+   bool isBarrel = id.subdetId() == PixelSubdetector::PixelBarrel;
+
+   float thickness = isBarrel ? 0.0285f : 0.029f;  // phase1
+   constexpr float ipx = 1.f/0.01f; constexpr float ipy = 1.f/0.015f;  // phase1 pitch
+
+   auto tkdx = ipx*thickness * ldir.x()/ldir.z();
+   auto tkdy = ipy*thickness * ldir.y()/ldir.z();
+   if( tkdy<0) { tkdx = -tkdx;}
+   tkdy = std::abs(tkdy);
+
+   ClusEllipseParams cep; cep.fill(recHit,tkTpl);
+   if (cep.m_layer==0) return -1.f;
+   memcpy(dnnD.arg0_data(),cep.data(),9*4);
+   memcpy(dnnS.arg0_data(),dnnD.arg0_data(),9*4);
+   dnnD.Run();
+   dnnS.Run();
+
+   tkdx = cep.m_sy>1 ? tkdx : std::abs(tkdx);
+
+   auto pdx = 0.25f *(cep.m_dx + dnnD.result0_data()[0]);
+   auto pdy = cep.m_dy + dnnD.result0_data()[1];
+
+   auto psx = dnnS.result0_data()[0];
+   auto psy = dnnS.result0_data()[1];
+
+   auto zx = (pdx-tkdx)/psx;
+   auto zy = (pdy-tkdy)/psy;
+
+   return zx*zx+zy*zy;
+
+}
+
+
+
 
 bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) const
 //(const reco::Track* track, const vector<const TrackingRecHit *> & recHits) const
@@ -147,6 +203,8 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
       return true;
     }
 
+  int nh=0; float chi2=0;
+ 
   for(int i = 0; i < 3; i++)
   {
     const SiPixelRecHit* pixelRecHit =
@@ -167,6 +225,12 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
 					       <<"global direction:"<< globalDirs[i];
 
 
+    if (useDNN) {
+      auto lc = dnnChi2(*pixelRecHit,globalDirs[i],*theTTopo);
+      if (lc>=0) {
+        ++nh; chi2+=lc;
+      }
+    }else
     if(! filter->isCompatible(*pixelRecHit, globalDirs[i], *thePixelClusterShapeCache) )
     {
       LogTrace("LowPtClusterShapeSeedComparitor")
@@ -176,7 +240,9 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
       ok = false; break;
     }
   }
-
+  // if (useDNN) std::cout << "LowPtClusterShapeSeedComparitor chi2 " << chi2 << ' ' << nh << std::endl;
+  if (useDNN) return nh==0 || chi2 < 18.f*float(nh);
+ 
   return ok;
 }
 
