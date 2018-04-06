@@ -228,6 +228,7 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
     if (useDNN) {
       auto lc = dnnChi2(*pixelRecHit,globalDirs[i],*theTTopo);
       if (lc>=0) {
+        // if (lc>25.f) return false; // kill outliers...
         ++nh; chi2+=lc;
       }
     }else
@@ -241,7 +242,7 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
     }
   }
   // if (useDNN) std::cout << "LowPtClusterShapeSeedComparitor chi2 " << chi2 << ' ' << nh << std::endl;
-  if (useDNN) return nh==0 || chi2 < 12.f*float(nh);
+  if (useDNN) return nh==0 || chi2 < 18.f*float(nh);
  
   return ok;
 }
