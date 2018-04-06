@@ -258,7 +258,7 @@ void CAHitQuadrupletGenerator::hitNtuplets(const IntermediateHitDoublets& region
     		const float thisMaxChi2 = maxChi2Eval.value(abscurv);
     		if (theComparitor)
     		{
-      			SeedingHitSet tmpTriplet(allCells[foundQuadruplets[quadId][1]].getInnerHit(),
+      			SeedingHitSet tmpTriplet(allCells[foundQuadruplets[quadId][0]].getInnerHit(),
 						 allCells[foundQuadruplets[quadId][2]].getInnerHit(),
 						 allCells[foundQuadruplets[quadId][2]].getOuterHit());
 

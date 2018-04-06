@@ -241,7 +241,7 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
     }
   }
   // if (useDNN) std::cout << "LowPtClusterShapeSeedComparitor chi2 " << chi2 << ' ' << nh << std::endl;
-  if (useDNN) return nh==0 || chi2 < 18.f*float(nh);
+  if (useDNN) return nh==0 || chi2 < 12.f*float(nh);
  
   return ok;
 }
