@@ -259,7 +259,7 @@ void CAHitQuadrupletGenerator::hitNtuplets(const IntermediateHitDoublets& region
     		if (theComparitor)
     		{
       			SeedingHitSet tmpTriplet(allCells[foundQuadruplets[quadId][0]].getInnerHit(),
-						 allCells[foundQuadruplets[quadId][2]].getInnerHit(),
+						 allCells[foundQuadruplets[quadId][1]].getInnerHit(),
 						 allCells[foundQuadruplets[quadId][2]].getOuterHit());
 
 

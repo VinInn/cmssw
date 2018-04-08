@@ -232,7 +232,7 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
      auto ck = ((BaseTrackerRecHit const &)(recHit)).firstClusterRef().key();
  
      auto tp = tkParam[ck];
-     if (tp.n!=1) return;
+     // if (tp.n!=1) return;
 
       auto const clus = *recHit.cluster();
       auto const& topol = reinterpret_cast<const PixelGeomDetUnit*>(recHit.detUnit())->specificTopology();
@@ -257,9 +257,11 @@ void PixelClusterShapeExtractor::processRec(const SiPixelRecHit & recHit, Cluste
           << ' ' << dx << ' ' << dy;
       csv << ' ' << recHit.localPosition().x() << ' ' <<  recHit.localPosition().y();
 
-      dx = tp.dx*ipx;
-      dy = tp.dy*ipy;
-      if (dy<0) {dx = -dx;} dy = std::abs(dy);
+       if (tp.n==1) {
+        dx = tp.dx*ipx;
+        dy = tp.dy*ipy;
+        if (dy<0) {dx = -dx;} dy = std::abs(dy);
+      } else { dx = dy = -999.f;}
       csv << ' ' << dx << ' ' << dy;      
 
       float qx=0, qy=0, q2x=0, q2y=0 ,qxy=0, q=0;     

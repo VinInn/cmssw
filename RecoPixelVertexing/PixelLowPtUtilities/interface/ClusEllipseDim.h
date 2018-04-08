@@ -53,8 +53,8 @@ extern "C" void __tensorflow_ClusEllipseDim(
 // Memory stats:
 //   arg bytes total:    36
 //   arg bytes aligned:  64
-//   temp bytes total:   528
-//   temp bytes aligned: 640
+//   temp bytes total:   1040
+//   temp bytes aligned: 1152
 class ClusEllipseDim : public tensorflow::XlaCompiledCpuFunction {
  public:
   // Number of input arguments for the compiled computation.
@@ -180,7 +180,7 @@ class ClusEllipseDim : public tensorflow::XlaCompiledCpuFunction {
 
   // Byte size of each result / temporary buffer. There are kNumTemps entries.
   static const intptr_t* TempSizes() {
-    static constexpr intptr_t kTempSizes[kNumTemps] = {-1, 8, 8, 512};
+    static constexpr intptr_t kTempSizes[kNumTemps] = {-1, 8, 8, 1024};
     return kTempSizes;
   }
 

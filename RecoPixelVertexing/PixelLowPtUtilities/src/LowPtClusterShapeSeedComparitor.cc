@@ -164,10 +164,18 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
    auto psx = dnnS.result0_data()[0];
    auto psy = dnnS.result0_data()[1];
 
-   auto zx = (pdx-tkdx)/psx;
+   auto dx = (pdx-tkdx);
+   auto zx = dx/psx;
    auto zy = (pdy-tkdy)/psy;
 
-   return zx*zx+zy*zy;
+   // in endcap the x-distribution has peaks at +/-1 :  try to correct
+   if (!isBarrel) zx = std::max(0.f,std::abs(zx)-1.f);
+    // in endcap the y-distribution is shifted toward negative values for large size...
+   if (!isBarrel && cep.m_sy>3) zy +=0.5f;
+   // in Barrel L1 there is a tail for large negative zy at large PU
+   zy = std::max(-3.5f,zy);
+   auto chi2 = zx*zx+zy*zy;
+   return (isBarrel&&cep.m_layer==1.f) ? chi2: chi2;
 
 }
 
@@ -228,7 +236,7 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
     if (useDNN) {
       auto lc = dnnChi2(*pixelRecHit,globalDirs[i],*theTTopo);
       if (lc>=0) {
-        // if (lc>25.f) return false; // kill outliers...
+        // if (lc>50.f) return false; // kill outliers...
         ++nh; chi2+=lc;
       }
     }else

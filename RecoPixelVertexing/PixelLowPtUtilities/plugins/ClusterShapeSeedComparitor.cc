@@ -68,7 +68,7 @@ PixelClusterShapeSeedComparitor::PixelClusterShapeSeedComparitor(const edm::Para
     filterAtHelixStage_(cfg.getParameter<bool>("FilterAtHelixStage")),
     filterPixelHits_(cfg.getParameter<bool>("FilterPixelHits")),
     filterStripHits_(cfg.getParameter<bool>("FilterStripHits")),
-    useDNN_(filterPixelHits_)
+    useDNN_(false) // (filterPixelHits_)
 {
   if(filterPixelHits_) {
     pixelClusterShapeCacheToken_ = iC.consumes<SiPixelClusterShapeCache>(cfg.getParameter<edm::InputTag>("ClusterShapeCacheSrc"));
