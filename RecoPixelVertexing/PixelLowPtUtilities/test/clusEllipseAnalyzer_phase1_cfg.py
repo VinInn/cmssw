@@ -24,36 +24,61 @@ process.load('DQMOffline.Configuration.DQMOfflineMC_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(2000)
+    input = cms.untracked.int32(1000)
 )
 
 # Input source
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/0806614B-A92F-E811-A810-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/206F3519-A42F-E811-BC66-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/244C7D92-A72F-E811-B2DA-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/2A51D35D-A82F-E811-ADF3-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/2ACB189F-A72F-E811-8C16-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/3EA75845-A42F-E811-9FFB-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/407BDCE7-A72F-E811-869C-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/58E72D41-A62F-E811-BA80-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/62F31674-A62F-E811-8DD9-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/88BF8E6A-A52F-E811-8D85-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/96A32E5D-A82F-E811-95C1-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/9A5B30E6-A72F-E811-A84A-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/9EA33F90-A72F-E811-8F83-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/9EBDD868-A32F-E811-AB37-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/B061A75A-A52F-E811-A324-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/BCAC126B-AA2F-E811-9E23-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/C4485B08-A82F-E811-9DBB-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/E8E11A7E-A62F-E811-B2F7-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/F81A08B0-A72F-E811-AB73-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/FAAD8110-A72F-E811-B8AB-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/FAC9D661-A82F-E811-BC83-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//00B4851A-7731-E811-8D30-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//021F63CD-7931-E811-B20D-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//088DE856-7931-E811-AC1B-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//12C1DCA1-7931-E811-9B90-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//1A021820-7731-E811-8BCE-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//1A4980DC-7931-E811-8089-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//48AF84C1-7931-E811-915D-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//48E45DBD-7931-E811-BC8A-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//6ED4EE31-7731-E811-B41F-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//8828A4BB-7931-E811-835D-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//8C238969-7931-E811-ABD7-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//9EBA1919-7731-E811-B2EB-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//BC2AEE3F-7A31-E811-AA6A-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//C29C94BD-7931-E811-8E9C-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//D856E4E8-7931-E811-B845-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//F257604D-7931-E811-91AD-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//F4AD6A47-7731-E811-8FAF-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//F4BA9C2B-7731-E811-B40D-0242AC130002.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//FAF4334D-7931-E811-8AE1-0242AC130002.root',
 ),
     secondaryFileNames = cms.untracked.vstring()
 )
+
+#process.source = cms.Source("PoolSource",
+#    fileNames = cms.untracked.vstring(
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/0806614B-A92F-E811-A810-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/206F3519-A42F-E811-BC66-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/244C7D92-A72F-E811-B2DA-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/2A51D35D-A82F-E811-ADF3-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/2ACB189F-A72F-E811-8C16-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/3EA75845-A42F-E811-9FFB-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/407BDCE7-A72F-E811-869C-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/58E72D41-A62F-E811-BA80-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/62F31674-A62F-E811-8DD9-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/88BF8E6A-A52F-E811-8D85-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/96A32E5D-A82F-E811-95C1-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/9A5B30E6-A72F-E811-A84A-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/9EA33F90-A72F-E811-8F83-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/9EBDD868-A32F-E811-AB37-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/B061A75A-A52F-E811-A324-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/BCAC126B-AA2F-E811-9E23-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/C4485B08-A82F-E811-9DBB-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/E8E11A7E-A62F-E811-B2F7-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/F81A08B0-A72F-E811-AB73-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/FAAD8110-A72F-E811-B8AB-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realistic_v3_cc7-v1/10000/FAC9D661-A82F-E811-BC83-0242AC130002.root',
+#),
+#    secondaryFileNames = cms.untracked.vstring()
+#)
 
 
 #Adding SimpleMemoryCheck service:

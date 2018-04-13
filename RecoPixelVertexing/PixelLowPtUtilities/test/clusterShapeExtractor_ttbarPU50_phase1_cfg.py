@@ -30,27 +30,52 @@ process.maxEvents = cms.untracked.PSet(
 # Input source
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//0456796E-7531-E811-850E-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//0CAD0F9C-7531-E811-9C72-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//18497066-7531-E811-B296-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//485A26AB-7531-E811-8E94-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//4C2F021F-7531-E811-8249-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//5E01CD65-7531-E811-AC4B-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//6010776E-7531-E811-B25D-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//7CF1D2B0-7531-E811-BD31-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//82867023-7531-E811-9BC9-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//9C07C94D-7531-E811-9214-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//B2B0343C-7531-E811-B850-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//B45DB912-7531-E811-A024-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//C6322637-7531-E811-83ED-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//CC1C8F4C-7531-E811-84E1-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//E2A2229A-7531-E811-B975-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//ECF61972-7531-E811-805D-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//F2C06A8D-7531-E811-B6C4-0242AC130002.root',
-    '/store/relval/CMSSW_10_1_0_pre3/RelValNuGun/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//F699A57A-7531-E811-ADCA-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//002CD53A-B538-E811-A45A-0CC47A7C353E.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//083FD50B-B538-E811-8230-0CC47A7C3450.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//0E3CA40C-B538-E811-BF3A-0CC47A4D768E.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//3478DAB1-B338-E811-8489-0CC47A7C354C.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//3CB8FF06-B538-E811-B422-0CC47A7C353E.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//50C35A28-B538-E811-891F-0025905A60EE.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//58462D48-B538-E811-9AE8-0CC47A7C349C.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//98F4CC3C-B538-E811-80B5-0CC47A4D7604.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//9E3C82FC-B538-E811-BBBC-0CC47A4D75EE.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//B4FF1CDA-B438-E811-8D56-0CC47A78A2F6.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//C4969AF3-B238-E811-BCD0-0CC47A7C34C4.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//CE47FE0E-B538-E811-A170-0CC47A4C8F0A.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//DA3298AF-B538-E811-9B7F-0CC47A78A3F4.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//DE9D0407-B538-E811-ADB4-0CC47A7C35A8.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//F0588306-B538-E811-A721-0CC47A4D768E.root',
+    '/store/relval/CMSSW_10_1_0/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_design_v7-v1/10000//F869423D-B538-E811-A4B9-003048FFD7A4.root',
 ),
     secondaryFileNames = cms.untracked.vstring()
 )
+
+
+## Input source
+#process.source = cms.Source("PoolSource",
+#    fileNames = cms.untracked.vstring(
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//00B4851A-7731-E811-8D30-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//021F63CD-7931-E811-B20D-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//088DE856-7931-E811-AC1B-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//12C1DCA1-7931-E811-9B90-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//1A021820-7731-E811-8BCE-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//1A4980DC-7931-E811-8089-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//48AF84C1-7931-E811-915D-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//48E45DBD-7931-E811-BC8A-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//6ED4EE31-7731-E811-B41F-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//8828A4BB-7931-E811-835D-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//8C238969-7931-E811-ABD7-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//9EBA1919-7731-E811-B2EB-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//BC2AEE3F-7A31-E811-AA6A-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//C29C94BD-7931-E811-8E9C-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//D856E4E8-7931-E811-B845-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//F257604D-7931-E811-91AD-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//F4AD6A47-7731-E811-8FAF-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//F4BA9C2B-7731-E811-B40D-0242AC130002.root',
+#    '/store/relval/CMSSW_10_1_0_pre3/RelValTTbar_13/GEN-SIM-DIGI-RAW/PU25ns_101X_upgrade2018_realistic_v3_cc7-v2/10000//FAF4334D-7931-E811-8AE1-0242AC130002.root',
+#),
+#    secondaryFileNames = cms.untracked.vstring()
+#)
 
 
 #Adding SimpleMemoryCheck service:

@@ -164,18 +164,30 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
    auto psx = dnnS.result0_data()[0];
    auto psy = dnnS.result0_data()[1];
 
-   auto dx = (pdx-tkdx);
-   auto zx = dx/psx;
+   auto zx = (pdx-tkdx)/psx;
    auto zy = (pdy-tkdy)/psy;
 
+   /* if trained with MB 0PU */
    // in endcap the x-distribution has peaks at +/-1 :  try to correct
-   if (!isBarrel) zx = std::max(0.f,std::abs(zx)-1.f);
-    // in endcap the y-distribution is shifted toward negative values for large size...
+   if (!isBarrel) zx = 1.5f*std::max(0.f,std::abs(zx)-1.f);
+   // in endcap the y-distribution is shifted toward negative values for large size...
    if (!isBarrel && cep.m_sy>3) zy +=0.5f;
-   // in Barrel L1 there is a tail for large negative zy at large PU
-   zy = std::max(-3.5f,zy);
+
+   // in Barrel L1 there is a tail for large negative zy at large PU due to DynIneff
+   // if (isBarrel&&cep.m_layer==1.f) zy = zy>0 ? zy : 0.5f*zy; // zy = std::max(-3.5f,zy);
+   
+
+   /* if trained with realisitc ttbar 50PU
+   // in endcap the x-distribution has peaks at +/-1 :  try to correct
+   if (!isBarrel) zx = 1.5f*std::max(0.f,std::abs(zx)-1.f);
+   // in endcap the y-distribution is shifted toward negative values for large size ...
+   if (!isBarrel && cep.m_sy>3) zy +=0.75f;
+   // in Barrel L1 is sharply peaked at +1 with a negative tail...
+   if (isBarrel&&cep.m_layer==1.f) {zy-=0.8f; zy = zy>0 ? 2.f*zy : zy;}
+   */
+
    auto chi2 = zx*zx+zy*zy;
-   return (isBarrel&&cep.m_layer==1.f) ? chi2: chi2;
+   return chi2;
 
 }
 
@@ -236,7 +248,7 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
     if (useDNN) {
       auto lc = dnnChi2(*pixelRecHit,globalDirs[i],*theTTopo);
       if (lc>=0) {
-        // if (lc>50.f) return false; // kill outliers...
+        if (lc>32.f) return false; // kill outliers...
         ++nh; chi2+=lc;
       }
     }else
@@ -250,7 +262,7 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
     }
   }
   // if (useDNN) std::cout << "LowPtClusterShapeSeedComparitor chi2 " << chi2 << ' ' << nh << std::endl;
-  if (useDNN) return nh==0 || chi2 < 18.f*float(nh);
+  if (useDNN) return nh==0 || chi2 < 15.f*float(nh);
  
   return ok;
 }
