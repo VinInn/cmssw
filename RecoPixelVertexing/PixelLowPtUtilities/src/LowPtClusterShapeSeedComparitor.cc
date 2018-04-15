@@ -186,6 +186,7 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
    if (isBarrel&&cep.m_layer==1.f) {zy-=0.8f; zy = zy>0 ? 2.f*zy : zy;}
    */
 
+   if (std::max(std::abs(zx),std::abs(zy))>4.f) return 100.f; // kill outliers
    auto chi2 = zx*zx+zy*zy;
    return chi2;
 
@@ -248,7 +249,7 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
     if (useDNN) {
       auto lc = dnnChi2(*pixelRecHit,globalDirs[i],*theTTopo);
       if (lc>=0) {
-        if (lc>32.f) return false; // kill outliers...
+        if (lc>25.f) return false; // kill outliers...
         ++nh; chi2+=lc;
       }
     }else
