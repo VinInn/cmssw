@@ -181,7 +181,7 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
    // in endcap the x-distribution has peaks at +/-1 :  try to correct
    if (!isBarrel  && cep.m_sy<3.f ) zx = 1.5f*std::max(0.f,std::abs(zx)-1.f);
    // in endcap the y-distribution is shifted toward negative values for large size...
-   if (!isBarrel && cep.m_sy==3.f) zy -=0.8f;
+   if (!isBarrel && cep.m_sy==3.f) zy -=1.0f;  // and toward positive for sy==3!
    if (!isBarrel && cep.m_sy>3.f) zy +=0.8f;
    
    // in Barrel L1 there is a tail for large negative zy at large PU due to ??Broken clusters??  
@@ -208,7 +208,7 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
    if (isBarrel&&cep.m_layer==1.f) {zy-=0.8f; zy = zy>0 ? 2.f*zy : zy;}
    */
 
-   if (std::max(std::abs(zx),std::abs(zy))>5.f) return 100.f; // kill outliers
+   // if (std::max(std::abs(zx),std::abs(zy))>5.f) return 100.f; // kill outliers
    auto chi2 = zx*zx+zy*zy;
    return chi2;
 
@@ -285,7 +285,7 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
     }
   }
   // if (useDNN) std::cout << "LowPtClusterShapeSeedComparitor chi2 " << chi2 << ' ' << nh << std::endl;
-  if (useDNN) return nh==0 || chi2 < 24.f*float(nh);
+  if (useDNN) return nh==0 || chi2 < 32.f*float(nh);
  
   return ok;
 }
