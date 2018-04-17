@@ -93,6 +93,9 @@ namespace {
     ClusEllipseSigma dnnS;
 
 
+    constexpr bool extendedModel = true;
+
+
     edm::ESHandle<TrackerTopology> tTopoHandle;
     es.get<TrackerTopologyRcd>().get(tTopoHandle);
     auto const & tkTpl = *tTopoHandle;
@@ -134,6 +137,13 @@ namespace {
         if (cep.m_layer==0) continue;
        	memcpy(dnnD.arg0_data(),cep.data(),9*4);
         memcpy(dnnS.arg0_data(),dnnD.arg0_data(),9*4);
+        if(extendedModel) {
+          for (int kk = 9; kk<16; ++kk) dnnS.arg0_data()[kk] = dnnD.arg0_data()[kk]=0;
+          int ind = dnnS.arg0_data()[1] + 3.f*dnnS.arg0_data()[0] -1.f;
+          assert(ind<8);
+          dnnS.arg0_data()[9+ind] = dnnD.arg0_data()[9+ind] = 1;
+         }
+
         dnnD.Run();
         dnnS.Run();
 

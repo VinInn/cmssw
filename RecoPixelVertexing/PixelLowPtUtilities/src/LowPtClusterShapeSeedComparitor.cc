@@ -135,6 +135,8 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
     ClusEllipseDim dnnD;
     ClusEllipseSigma dnnS;
  
+    constexpr bool extendedModel = true;
+
    auto ldir = recHit.det()->toLocal(gdir);
    
    auto id = recHit.geographicalId();
@@ -153,6 +155,13 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
    if (cep.m_layer==0) return -1.f;
    memcpy(dnnD.arg0_data(),cep.data(),9*4);
    memcpy(dnnS.arg0_data(),dnnD.arg0_data(),9*4);
+   if(extendedModel) {
+     for (int kk = 9; kk<16; ++kk) dnnS.arg0_data()[kk] = dnnD.arg0_data()[kk]=0;
+     int ind = dnnS.arg0_data()[1] + 3.f*dnnS.arg0_data()[0] -1.f;
+     assert(ind<8);
+     dnnS.arg0_data()[9+ind] = dnnD.arg0_data()[9+ind] = 1;
+   }
+
    dnnD.Run();
    dnnS.Run();
 
@@ -167,7 +176,20 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
    auto zx = (pdx-tkdx)/psx;
    auto zy = (pdy-tkdy)/psy;
 
-   /* if trained with MB 0PU */
+
+   /* if trained with MB 0PU with extended DNN */
+   // in endcap the x-distribution has peaks at +/-1 :  try to correct
+   if (!isBarrel  && cep.m_sy<3.f ) zx = 1.5f*std::max(0.f,std::abs(zx)-1.f);
+   // in endcap the y-distribution is shifted toward negative values for large size...
+   if (!isBarrel && cep.m_sy==3.f) zy -=0.8f;
+   if (!isBarrel && cep.m_sy>3.f) zy +=0.8f;
+   
+   // in Barrel L1 there is a tail for large negative zy at large PU due to ??Broken clusters??  
+   if (isBarrel&&cep.m_layer==1.f&& cep.m_sy>4.f) zy = zy>-2.f ? zy : 0.75f*zy; // zy = std::max(-3.5f,zy);
+   
+
+
+   /* if trained with MB 0PU
    // in endcap the x-distribution has peaks at +/-1 :  try to correct
    if (!isBarrel) zx = 1.5f*std::max(0.f,std::abs(zx)-1.f);
    // in endcap the y-distribution is shifted toward negative values for large size...
@@ -175,7 +197,7 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
 
    // in Barrel L1 there is a tail for large negative zy at large PU due to DynIneff
    // if (isBarrel&&cep.m_layer==1.f) zy = zy>0 ? zy : 0.5f*zy; // zy = std::max(-3.5f,zy);
-   
+   */
 
    /* if trained with realisitc ttbar 50PU
    // in endcap the x-distribution has peaks at +/-1 :  try to correct
@@ -186,7 +208,7 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
    if (isBarrel&&cep.m_layer==1.f) {zy-=0.8f; zy = zy>0 ? 2.f*zy : zy;}
    */
 
-   if (std::max(std::abs(zx),std::abs(zy))>4.f) return 100.f; // kill outliers
+   if (std::max(std::abs(zx),std::abs(zy))>5.f) return 100.f; // kill outliers
    auto chi2 = zx*zx+zy*zy;
    return chi2;
 
@@ -249,7 +271,7 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
     if (useDNN) {
       auto lc = dnnChi2(*pixelRecHit,globalDirs[i],*theTTopo);
       if (lc>=0) {
-        if (lc>25.f) return false; // kill outliers...
+        // if (lc>32.f) return false; // kill outliers...
         ++nh; chi2+=lc;
       }
     }else
@@ -263,7 +285,7 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
     }
   }
   // if (useDNN) std::cout << "LowPtClusterShapeSeedComparitor chi2 " << chi2 << ' ' << nh << std::endl;
-  if (useDNN) return nh==0 || chi2 < 15.f*float(nh);
+  if (useDNN) return nh==0 || chi2 < 24.f*float(nh);
  
   return ok;
 }

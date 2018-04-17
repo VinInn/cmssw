@@ -3,6 +3,7 @@
 #include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseDim.h"
 #include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseSigma.h"
 
+constexpr bool extendedModel = true;
 
 #include <array>
 #include <algorithm>
@@ -40,6 +41,12 @@ void  go4() {
   dnnS[j].arg0_data()[7] = dnnD[j].arg0_data()[7] = (i%5);     
   dnnS[j].arg0_data()[8] = dnnD[j].arg0_data()[8] = 4*(j%10); 
 
+  if(extendedModel) {
+   for (int kk = 9; kk<16; ++kk) dnnS[j].arg0_data()[kk] = dnnD[j].arg0_data()[kk]=0;
+   int ind = dnnS[j].arg0_data()[1] + 3.f*dnnS[j].arg0_data()[0] -1.f;
+   assert(ind<8);
+   dnnS[j].arg0_data()[9+ind] =  dnnD[j].arg0_data()[9+ind] = 1;
+  }
 
   dnnD[j].Run();
   dnnS[j].Run();

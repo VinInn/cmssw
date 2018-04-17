@@ -48,10 +48,10 @@ extern "C" void __tensorflow_ClusEllipseDim(
 //   is guaranteed that no thread may call a non-const method.
 //
 // The logical function signature is:
-//   (arg0: f32[1,9]) -> (f32[1,2])
+//   (arg0: f32[1,16]) -> (f32[1,2])
 //
 // Memory stats:
-//   arg bytes total:    36
+//   arg bytes total:    64
 //   arg bytes aligned:  64
 //   temp bytes total:   1040
 //   temp bytes aligned: 1152
@@ -62,7 +62,7 @@ class ClusEllipseDim : public tensorflow::XlaCompiledCpuFunction {
 
   // Byte size of each argument buffer. There are kNumArgs entries.
   static const intptr_t* ArgSizes() {
-    static constexpr intptr_t kArgSizes[kNumArgs] = {36};
+    static constexpr intptr_t kArgSizes[kNumArgs] = {64};
     return kArgSizes;
   }
 
@@ -116,14 +116,14 @@ class ClusEllipseDim : public tensorflow::XlaCompiledCpuFunction {
     return static_cast<float*>(arg_data(0));
   }
   float& arg0(size_t dim0, size_t dim1) {
-    return (*static_cast<float(*)[1][9]>(
+    return (*static_cast<float(*)[1][16]>(
         arg_data(0)))[dim0][dim1];
   }
   const float* arg0_data() const {
     return static_cast<const float*>(arg_data(0));
   }
   const float& arg0(size_t dim0, size_t dim1) const {
-    return (*static_cast<const float(*)[1][9]>(
+    return (*static_cast<const float(*)[1][16]>(
         arg_data(0)))[dim0][dim1];
   }
 
