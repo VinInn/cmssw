@@ -169,13 +169,17 @@ float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology c
 
    /* if trained with MB 0PU */
    // in endcap the x-distribution has peaks at +/-1 :  try to correct
-   if (!isBarrel) zx = 1.5f*std::max(0.f,std::abs(zx)-1.f);
+   // in endcap the x-distribution has peaks at +/-1 :  try to correct
+   if (!isBarrel  && cep.m_sy<3.f ) zx = 1.5f*std::max(0.f,std::abs(zx)-1.f);
    // in endcap the y-distribution is shifted toward negative values for large size...
-   if (!isBarrel && cep.m_sy>3) zy +=0.5f;
+   if (!isBarrel && cep.m_sy==3.f) zy -=1.0f;  // and toward positive for sy==3!
+   if (!isBarrel && cep.m_sy>3.f) zy +=0.8f;
 
-   // in Barrel L1 there is a tail for large negative zy at large PU due to DynIneff
-   // if (isBarrel&&cep.m_layer==1.f) zy = zy>0 ? zy : 0.5f*zy; // zy = std::max(-3.5f,zy);
+   // little tail for zx positive and small size y
+   if (isBarrel  && cep.m_sy<3.f ) zx = zx<1.5f ? zx : 0.8f*zx;
    
+   // in Barrel L1 there is a tail for large negative zy at large PU due to ??Broken clusters??  
+   if (isBarrel&&cep.m_layer==1.f&& cep.m_sy>4.f) { zy-=0.5f; zy = zy>-2.f ? zy : 0.75f*zy; }
 
    /* if trained with realisitc ttbar 50PU
    // in endcap the x-distribution has peaks at +/-1 :  try to correct
