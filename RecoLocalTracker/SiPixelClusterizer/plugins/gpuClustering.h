@@ -78,9 +78,11 @@ namespace gpuClustering {
     if (first>=msize) return;
 
     int jmax[10];
+//    int jmin[10];
     auto niter = (msize-first)/blockDim.x;
     assert(niter<10);
-    for (int i=0; i<niter+1; ++i) jmax[i]=msize;    
+//    for (int k=0; k<niter+1; ++k) jmin[k]=first+k*blockDim.x+1;    
+    for (int k=0; k<niter+1; ++k) jmax[k]=msize;
 
     while (go) {
       __syncthreads();
@@ -93,11 +95,15 @@ namespace gpuClustering {
 	if (id[i]==InvId) continue;  // not valid
 	assert(id[i]==me); //  break;  // end of module
 	++debug[i];
+        auto js = i+1; // jmin[k];
         auto jm = jmax[k];
-	for (int j=i+1; j<jm; ++j) {
+        jmax[k]=i+1;
+//         bool first = true;
+	for (int j=js; j<jm; ++j) {
  	  if (id[j]==InvId) continue;  // not valid
-          if (std::abs(int(x[j])-int(x[i]))>1) continue;
-	  if (std::abs(int(y[j])-int(y[i]))>1) continue;
+          if (std::abs(int(x[j])-int(x[i]))>1 |
+	      std::abs(int(y[j])-int(y[i]))>1) continue;
+//           if (first) {jmin[k] = j; first=false;}
 	  auto old = atomicMin(&clus[j],clus[i]);
 	  if (old!=clus[i]) go=true;
 	  atomicMin(&clus[i],old);
