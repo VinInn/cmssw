@@ -13,6 +13,8 @@
 <use   name="MagneticField/Records"/>
 <use   name="DataFormats/VertexReco"/>
 <use   name="DataFormats/TrackerCommon"/>
+<use   name="tensorflow-cc"/>
+<flags   CXXFLAGS="-lClusEllipseDNN_sse  -lruntime  -lxla_compiled_cpu_function"/>
 <export>
   <lib   name="1"/>
 </export>

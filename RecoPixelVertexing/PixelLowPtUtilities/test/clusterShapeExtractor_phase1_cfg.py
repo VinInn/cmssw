@@ -7,7 +7,7 @@ import FWCore.ParameterSet.Config as cms
 
 from Configuration.StandardSequences.Eras import eras
 
-process = cms.Process('RECO',eras.Run2_2017)
+process = cms.Process('RECO',eras.Run2_2018)
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -24,30 +24,32 @@ process.load('DQMOffline.Configuration.DQMOfflineMC_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1)
+    input = cms.untracked.int32(20000)
 )
 
 # Input source
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//04A76B1B-CF60-E711-BB55-0CC47A4C8EC8.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//120DA883-CF60-E711-B945-0025905A60B6.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//2076661C-CF60-E711-9A0D-0025905A60B8.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//2C06018A-D060-E711-88F4-0025905B85D8.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//34F2166D-CF60-E711-876B-0025905B85DE.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//3E937FAE-CF60-E711-A74C-0025905B855A.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//486BB49C-CF60-E711-9205-0CC47A7C35C8.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//522B4781-CF60-E711-8BF5-0025905B8560.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//56D8A4B8-CF60-E711-BDF8-003048FFCC16.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//86A1DCDC-CF60-E711-B676-0CC47A7C35D8.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//8ACD778E-D060-E711-86C1-0CC47A4D7606.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//98F51D6D-CF60-E711-9471-0CC47A7C34EE.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//A8D802D6-CF60-E711-A4DF-0CC47A78A41C.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//BCA2973A-DA60-E711-949B-0025905A611C.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//D88729CC-CE60-E711-913C-0CC47A4C8E3C.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//DC3649D5-CF60-E711-93FB-0CC47A745250.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//E011547C-D060-E711-9DDD-0CC47A4C8E3C.root',
-'/store/relval/CMSSW_9_3_0_pre1/RelValMinBias_13/GEN-SIM-DIGI-RAW/92X_upgrade2017_realistic_v7-v1/00000//F40A90CF-CF60-E711-8F1A-0CC47A7C35A8.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/48D2453E-682D-E811-9F55-0025905A6082.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/4CDEB54A-682D-E811-A594-0025905B85DE.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/5226F8B3-692D-E811-A6A1-0025905B857A.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/56BA1C44-682D-E811-AC3B-0025905B85DA.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/5EFC4945-682D-E811-A2FF-0025905B8598.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/6A52C535-682D-E811-AA8D-0CC47A4D7698.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/6A95D4AF-692D-E811-9D95-0025905B85B8.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/84A9E4A8-692D-E811-AC93-0CC47A745294.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/8C7CB9A3-692D-E811-A78F-0CC47A7C340E.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/96133CEA-682D-E811-AD05-0CC47A4D764A.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/983AD7BE-6B2D-E811-A2E5-0CC47A7C3424.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/A2C419A4-692D-E811-B109-0CC47A4D7690.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/A2ED6045-672D-E811-B6B8-0CC47A78A3EE.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/A8B637F8-682D-E811-B734-003048FFCBB8.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/B02153AF-692D-E811-9A1D-0025905B8598.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/B2B3EFA1-692D-E811-B8DC-0CC47A4D75F6.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/C8780C47-682D-E811-9E60-0025905B85DC.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/D6D576D5-682D-E811-B5D6-0CC47A78A3EE.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/EAD209D7-682D-E811-8E8F-0025905B85FC.root',
+    '/store/relval/CMSSW_10_1_0_pre3/RelValMinBias_13/GEN-SIM-DIGI-RAW/101X_upgrade2018_realisticv3_PixelRealScenario_v1-v1/10000/FA0FE9DC-682D-E811-97B7-0CC47A4D7636.root',
 ),
     secondaryFileNames = cms.untracked.vstring()
 )
@@ -109,7 +111,7 @@ process.mix.digitizers = cms.PSet()
 for a in process.aliases: delattr(process, a)
 process.RandomNumberGeneratorService.restoreStateLabel=cms.untracked.string("randomEngineStateProducer")
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase1_2017_realistic', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase1_2018_realistic', '')
 
 # Path and EndPath definitions
 process.raw2digi_step = cms.Path(process.RawToDigi)
