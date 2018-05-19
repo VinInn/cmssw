@@ -203,7 +203,7 @@ int main(void)
   std::cout << "found " << nModules << " Modules active" << std::endl;
 
   
-  threadsPerBlock = 256;
+  threadsPerBlock = 64; // 256;
   blocksPerGrid = nModules;
 
 
