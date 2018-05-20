@@ -655,10 +655,9 @@ void RawToDigi_wrapper(
 
   cudaCheck(cudaMemcpyAsync(&nModules, c.moduleStart_d, sizeof(uint32_t), cudaMemcpyDefault, c.stream));
 
-  // std::cout << "found " << nModules << " Modules active" << std::endl;
+  // std::cout << "found " << nModules << " Modules active with " << wordCounter << " digis" << std::endl;
 
-  
-  threadsPerBlock = 256;
+  threadsPerBlock = 256; // std::max(64, 32*int(wordCounter/(32*nModules)+1));
   blocks = nModules;
 
   /*
