@@ -1,2 +1,7 @@
 <bin file="test_GPUSimpleVector.cu" name="test_GPUSimpleVector">
 </bin>
+<bin file="radixSort_t.cu" name="gpuRadixSort_t">
+<use name="cuda"/>
+<use name="cuda-api-wrappers"/>
+</bin>
+
