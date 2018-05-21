@@ -15,17 +15,21 @@
 #include "RecoLocalTracker/SiPixelClusterizer/plugins/gpuClustering.h"
 #include "PixelRecHits.h"
 #include "gpuPixelRecHits.h"
-
+#include "HeterogeneousCore/CUDAUtilities/interface/radixSort.h"
 
 HitsOnGPU allocHitsOnGPU() {
    HitsOnGPU hh;
    cudaCheck(cudaMalloc((void**) & hh.hitsModuleStart_d,(gpuClustering::MaxNumModules+1)*sizeof(uint32_t)));
+   cudaCheck(cudaMalloc((void**) & hh.hitsLayerStart_d,(11)*sizeof(uint32_t)));
    cudaCheck(cudaMalloc((void**) & hh.charge_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.xg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.yg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.zg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.rg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.xerr_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.yerr_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.iphi_d,(gpuClustering::MaxNumModules*256)*sizeof(int16_t)));
+   cudaCheck(cudaMalloc((void**) & hh.sortIndex_d,(gpuClustering::MaxNumModules*256)*sizeof(uint16_t)));
    cudaCheck(cudaMalloc((void**) & hh.mr_d,(gpuClustering::MaxNumModules*256)*sizeof(uint16_t)));
    cudaCheck(cudaDeviceSynchronize());
 
@@ -60,17 +64,29 @@ pixelRecHits_wrapper(
       hh.hitsModuleStart_d,
       hh.charge_d,
       hh.xg_d, hh.yg_d, hh.zg_d,
+      hh.iphi_d,
       hh.xerr_d, hh.yerr_d, hh.mr_d,
       true // for the time being stay local...
       );
 
 
-  // all this needed only if hits on CPU are required...
   uint32_t hitsModuleStart[gpuClustering::MaxNumModules+1];
   cudaCheck(cudaMemcpyAsync(hitsModuleStart, hh.hitsModuleStart_d, (gpuClustering::MaxNumModules+1) * sizeof(uint32_t), cudaMemcpyDefault, c.stream));
   cudaCheck(cudaDeviceSynchronize());
   auto nhits = hitsModuleStart[gpuClustering::MaxNumModules];
 
+  uint32_t hitsLayerStart[11];
+  for (int i=0;i<10;++i) hitsLayerStart[i]=hitsModuleStart[phase1PixelTopology::layerStart[i]];
+  hitsLayerStart[10]=nhits;
+  std::cout << "hit layerStart "; 
+  for (int i=0;i<10;++i) std::cout << phase1PixelTopology::layerName[i] << ':' << hitsLayerStart[i] << ' ';
+  std::cout << "end:" << hitsLayerStart[10] << std::endl;
+
+  cudaCheck(cudaMemcpyAsync(hh.hitsLayerStart_d, hitsLayerStart, (11) * sizeof(uint32_t), cudaMemcpyDefault, c.stream));
+
+  radixSortMultiWrapper<int16_t><<<10, 256, 0, c.stream>>>(hh.iphi_d,hh.sortIndex_d,hh.hitsLayerStart_d);
+
+  // all this needed only if hits on CPU are required...
   HitsOnCPU hoc(nhits);
   memcpy(hoc.hitsModuleStart, hitsModuleStart, (gpuClustering::MaxNumModules+1) * sizeof(uint32_t));
   cudaCheck(cudaMemcpyAsync(hoc.charge.data(), hh.charge_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));

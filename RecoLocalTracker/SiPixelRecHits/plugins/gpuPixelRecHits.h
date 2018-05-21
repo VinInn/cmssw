@@ -5,10 +5,19 @@
 #include <cstdint>
 #include <cstdio>
 #include <limits>
+#include <cmath>
 
 #include "RecoLocalTracker/SiPixelRecHits/interface/pixelCPEforGPU.h"
 
 namespace gpuPixelRecHits {
+
+  // later from Math
+  constexpr
+  short phi2short(float x) {
+    constexpr float p2i = ( (int)(std::numeric_limits<short>::max())+1 )/M_PI;
+    return std::round(x*p2i);
+  }
+
 
   // to be moved in common namespace...
   constexpr uint16_t InvId=9999; // must be > MaxNumModules
@@ -31,7 +40,7 @@ namespace gpuPixelRecHits {
 			  int numElements,
 			  uint32_t const * hitsModuleStart,
                           int32_t * chargeh,
-			  float * xh, float * yh, float * zh,
+			  float * xh, float * yh, float * zh, int16_t * iph,
                           float * xe, float * ye, uint16_t * mr,
 			  bool local // if true fill just x & y in local coord...
 			  ){
@@ -128,6 +137,13 @@ namespace gpuPixelRecHits {
     xe[h]= clusParams.xerr[ic];
     ye[h]= clusParams.yerr[ic];
     mr[h]= clusParams.minRow[ic];
+  
+    if (local) {
+      float xg,yg;
+      // compute phi... 
+      cpeParams->detParams(me).frame.toGlobal(xh[h],yh[h],  xg,yg,zh[h]);
+      iph[h] = phi2short(std::atan2(yg,xg));
+    }
   }
 
 }

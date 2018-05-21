@@ -16,6 +16,9 @@ void radixSort(T * a, uint16_t * ind, uint32_t size) {
   __shared__ int32_t c[sb], ct[sb], cu[sb];
   __shared__ uint32_t firstNeg;    
 
+  __shared__ int ibs;
+
+  assert(size>0);
   assert(size<=MaxSize); 
   assert(blockDim.x==sb);  
 
@@ -55,31 +58,44 @@ void radixSort(T * a, uint16_t * ind, uint32_t size) {
     auto ss = (threadIdx.x/32)*32 -1;
     c[threadIdx.x] = ct[threadIdx.x];
     for(int i=ss; i>0; i-=32) c[threadIdx.x] +=ct[i]; 
-
-    /* prefix scan for the nulls  (for documentation)
+ 
+    /* 
+    //prefix scan for the nulls  (for documentation)
     if (threadIdx.x==0)
       for (int i = 1; i < sb; ++i) c[i] += c[i-1];
     */
     __syncthreads();
 
+    
+    // broadcast
+//    for (int ib=size-1; ib>=0; ib-=blockDim.x) {
 
-    // bradcast
-    for (int i=size-first-1; i>=0; i-=blockDim.x) {
+     ibs =size-1;
+     __syncthreads();
+     while (ibs>0) {
+       int i = ibs - threadIdx.x;
        cu[threadIdx.x]=-1;
+       ct[threadIdx.x]=-1;
+       __syncthreads();
+       if (i<0) continue;
        auto bin = (a[j[i]] >> d*p)&(sb-1);
        ct[threadIdx.x]=bin;
        atomicMax(&cu[bin],int(i));
        __syncthreads();
        if (i==cu[bin])  // ensure to keep them in order
-         for (int ii=threadIdx.x; ii<blockDim.x; ++ii) if (ct[ii]==bin) {auto oi = ii-threadIdx.x; k[--c[bin]] = j[i-oi]; }
+         for (int ii=threadIdx.x; ii<blockDim.x; ++ii) if (ct[ii]==bin) {auto oi = ii-threadIdx.x; assert(i>=oi);if(i>=oi) k[--c[bin]] = j[i-oi]; }
+       __syncthreads();
+       assert(c[bin]>=0);
+       if (threadIdx.x==0) ibs-=blockDim.x;
        __syncthreads();
      }    
- 
-    /*  for documentation
-    // broadcast for the nulls
+      
+    /*
+    // broadcast for the nulls  (for documentation)
     if (threadIdx.x==0)
     for (int i=size-first-1; i>=0; i--) { // =blockDim.x) {
-      auto ik = atomicSub(&c[(a[j[i]] >> d*p)&(sb-1)],1);
+      auto bin = (a[j[i]] >> d*p)&(sb-1);
+      auto ik = atomicSub(&c[bin],1);
       k[ik-1] = j[i];
     }
     */
@@ -128,9 +144,15 @@ void radixSortMulti(T * v, uint16_t * index, uint32_t * offsets) {
   auto a = v+offsets[blockIdx.x];
   auto ind = index+offsets[blockIdx.x];;
   auto size = offsets[blockIdx.x+1]-offsets[blockIdx.x];
+  assert(offsets[blockIdx.x+1]>=offsets[blockIdx.x]);
+  if (size>0) radixSort(a,ind,size);
 
-  radixSort(a,ind,size);
+}
 
+template<typename T>
+__global__
+void radixSortMultiWrapper(T * v, uint16_t * index, uint32_t * offsets) {
+  radixSortMulti(v,index,offsets);
 }
 
 #endif // HeterogeneousCoreCUDAUtilities_radixSort_H

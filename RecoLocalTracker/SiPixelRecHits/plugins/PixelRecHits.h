@@ -12,9 +12,12 @@ struct context;
 
 struct HitsOnGPU{
    uint32_t * hitsModuleStart_d;
+   uint32_t * hitsLayerStart_d;
    int32_t  * charge_d;
-   float *xg_d, *yg_d, *zg_d;
+   float *xg_d, *yg_d, *zg_d, *rg_d;
    float *xerr_d, *yerr_d;
+   int16_t * iphi_d;
+   uint16_t * sortIndex_d;
    uint16_t * mr_d;
 };
 
