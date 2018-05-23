@@ -38,7 +38,6 @@ HitsOnGPU allocHitsOnGPU() {
    return hh;
 }
 
-
 HitsOnCPU
 pixelRecHits_wrapper(
       context const & c,
