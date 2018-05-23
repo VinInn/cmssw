@@ -5,3 +5,10 @@
 <use name="cuda-api-wrappers"/>
 </bin>
 
+<bin file="radixSort_t.cu" name="gpuRadixSort_debug">
+<use name="cuda"/>
+<use name="cuda-api-wrappers"/>
+<flags CUDA_FLAGS="-g -G"/>
+</bin>
+
+

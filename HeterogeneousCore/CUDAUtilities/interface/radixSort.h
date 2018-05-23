@@ -17,6 +17,7 @@ void radixSort(T * a, uint16_t * ind, uint32_t size) {
   __shared__ uint32_t firstNeg;    
 
   __shared__ int ibs;
+  __shared__ int p;
 
   assert(size>0);
   assert(size<=MaxSize); 
@@ -26,6 +27,8 @@ void radixSort(T * a, uint16_t * ind, uint32_t size) {
 
   firstNeg=0;
 
+  p = 0;  
+
   auto j = ind;
   auto k = ind2;
 
@@ -34,7 +37,7 @@ void radixSort(T * a, uint16_t * ind, uint32_t size) {
   __syncthreads();
 
 
-  for (int p = 0; p < w/d; ++p) {
+  while(p < w/d) {
     c[threadIdx.x]=0;
     __syncthreads();
 
@@ -77,15 +80,17 @@ void radixSort(T * a, uint16_t * ind, uint32_t size) {
        cu[threadIdx.x]=-1;
        ct[threadIdx.x]=-1;
        __syncthreads();
-       if (i<0) continue;
-       auto bin = (a[j[i]] >> d*p)&(sb-1);
-       ct[threadIdx.x]=bin;
-       atomicMax(&cu[bin],int(i));
+       int32_t bin = -1;
+       if (i>=0) { 
+         bin = (a[j[i]] >> d*p)&(sb-1);
+         ct[threadIdx.x]=bin;
+         atomicMax(&cu[bin],int(i));
+       }
        __syncthreads();
-       if (i==cu[bin])  // ensure to keep them in order
+       if (i>=0 && i==cu[bin])  // ensure to keep them in order
          for (int ii=threadIdx.x; ii<blockDim.x; ++ii) if (ct[ii]==bin) {auto oi = ii-threadIdx.x; assert(i>=oi);if(i>=oi) k[--c[bin]] = j[i-oi]; }
        __syncthreads();
-       assert(c[bin]>=0);
+       if (bin>=0) assert(c[bin]>=0);
        if (threadIdx.x==0) ibs-=blockDim.x;
        __syncthreads();
      }    
@@ -106,6 +111,10 @@ void radixSort(T * a, uint16_t * ind, uint32_t size) {
 
     // swap (local, ok)
     auto t=j;j=k;k=t;
+
+    if (threadIdx.x==0) ++p;
+    __syncthreads();
+ 
   }
 
   // w/d is even so ind is correct
