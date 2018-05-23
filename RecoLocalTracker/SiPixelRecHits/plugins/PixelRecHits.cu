@@ -13,6 +13,7 @@
 #include "EventFilter/SiPixelRawToDigi/plugins/RawToDigiGPU.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "RecoLocalTracker/SiPixelClusterizer/plugins/gpuClustering.h"
+#include "gpuPixelDoublets.h"
 #include "PixelRecHits.h"
 #include "gpuPixelRecHits.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/radixSort.h"
@@ -87,6 +88,11 @@ pixelRecHits_wrapper(
   cudaCheck(cudaMemcpyAsync(hh.hitsLayerStart_d, hitsLayerStart, (11) * sizeof(uint32_t), cudaMemcpyDefault, c.stream));
 
   radixSortMultiWrapper<int16_t><<<10, 256, 0, c.stream>>>(hh.iphi_d,hh.sortIndex_d,hh.hitsLayerStart_d);
+
+  float phiCut=0.2;
+  threadsPerBlock = 256;
+  blocks = (hitsLayerStart[9]/256+1);
+  gpuPixelDoublets::getDoublets<<<blocks, threadsPerBlock, 0, c.stream>>>(hh.iphi_d,hh.sortIndex_d,hh.hitsLayerStart_d,phiCut);
 
   // all this needed only if hits on CPU are required...
   HitsOnCPU hoc(nhits);
