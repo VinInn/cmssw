@@ -67,12 +67,9 @@ void radixSort(T * a, uint16_t * ind, uint32_t size) {
     if (threadIdx.x==0)
       for (int i = 1; i < sb; ++i) c[i] += c[i-1];
     */
-    __syncthreads();
 
     
-    // broadcast
-//    for (int ib=size-1; ib>=0; ib-=blockDim.x) {
-
+     // broadcast
      ibs =size-1;
      __syncthreads();
      while (ibs>0) {
@@ -88,7 +85,11 @@ void radixSort(T * a, uint16_t * ind, uint32_t size) {
        }
        __syncthreads();
        if (i>=0 && i==cu[bin])  // ensure to keep them in order
-         for (int ii=threadIdx.x; ii<blockDim.x; ++ii) if (ct[ii]==bin) {auto oi = ii-threadIdx.x; assert(i>=oi);if(i>=oi) k[--c[bin]] = j[i-oi]; }
+         for (int ii=threadIdx.x; ii<blockDim.x; ++ii) if (ct[ii]==bin) {
+           auto oi = ii-threadIdx.x; 
+           // assert(i>=oi);if(i>=oi) 
+           k[--c[bin]] = j[i-oi]; 
+         }
        __syncthreads();
        if (bin>=0) assert(c[bin]>=0);
        if (threadIdx.x==0) ibs-=blockDim.x;
