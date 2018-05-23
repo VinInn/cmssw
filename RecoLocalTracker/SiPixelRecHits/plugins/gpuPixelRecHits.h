@@ -136,6 +136,9 @@ namespace gpuPixelRecHits {
   
     // to global and compute phi... 
     cpeParams->detParams(me).frame.toGlobal(xl[h],yl[h], xg[h],yg[h],zg[h]);
+    // here correct for the beamspot...
+
+    rg[h] = std::sqrt(xg[h]*xg[h]+yg[h]*yg[h]);
     iph[h] = phi2short(std::atan2(yg[h],xg[h]));
     
   }

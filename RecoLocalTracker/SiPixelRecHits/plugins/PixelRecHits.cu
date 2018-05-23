@@ -50,7 +50,7 @@ pixelRecHits_wrapper(
 {
   thrust::exclusive_scan(thrust::cuda::par,
       c.clusInModule_d,
-      c.clusInModule_d + gpuClustering::MaxNumModules + 1,
+      c.clusInModule_d + gpuClustering::MaxNumModules,
       hh.hitsModuleStart_d);
   
   int threadsPerBlock = 256;
@@ -76,7 +76,7 @@ pixelRecHits_wrapper(
   uint32_t hitsModuleStart[gpuClustering::MaxNumModules+1];
   cudaCheck(cudaMemcpyAsync(hitsModuleStart, hh.hitsModuleStart_d, (gpuClustering::MaxNumModules+1) * sizeof(uint32_t), cudaMemcpyDefault, c.stream));
   cudaCheck(cudaDeviceSynchronize());
-  auto nhits = hitsModuleStart[gpuClustering::MaxNumModules];
+  auto nhits = hitsModuleStart[gpuClustering::MaxNumModules-1];
 
   uint32_t hitsLayerStart[11];
   for (int i=0;i<10;++i) hitsLayerStart[i]=hitsModuleStart[phase1PixelTopology::layerStart[i]];
