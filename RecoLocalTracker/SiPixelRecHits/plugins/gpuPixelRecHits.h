@@ -40,7 +40,8 @@ namespace gpuPixelRecHits {
 			  int numElements,
 			  uint32_t const * hitsModuleStart,
                           int32_t * chargeh,
-			  float * xh, float * yh, float * zh, int16_t * iph,
+			  float * xg, float * yg, float * zg, float * rg, int16_t * iph,
+                          float * xl, float * yl,
                           float * xe, float * ye, uint16_t * mr,
 			  bool local // if true fill just x & y in local coord...
 			  ){
@@ -126,24 +127,17 @@ namespace gpuPixelRecHits {
  
     chargeh[h] = clusParams.charge[ic];
 
-    if (local) {   
-     xh[h]= clusParams.xpos[ic];   
-     yh[h]= clusParams.ypos[ic]; 
-    } else {
-      cpeParams->detParams(me).frame.toGlobal(clusParams.xpos[ic],clusParams.ypos[ic],
-                                              xh[h],yh[h],zh[h]
-                                             );
-    }
+    xl[h]= clusParams.xpos[ic];   
+    yl[h]= clusParams.ypos[ic]; 
+
     xe[h]= clusParams.xerr[ic];
     ye[h]= clusParams.yerr[ic];
     mr[h]= clusParams.minRow[ic];
   
-    if (local) {
-      float xg,yg;
-      // compute phi... 
-      cpeParams->detParams(me).frame.toGlobal(xh[h],yh[h],  xg,yg,zh[h]);
-      iph[h] = phi2short(std::atan2(yg,xg));
-    }
+    // to global and compute phi... 
+    cpeParams->detParams(me).frame.toGlobal(xl[h],yl[h], xg[h],yg[h],zg[h]);
+    iph[h] = phi2short(std::atan2(yg[h],xg[h]));
+    
   }
 
 }

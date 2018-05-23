@@ -26,6 +26,8 @@ HitsOnGPU allocHitsOnGPU() {
    cudaCheck(cudaMalloc((void**) & hh.yg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.zg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.rg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.xl_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.yl_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.xerr_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.yerr_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.iphi_d,(gpuClustering::MaxNumModules*256)*sizeof(int16_t)));
@@ -63,8 +65,9 @@ pixelRecHits_wrapper(
       ndigis,
       hh.hitsModuleStart_d,
       hh.charge_d,
-      hh.xg_d, hh.yg_d, hh.zg_d,
+      hh.xg_d, hh.yg_d, hh.zg_d, hh.rg_d,
       hh.iphi_d,
+      hh.xl_d, hh.yl_d,
       hh.xerr_d, hh.yerr_d, hh.mr_d,
       true // for the time being stay local...
       );
@@ -90,8 +93,8 @@ pixelRecHits_wrapper(
   HitsOnCPU hoc(nhits);
   memcpy(hoc.hitsModuleStart, hitsModuleStart, (gpuClustering::MaxNumModules+1) * sizeof(uint32_t));
   cudaCheck(cudaMemcpyAsync(hoc.charge.data(), hh.charge_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
-  cudaCheck(cudaMemcpyAsync(hoc.xl.data(), hh.xg_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
-  cudaCheck(cudaMemcpyAsync(hoc.yl.data(), hh.yg_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
+  cudaCheck(cudaMemcpyAsync(hoc.xl.data(), hh.xl_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
+  cudaCheck(cudaMemcpyAsync(hoc.yl.data(), hh.yl_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
   cudaCheck(cudaMemcpyAsync(hoc.xe.data(), hh.xerr_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
   cudaCheck(cudaMemcpyAsync(hoc.ye.data(), hh.yerr_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
   cudaCheck(cudaMemcpyAsync(hoc.mr.data(), hh.mr_d, nhits*sizeof(uint16_t), cudaMemcpyDefault, c.stream));

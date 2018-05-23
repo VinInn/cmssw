@@ -15,6 +15,7 @@ struct HitsOnGPU{
    uint32_t * hitsLayerStart_d;
    int32_t  * charge_d;
    float *xg_d, *yg_d, *zg_d, *rg_d;
+   float *xl_d, *yl_d;
    float *xerr_d, *yerr_d;
    int16_t * iphi_d;
    uint16_t * sortIndex_d;
