@@ -20,9 +20,11 @@
 
 HitsOnGPU allocHitsOnGPU() {
    HitsOnGPU hh;
+   cudaCheck(cudaMalloc((void**) & hh.bs_d,3*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.hitsModuleStart_d,(gpuClustering::MaxNumModules+1)*sizeof(uint32_t)));
    cudaCheck(cudaMalloc((void**) & hh.hitsLayerStart_d,(11)*sizeof(uint32_t)));
    cudaCheck(cudaMalloc((void**) & hh.charge_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.detInd_d,(gpuClustering::MaxNumModules*256)*sizeof(uint16_t)));
    cudaCheck(cudaMalloc((void**) & hh.xg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.yg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
    cudaCheck(cudaMalloc((void**) & hh.zg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
@@ -34,6 +36,8 @@ HitsOnGPU allocHitsOnGPU() {
    cudaCheck(cudaMalloc((void**) & hh.iphi_d,(gpuClustering::MaxNumModules*256)*sizeof(int16_t)));
    cudaCheck(cudaMalloc((void**) & hh.sortIndex_d,(gpuClustering::MaxNumModules*256)*sizeof(uint16_t)));
    cudaCheck(cudaMalloc((void**) & hh.mr_d,(gpuClustering::MaxNumModules*256)*sizeof(uint16_t)));
+   cudaCheck(cudaMalloc((void**) & hh.me_d, sizeof(HitsOnGPU)));
+   cudaCheck(cudaMemcpy(hh.me_d, &hh, sizeof(HitsOnGPU), cudaMemcpyDefault));
    cudaCheck(cudaDeviceSynchronize());
 
    return hh;
@@ -42,12 +46,16 @@ HitsOnGPU allocHitsOnGPU() {
 HitsOnCPU
 pixelRecHits_wrapper(
       context const & c,
+      float const * bs,
       pixelCPEforGPU::ParamsOnGPU const * cpeParams,
       uint32_t ndigis,
       uint32_t nModules, // active modules (with digis)
       HitsOnGPU & hh
 )
 {
+  // copy beamspot
+  cudaCheck(cudaMemcpyAsync(hh.bs_d, bs, 3 * sizeof(float), cudaMemcpyDefault, c.stream));
+
   thrust::exclusive_scan(thrust::cuda::par,
       c.clusInModule_d,
       c.clusInModule_d + gpuClustering::MaxNumModules,
@@ -57,6 +65,7 @@ pixelRecHits_wrapper(
   int blocks = nModules;
   gpuPixelRecHits::getHits<<<blocks, threadsPerBlock, 0, c.stream>>>(
       cpeParams,
+      hh.bs_d,
       c.moduleInd_d,
       c.xx_d, c.yy_d, c.adc_d,
       c.moduleStart_d,
@@ -65,6 +74,7 @@ pixelRecHits_wrapper(
       ndigis,
       hh.hitsModuleStart_d,
       hh.charge_d,
+      hh.detInd_d,
       hh.xg_d, hh.yg_d, hh.zg_d, hh.rg_d,
       hh.iphi_d,
       hh.xl_d, hh.yl_d,

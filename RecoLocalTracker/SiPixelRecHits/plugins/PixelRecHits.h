@@ -11,9 +11,12 @@ namespace pixelCPEforGPU {
 struct context;
 
 struct HitsOnGPU{
+   HitsOnGPU * me_d;
+   float * bs_d;
    uint32_t * hitsModuleStart_d;
    uint32_t * hitsLayerStart_d;
    int32_t  * charge_d;
+   uint16_t * detInd_d;
    float *xg_d, *yg_d, *zg_d, *rg_d;
    float *xl_d, *yl_d;
    float *xerr_d, *yerr_d;
@@ -37,6 +40,7 @@ HitsOnGPU allocHitsOnGPU();
 
 HitsOnCPU pixelRecHits_wrapper(
       context const & c,
+      float const * bs,
       pixelCPEforGPU::ParamsOnGPU const * cpeParams,
       uint32_t ndigis,
       uint32_t nModules, // active modules (with digis)

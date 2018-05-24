@@ -9,6 +9,7 @@
 #include "DataFormats/SiPixelCluster/interface/SiPixelCluster.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
+#include "DataFormats/BeamSpot/interface/BeamSpot.h"
 
 //--- Framework
 #include "FWCore/Framework/interface/stream/EDProducer.h"
@@ -52,7 +53,8 @@ namespace
 
     edm::InputTag src_;
     edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> tPixelCluster;
-
+    edm::InputTag bsProd_ = edm::InputTag("offlineBeamSpot"); // FIXME need to be configured
+    edm::EDGetTokenT<reco::BeamSpot> 	 tBeamSpot; 
     using GPUProd = std::vector<unsigned long long>;
     edm::InputTag gpuProd_ = edm::InputTag("siPixelDigis");
     edm::EDGetTokenT<GPUProd> tGpuProd;
@@ -102,6 +104,7 @@ using namespace std;
     conf_(conf),
     src_( conf.getParameter<edm::InputTag>( "src" ) ),
     tPixelCluster(consumes< edmNew::DetSetVector<SiPixelCluster> >( src_)),
+    tBeamSpot(consumes<reco::BeamSpot>(bsProd_)),
     tGpuProd(consumes<GPUProd>(gpuProd_)),
     hitsOnGPU_ (allocHitsOnGPU())
  {
@@ -125,7 +128,15 @@ using namespace std;
     // Step A.1: get input data
     edm::Handle< edmNew::DetSetVector<SiPixelCluster> > input;
     e.getByToken( tPixelCluster, input);
-    
+
+    edm::Handle<reco::BeamSpot> bsHandle;
+    e.getByToken( tBeamSpot, bsHandle);
+    float bs[3] = {0.f};
+    if(bsHandle.isValid()) {
+      const auto  & bsh = *bsHandle; 
+       bs[0]=bsh.x0(); bs[1]=bsh.y0(); bs[2]=bsh.z0(); 
+    }
+
     // Step A.2: get event setup
     edm::ESHandle<TrackerGeometry> geom;
     es.get<TrackerDigiGeometryRecord>().get( geom );
@@ -152,7 +163,7 @@ using namespace std;
     }
     assert(fcpe->d_paramsOnGPU);
 
-    auto hoc = pixelRecHits_wrapper(* (context const *)(gprod[0]),fcpe->d_paramsOnGPU,gprod[1],gprod[2], hitsOnGPU_);
+    auto hoc = pixelRecHits_wrapper(*(context const *)(gprod[0]),bs,fcpe->d_paramsOnGPU,gprod[1],gprod[2], hitsOnGPU_);
 
     // Step C: Iterate over DetIds and invoke the strip CPE algorithm
     // on each DetUnit
