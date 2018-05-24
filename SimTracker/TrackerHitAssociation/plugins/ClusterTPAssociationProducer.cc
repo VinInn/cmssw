@@ -53,6 +53,12 @@ private:
   edm::EDGetTokenT<edmNew::DetSetVector<SiStripCluster> > stripClustersToken_;
   edm::EDGetTokenT<edmNew::DetSetVector<Phase2TrackerCluster1D> > phase2OTClustersToken_;
   edm::EDGetTokenT<TrackingParticleCollection> trackingParticleToken_;
+
+  // FIXME gpu gpu
+  using GPUProd = std::vector<unsigned long long>; 
+  edm::InputTag gpuProd_ = edm::InputTag("siPixelDigis");
+  edm::EDGetTokenT<GPUProd> tGpuProd;
+
 };
 
 ClusterTPAssociationProducer::ClusterTPAssociationProducer(const edm::ParameterSet & cfg)
@@ -62,7 +68,8 @@ ClusterTPAssociationProducer::ClusterTPAssociationProducer(const edm::ParameterS
     pixelClustersToken_(consumes<edmNew::DetSetVector<SiPixelCluster> >(cfg.getParameter<edm::InputTag>("pixelClusterSrc"))),
     stripClustersToken_(consumes<edmNew::DetSetVector<SiStripCluster> >(cfg.getParameter<edm::InputTag>("stripClusterSrc"))),
     phase2OTClustersToken_(consumes<edmNew::DetSetVector<Phase2TrackerCluster1D> >(cfg.getParameter<edm::InputTag>("phase2OTClusterSrc"))),
-    trackingParticleToken_(consumes<TrackingParticleCollection>(cfg.getParameter<edm::InputTag>("trackingParticleSrc")))
+    trackingParticleToken_(consumes<TrackingParticleCollection>(cfg.getParameter<edm::InputTag>("trackingParticleSrc"))),
+    tGpuProd(consumes<GPUProd>(gpuProd_))
 {
   produces<ClusterTPAssociation>();
 }
