@@ -110,7 +110,7 @@ using namespace std;
  {
     //--- Declare to the EDM what kind of collections we will be making.
     produces<SiPixelRecHitCollection>();
-
+    produces<GPUProd>();
   }
   
   // Destructor
@@ -175,7 +175,11 @@ using namespace std;
 
     output->shrink_to_fit();
     e.put(std::move(output));
-
+    auto gpuProd = std::make_unique<GPUProd>();
+    (*gpuProd).resize(3);
+    (*gpuProd)[0] = uint64_t(&hitsOnGPU_);
+    (*gpuProd)[1] = hoc.charge.size();
+    e.put(std::move(gpuProd));
   }
 
   //---------------------------------------------------------------------------

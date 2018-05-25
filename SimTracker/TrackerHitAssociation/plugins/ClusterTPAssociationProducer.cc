@@ -5,6 +5,7 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/global/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "FWCore/Utilities/interface/EDGetToken.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -12,6 +13,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 
 #include "DataFormats/Common/interface/Handle.h"
+#include "FWCore/Framework/interface/ESHandle.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 #include "DataFormats/DetId/interface/DetId.h"
@@ -28,6 +30,10 @@
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
 #include "SimTracker/TrackerHitAssociation/interface/ClusterTPAssociation.h"
+
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+
 
 class ClusterTPAssociationProducer : public edm::global::EDProducer<>
 {
@@ -56,8 +62,10 @@ private:
 
   // FIXME gpu gpu
   using GPUProd = std::vector<unsigned long long>; 
-  edm::InputTag gpuProd_ = edm::InputTag("siPixelDigis");
-  edm::EDGetTokenT<GPUProd> tGpuProd;
+  edm::InputTag gpuDigis_ = edm::InputTag("siPixelDigis");
+  edm::InputTag gpuHits_ = edm::InputTag("siPixelRecHitsPreSplitting");
+  edm::EDGetTokenT<GPUProd> tGpuDigis;
+  edm::EDGetTokenT<GPUProd> tGpuHits;
 
 };
 
@@ -69,7 +77,8 @@ ClusterTPAssociationProducer::ClusterTPAssociationProducer(const edm::ParameterS
     stripClustersToken_(consumes<edmNew::DetSetVector<SiStripCluster> >(cfg.getParameter<edm::InputTag>("stripClusterSrc"))),
     phase2OTClustersToken_(consumes<edmNew::DetSetVector<Phase2TrackerCluster1D> >(cfg.getParameter<edm::InputTag>("phase2OTClusterSrc"))),
     trackingParticleToken_(consumes<TrackingParticleCollection>(cfg.getParameter<edm::InputTag>("trackingParticleSrc"))),
-    tGpuProd(consumes<GPUProd>(gpuProd_))
+    tGpuDigis(consumes<GPUProd>(gpuDigis_)),
+    tGpuHits(consumes<GPUProd>(gpuHits_))
 {
   produces<ClusterTPAssociation>();
 }
@@ -91,6 +100,12 @@ void ClusterTPAssociationProducer::fillDescriptions(edm::ConfigurationDescriptio
 }
 		
 void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, const edm::EventSetup& es) const {
+
+    edm::ESHandle<TrackerGeometry> geom;
+    es.get<TrackerDigiGeometryRecord>().get( geom );
+
+
+
   // Pixel DigiSimLink
   edm::Handle<edm::DetSetVector<PixelDigiSimLink> > sipixelSimLinks;
   //  iEvent.getByLabel(_pixelSimLinkSrc, sipixelSimLinks);
@@ -139,6 +154,41 @@ void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, co
     }
   }
 
+  //  gpu stuff ------------------------
+
+    std::cout << "In tpsimlink " << mapping.size() << std::endl;
+
+    edm::Handle<GPUProd> gd;
+    edm::Handle<GPUProd> gh;
+    iEvent.getByToken(tGpuDigis, gd);  
+    iEvent.getByToken(tGpuHits, gh);
+    auto gDigis = *gd;
+    auto gHitss = *gh;
+    
+    uint32_t nn=0, ng=0, ng10=0;
+    std::vector<std::array<uint32_t,3>> digi2tp;
+    for (auto const & links : *sipixelSimLinks) {
+      DetId detId(links.detId());
+      const GeomDetUnit * genericDet = geom->idToDetUnit(detId);
+      uint32_t gind = genericDet->index();
+      for (auto const & link : links) {
+        ++ng;
+        if (link.fraction() > 0.3f) ++ng10;
+        if (link.fraction() < 0.5f) continue;
+        auto tkid = std::make_pair(link.SimTrackId(), link.eventId());
+        auto ipos = mapping.find(tkid);
+          if (ipos != mapping.end()) { 
+            ++nn;
+            std::array<uint32_t,3> a{{gind,uint32_t(link.channel()),(*ipos).second.key()}};
+            digi2tp.push_back(a);
+          }
+      }
+    }
+    std::sort(digi2tp.begin(),digi2tp.end());
+
+    std::cout << "In tpsimlink found " << nn << " valid link out of " << ng << '/' << ng10 << std::endl;
+
+  //  end gpu stuff ---------------------
   if ( foundPixelClusters ) {
     // Pixel Clusters 
     for (edmNew::DetSetVector<SiPixelCluster>::const_iterator iter  = pixelClusters->begin(); 
