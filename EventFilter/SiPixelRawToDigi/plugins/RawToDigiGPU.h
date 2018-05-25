@@ -146,6 +146,12 @@ inline uint32_t pack(uint32_t row, uint32_t col, uint32_t adc) {
 
 }
 
+constexpr
+uint32_t pixelToChannel( int row, int col) {
+  constexpr gpudetails::Packing thePacking = gpudetails::packing();
+  return (row << thePacking.column_width) | col;
+}
+
 struct error_obj {
   uint32_t rawId;
   uint32_t word;
@@ -157,6 +163,7 @@ struct error_obj {
 
 // configuration and memory buffers alocated on the GPU
 struct context {
+  context * me_d;
   cudaStream_t stream;
 
   uint32_t * word_d;

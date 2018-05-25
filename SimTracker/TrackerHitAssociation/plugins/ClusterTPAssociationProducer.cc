@@ -35,6 +35,28 @@
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 
 
+// gpu
+#include <cuda_runtime.h>
+#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
+#include "ClusterSLOnGPU.h"
+
+void
+ClusterSLGPU::alloc() {
+   cudaCheck(cudaMalloc((void**) & links_d,(MAX_DIGIS)*sizeof(std::array<uint32_t,3>)));
+
+   cudaCheck(cudaMalloc((void**) & tkId_d,(MaxNumModules*256)*sizeof(uint32_t)));
+   cudaCheck(cudaMalloc((void**) & tkId2_d,(MaxNumModules*256)*sizeof(uint32_t)));
+   cudaCheck(cudaMalloc((void**) & n1_d,(MaxNumModules*256)*sizeof(uint32_t)));
+   cudaCheck(cudaMalloc((void**) & n2_d,(MaxNumModules*256)*sizeof(uint32_t)));
+
+
+   cudaCheck(cudaMalloc((void**) & me_d, sizeof(ClusterSLGPU)));
+   cudaCheck(cudaMemcpy(me_d, this, sizeof(ClusterSLGPU), cudaMemcpyDefault));
+   cudaCheck(cudaDeviceSynchronize());
+
+}
+
+
 class ClusterTPAssociationProducer : public edm::global::EDProducer<>
 {
 public:
@@ -66,6 +88,8 @@ private:
   edm::InputTag gpuHits_ = edm::InputTag("siPixelRecHitsPreSplitting");
   edm::EDGetTokenT<GPUProd> tGpuDigis;
   edm::EDGetTokenT<GPUProd> tGpuHits;
+
+  ClusterSLGPU slGPU;
 
 };
 
@@ -163,8 +187,10 @@ void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, co
     iEvent.getByToken(tGpuDigis, gd);  
     iEvent.getByToken(tGpuHits, gh);
     auto gDigis = *gd;
-    auto gHitss = *gh;
-    
+    auto gHits = *gh;
+    auto const & dcont = *(context const *)(gDigis[0]);
+    auto const & hh = *(HitsOnGPU const *)(gHits[0]);
+
     uint32_t nn=0, ng=0, ng10=0;
     std::vector<std::array<uint32_t,3>> digi2tp;
     for (auto const & links : *sipixelSimLinks) {
@@ -179,16 +205,23 @@ void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, co
         auto ipos = mapping.find(tkid);
           if (ipos != mapping.end()) { 
             ++nn;
-            std::array<uint32_t,3> a{{gind,uint32_t(link.channel()),(*ipos).second.key()}};
+            std::array<uint32_t,3> a{{gind,uint32_t(link.channel()),1+(*ipos).second.key()}};
             digi2tp.push_back(a);
           }
       }
     }
     std::sort(digi2tp.begin(),digi2tp.end());
 
-    std::cout << "In tpsimlink found " << nn << " valid link out of " << ng << '/' << ng10 << std::endl;
+    std::cout << "In tpsimlink found " << nn << " valid link out of " << ng << '/' << ng10 << ' ' << digi2tp.size() << std::endl;
+
+    cudaCheck(cudaMemcpyAsync(slGPU.links_d, digi2tp.data(), digi2tp.size(), cudaMemcpyDefault, dcont.stream));
+    clusterSLOnGPU::wrapper(dcont, hh, slGPU,digi2tp.size());
 
   //  end gpu stuff ---------------------
+
+
+
+
   if ( foundPixelClusters ) {
     // Pixel Clusters 
     for (edmNew::DetSetVector<SiPixelCluster>::const_iterator iter  = pixelClusters->begin(); 

@@ -70,6 +70,8 @@ context initDeviceMemory() {
   cudaCheck(cudaMalloc((void**) & c.moduleId_d,   (MaxNumModules)*sizeof(uint32_t) ));
 
   cudaCheck(cudaMalloc((void**) & c.debug_d,        MAX_WORD32_SIZE));
+  cudaCheck(cudaMalloc((void**) & c.me_d, sizeof(context)  ));
+  cudaCheck(cudaMemcpy(c.me_d, &c, sizeof(context) , cudaMemcpyDefault));
 
   // create a CUDA stream
   cudaCheck(cudaStreamCreate(&c.stream));
