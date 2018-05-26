@@ -190,6 +190,7 @@ void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, co
     auto gHits = *gh;
     auto const & dcont = *(context const *)(gDigis[0]);
     auto const & hh = *(HitsOnGPU const *)(gHits[0]);
+    auto ndigis = gDigis[1];
 
     uint32_t nn=0, ng=0, ng10=0;
     std::vector<std::array<uint32_t,3>> digi2tp;
@@ -214,8 +215,8 @@ void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, co
 
     std::cout << "In tpsimlink found " << nn << " valid link out of " << ng << '/' << ng10 << ' ' << digi2tp.size() << std::endl;
 
-    cudaCheck(cudaMemcpyAsync(slGPU.links_d, digi2tp.data(), digi2tp.size(), cudaMemcpyDefault, dcont.stream));
-    clusterSLOnGPU::wrapper(dcont, hh, slGPU,digi2tp.size());
+    cudaCheck(cudaMemcpyAsync(slGPU.links_d, digi2tp.data(), sizeof(std::array<uint32_t,3>)*digi2tp.size(), cudaMemcpyDefault, dcont.stream));
+    clusterSLOnGPU::wrapper(dcont, ndigis, hh, slGPU,digi2tp.size());
 
   //  end gpu stuff ---------------------
 

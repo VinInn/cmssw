@@ -23,7 +23,7 @@ struct ClusterSLGPU {
 
 namespace clusterSLOnGPU {
 
-  void wrapper(context const & dd, HitsOnGPU const & hh, ClusterSLGPU const & sl, uint32_t n);
+  void wrapper(context const & dd, uint32_t ndigis, HitsOnGPU const & hh, ClusterSLGPU const & sl, uint32_t n);
 
 
 }
