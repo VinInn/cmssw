@@ -29,11 +29,6 @@ void simLink(context const * ddp, uint32_t ndigis, HitsOnGPU const * hhp, Cluste
   auto const & sl = *slp;
   auto i = blockIdx.x*blockDim.x + threadIdx.x;
   
-  if (i<256*ClusterSLGPU::MaxNumModules) {
-    sl.tkId_d[i]=0; sl.tkId2_d[i]=0; sl.n1_d[i]=0; sl.n2_d[i]=0;
-  }
-  __syncthreads();
-  
   if (i>ndigis) return;
 
   auto id = dd.moduleInd_d[i];
@@ -45,8 +40,12 @@ void simLink(context const * ddp, uint32_t ndigis, HitsOnGPU const * hhp, Cluste
   auto cl = first + dd.clus_d[i];
   assert(cl<256*2000);
   
+  auto rescale = [](uint64_t i, uint64_t n1, uint64_t n2)-> uint32_t {
+    return (i*n2)/n1;
+  };
+
   std::array<uint32_t,3> me{{id,ch,0}};
-  auto j = std::min(i,n-1);
+  auto j = std::min(rescale(i,ndigis,n) ,n-1);
 
   auto less = [](std::array<uint32_t,3> const & a, std::array<uint32_t,3> const & b)->bool {
      return a[0]<b[0] || ( !(b[0]<a[0]) && a[1]<b[1]); // in this context we do care of [2] 
@@ -68,25 +67,50 @@ void simLink(context const * ddp, uint32_t ndigis, HitsOnGPU const * hhp, Cluste
   j = search(me,j);
   assert(j<n);
   if (equal(me,sl.links_d[j])) {
-    printf("digi found %d:%d\n",id,ch);
-
-  } else {
+    auto const & l = sl.links_d[j];
+    auto const tk = l[2];
+    auto old = atomicCAS(&sl.tkId_d[cl],0,tk);
+    if (0==old ||tk==old) atomicAdd(&sl.n1_d[cl],1);
+    else {
+      auto old = atomicCAS(&sl.tkId2_d[cl],0,tk);
+      if (0==old ||tk==old) atomicAdd(&sl.n2_d[cl],1);
+    }    
+  } 
+  /*
+  else {
     auto const & k=sl.links_d[j];
     auto const & kk = j+1<n ? sl.links_d[j+1] : k;
     printf("digi not found %d:%d closest %d:%d:%d, %d:%d:%d\n",id,ch, k[0],k[1],k[2], kk[0],kk[1],kk[2]);
   }
+  */
 
 }
 
+
+__global__
+void dumpLink(HitsOnGPU const * hhp, uint32_t nhits, ClusterSLGPU const * slp) {
+  auto i = blockIdx.x*blockDim.x + threadIdx.x;
+  if (i>nhits) return;
+
+  auto const & hh = *hhp;
+  auto const & sl = *slp;
+
+  printf("HIT: %d %f %f %f %f %d %d %d %d %d\n",i, hh.xg_d[i],hh.yg_d[i],hh.zg_d[i],hh.rg_d[i],hh.iphi_d[i], sl.tkId_d[i],sl.n1_d[i],sl.tkId2_d[i],sl.n2_d[i]);
+
+}
+
+
 namespace clusterSLOnGPU {
 
-  void wrapper(context const & dd, uint32_t ndigis, HitsOnGPU const & hh, ClusterSLGPU const & sl, uint32_t n) {
+  void wrapper(context const & dd, uint32_t ndigis, HitsOnGPU const & hh, uint32_t nhits, ClusterSLGPU const & sl, uint32_t n) {
 
     int threadsPerBlock = 256;
-    int blocks = (n + threadsPerBlock - 1) / threadsPerBlock;
+    int blocks = (ndigis + threadsPerBlock - 1) / threadsPerBlock;
 
     assert(sl.me_d);
     simLink<<<blocks, threadsPerBlock, 0, dd.stream>>>(dd.me_d,ndigis, hh.me_d, sl.me_d,n);
+    blocks = (nhits + threadsPerBlock - 1) / threadsPerBlock;
+    dumpLink<<<blocks, threadsPerBlock, 0, dd.stream>>>(hh.me_d, nhits, sl.me_d);
     cudaCheck(cudaGetLastError());
 
   }

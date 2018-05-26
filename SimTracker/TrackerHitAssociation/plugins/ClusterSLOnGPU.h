@@ -8,6 +8,7 @@
 struct ClusterSLGPU {
  ClusterSLGPU(){alloc();}
  void alloc();
+ void zero(cudaStream_t stream);
 
  ClusterSLGPU * me_d;
  std::array<uint32_t,3> * links_d;
@@ -23,7 +24,6 @@ struct ClusterSLGPU {
 
 namespace clusterSLOnGPU {
 
-  void wrapper(context const & dd, uint32_t ndigis, HitsOnGPU const & hh, ClusterSLGPU const & sl, uint32_t n);
-
+  void wrapper(context const & dd, uint32_t ndigis, HitsOnGPU const & hh, uint32_t nhits, ClusterSLGPU const & sl, uint32_t n);
 
 }

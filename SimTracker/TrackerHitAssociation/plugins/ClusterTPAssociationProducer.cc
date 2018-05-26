@@ -3,7 +3,7 @@
 #include <utility>
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/global/EDProducer.h"
+#include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Utilities/interface/InputTag.h"
@@ -56,8 +56,15 @@ ClusterSLGPU::alloc() {
 
 }
 
+void
+ClusterSLGPU::zero(cudaStream_t stream) {
+   cudaCheck(cudaMemsetAsync(tkId_d,0,(MaxNumModules*256)*sizeof(uint32_t), stream));
+   cudaCheck(cudaMemsetAsync(tkId2_d,0,(MaxNumModules*256)*sizeof(uint32_t), stream));
+   cudaCheck(cudaMemsetAsync(n1_d,0,(MaxNumModules*256)*sizeof(uint32_t), stream));
+   cudaCheck(cudaMemsetAsync(n2_d,0,(MaxNumModules*256)*sizeof(uint32_t), stream));
+}
 
-class ClusterTPAssociationProducer : public edm::global::EDProducer<>
+class ClusterTPAssociationProducer : public edm::stream::EDProducer<>
 {
 public:
   typedef std::vector<OmniClusterRef> OmniClusterCollection;
@@ -68,7 +75,7 @@ public:
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
-  void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
+  void produce(edm::Event&, const edm::EventSetup&) override;
 
   template <typename T>
   std::vector<std::pair<uint32_t, EncodedEventId> >
@@ -123,7 +130,7 @@ void ClusterTPAssociationProducer::fillDescriptions(edm::ConfigurationDescriptio
   descriptions.add("tpClusterProducerDefault", desc);
 }
 		
-void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, const edm::EventSetup& es) const {
+void ClusterTPAssociationProducer::produce(edm::Event& iEvent, const edm::EventSetup& es) {
 
     edm::ESHandle<TrackerGeometry> geom;
     es.get<TrackerDigiGeometryRecord>().get( geom );
@@ -191,6 +198,7 @@ void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, co
     auto const & dcont = *(context const *)(gDigis[0]);
     auto const & hh = *(HitsOnGPU const *)(gHits[0]);
     auto ndigis = gDigis[1];
+    auto nhits = gHits[1];
 
     uint32_t nn=0, ng=0, ng10=0;
     std::vector<std::array<uint32_t,3>> digi2tp;
@@ -216,7 +224,8 @@ void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, co
     std::cout << "In tpsimlink found " << nn << " valid link out of " << ng << '/' << ng10 << ' ' << digi2tp.size() << std::endl;
 
     cudaCheck(cudaMemcpyAsync(slGPU.links_d, digi2tp.data(), sizeof(std::array<uint32_t,3>)*digi2tp.size(), cudaMemcpyDefault, dcont.stream));
-    clusterSLOnGPU::wrapper(dcont, ndigis, hh, slGPU,digi2tp.size());
+    slGPU.zero(dcont.stream);
+    clusterSLOnGPU::wrapper(dcont, ndigis, hh, nhits, slGPU, digi2tp.size());
 
   //  end gpu stuff ---------------------
 
