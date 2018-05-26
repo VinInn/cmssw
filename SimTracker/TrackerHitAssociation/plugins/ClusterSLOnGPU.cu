@@ -1,5 +1,6 @@
 #include "ClusterSLOnGPU.h"
 #include<cassert>
+#include<atomic>
 
 /*
 struct ClusterSLGPU {
@@ -113,29 +114,32 @@ void simLink(context const * ddp, uint32_t ndigis, HitsOnGPU const * hhp, Cluste
 
 
 __global__
-void dumpLink(HitsOnGPU const * hhp, uint32_t nhits, ClusterSLGPU const * slp) {
+void dumpLink(int ev, HitsOnGPU const * hhp, uint32_t nhits, ClusterSLGPU const * slp) {
   auto i = blockIdx.x*blockDim.x + threadIdx.x;
   if (i>nhits) return;
 
   auto const & hh = *hhp;
   auto const & sl = *slp;
 
-  printf("HIT: %d %f %f %f %f %d %d %d %d %d\n",i, hh.xg_d[i],hh.yg_d[i],hh.zg_d[i],hh.rg_d[i],hh.iphi_d[i], sl.tkId_d[i],sl.n1_d[i],sl.tkId2_d[i],sl.n2_d[i]);
+  printf("HIT: %d %d %f %f %f %f %d %d %d %d %d\n",ev, i, hh.xg_d[i],hh.yg_d[i],hh.zg_d[i],hh.rg_d[i],hh.iphi_d[i], sl.tkId_d[i],sl.n1_d[i],sl.tkId2_d[i],sl.n2_d[i]);
 
 }
 
 
 namespace clusterSLOnGPU {
 
-  void wrapper(context const & dd, uint32_t ndigis, HitsOnGPU const & hh, uint32_t nhits, ClusterSLGPU const & sl, uint32_t n) {
+  std::atomic<int> evId(0);
 
+  void wrapper(context const & dd, uint32_t ndigis, HitsOnGPU const & hh, uint32_t nhits, ClusterSLGPU const & sl, uint32_t n) {
+    
+    int ev = ++evId;
     int threadsPerBlock = 256;
     int blocks = (ndigis + threadsPerBlock - 1) / threadsPerBlock;
 
     assert(sl.me_d);
     simLink<<<blocks, threadsPerBlock, 0, dd.stream>>>(dd.me_d,ndigis, hh.me_d, sl.me_d,n);
     blocks = (nhits + threadsPerBlock - 1) / threadsPerBlock;
-    dumpLink<<<blocks, threadsPerBlock, 0, dd.stream>>>(hh.me_d, nhits, sl.me_d);
+    dumpLink<<<blocks, threadsPerBlock, 0, dd.stream>>>(ev, hh.me_d, nhits, sl.me_d);
     cudaCheck(cudaGetLastError());
 
   }
