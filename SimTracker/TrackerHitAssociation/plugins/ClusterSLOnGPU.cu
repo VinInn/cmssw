@@ -19,6 +19,28 @@ struct ClusterSLGPU {
 };
 */
 
+
+template<class ForwardIt, class T, class Compare>
+__device__
+ForwardIt lowerBound(ForwardIt first, ForwardIt last, const T& value, Compare comp)
+{
+    ForwardIt it;
+    auto count = last-first;
+ 
+    while (count > 0) {
+        it = first;
+        auto step = count / 2;
+        it+=step;
+        if (comp(*it, value)) {
+            first = ++it;
+            count -= step + 1;
+        }
+        else
+            count = step;
+    }
+    return first;
+}
+
 __global__
 void simLink(context const * ddp, uint32_t ndigis, HitsOnGPU const * hhp, ClusterSLGPU const * slp, uint32_t n) {
 
@@ -45,7 +67,6 @@ void simLink(context const * ddp, uint32_t ndigis, HitsOnGPU const * hhp, Cluste
   };
 
   std::array<uint32_t,3> me{{id,ch,0}};
-  auto j = std::min(rescale(i,ndigis,n) ,n-1);
 
   auto less = [](std::array<uint32_t,3> const & a, std::array<uint32_t,3> const & b)->bool {
      return a[0]<b[0] || ( !(b[0]<a[0]) && a[1]<b[1]); // in this context we do care of [2] 
@@ -64,8 +85,12 @@ void simLink(context const * ddp, uint32_t ndigis, HitsOnGPU const * hhp, Cluste
     return j;
   };
 
-  j = search(me,j);
-  assert(j<n);
+  // auto j = std::min(rescale(i,ndigis,n) ,n-1);
+  // j = search(me,j);
+  auto p = lowerBound(sl.links_d,sl.links_d+n,me,less);
+  auto j = p-sl.links_d;
+  assert(j>=0);
+  j = std::min(int(j),int(n-1));
   if (equal(me,sl.links_d[j])) {
     auto const & l = sl.links_d[j];
     auto const tk = l[2];
