@@ -121,12 +121,29 @@ void dumpLink(int ev, HitsOnGPU const * hhp, uint32_t nhits, ClusterSLGPU const 
   auto const & hh = *hhp;
   auto const & sl = *slp;
 
-  printf("HIT: %d %d %f %f %f %f %d %d %d %d %d\n",ev, i, hh.xg_d[i],hh.yg_d[i],hh.zg_d[i],hh.rg_d[i],hh.iphi_d[i], sl.tkId_d[i],sl.n1_d[i],sl.tkId2_d[i],sl.n2_d[i]);
+  printf("HIT: %d %d %d %d %f %f %f %f %d %d %d %d %d\n",ev, i, 
+         hh.detInd_d[i], hh.charge_d[i], 
+         hh.xg_d[i],hh.yg_d[i],hh.zg_d[i],hh.rg_d[i],hh.iphi_d[i], 
+         sl.tkId_d[i],sl.n1_d[i],sl.tkId2_d[i],sl.n2_d[i]
+        );
 
 }
 
 
+
 namespace clusterSLOnGPU {
+
+  struct CSVHeader {
+     CSVHeader() {
+      printf("HIT: %s %s %s %s %s %s %s %s %s %s %s %s %s\n", "ev", "ind",
+         "det", "charge",	
+         "xg","yg","zg","rg","iphi", 
+         "tkId","n1","tkId2","n2" 
+        );
+     }
+
+  };
+  CSVHeader csvHeader;
 
   std::atomic<int> evId(0);
 
