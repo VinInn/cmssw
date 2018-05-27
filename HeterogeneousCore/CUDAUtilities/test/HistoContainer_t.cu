@@ -44,7 +44,7 @@ void go() {
 
     cuda::memory::copy(v_d.get(), v, N*sizeof(T));
 
-    fillFromVector(h_d.get(),v_d.get(),N,256,0);
+    fillOneFromVector(h_d.get(),v_d.get(),N,256,0);
 
     cuda::memory::copy(&h, h_d.get(), sizeof(Hist));                                
 
