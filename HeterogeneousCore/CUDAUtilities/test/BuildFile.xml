@@ -17,4 +17,10 @@
 <use name="cuda-api-wrappers"/>
 </bin>
 
+<bin file="HistoContainer_t.cpp"/>
+<bin file="HistoContainer_t.cu" name="gpuHistoContainer_debug">
+<use name="cuda"/>
+<use name="cuda-api-wrappers"/>
+<flags CUDA_FLAGS="-g -G"/>
+</bin>
 
