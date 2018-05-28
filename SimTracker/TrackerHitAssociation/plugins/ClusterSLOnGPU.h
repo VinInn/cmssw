@@ -11,7 +11,7 @@ struct ClusterSLGPU {
  void zero(cudaStream_t stream);
 
  ClusterSLGPU * me_d;
- std::array<uint32_t,3> * links_d;
+ std::array<uint32_t,4> * links_d;
  uint32_t * tkId_d;
  uint32_t * tkId2_d;
  uint32_t * n1_d;

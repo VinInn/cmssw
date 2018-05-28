@@ -8,7 +8,7 @@ struct ClusterSLGPU {
  void alloc();
 
  ClusterSLGPU * me_d;
- std::array<uint32_t,3> * links_d;
+ std::array<uint32_t,4> * links_d;
  uint32_t * tkId_d;
  uint32_t * tkId2_d;
  uint32_t * n1_d;
@@ -67,13 +67,13 @@ void simLink(context const * ddp, uint32_t ndigis, HitsOnGPU const * hhp, Cluste
     return (i*n2)/n1;
   };
 
-  std::array<uint32_t,3> me{{id,ch,0}};
+  std::array<uint32_t,4> me{{id,ch,0}};
 
-  auto less = [](std::array<uint32_t,3> const & a, std::array<uint32_t,3> const & b)->bool {
+  auto less = [](std::array<uint32_t,4> const & a, std::array<uint32_t,4> const & b)->bool {
      return a[0]<b[0] || ( !(b[0]<a[0]) && a[1]<b[1]); // in this context we do care of [2] 
   };
 
-  auto equal = [](std::array<uint32_t,3> const & a, std::array<uint32_t,3> const & b)->bool {
+  auto equal = [](std::array<uint32_t,4> const & a, std::array<uint32_t,4> const & b)->bool {
      return a[0]==b[0] && a[1]==b[1]; // in this context we do care of [2]
   };
 
@@ -93,8 +93,8 @@ void simLink(context const * ddp, uint32_t ndigis, HitsOnGPU const * hhp, Cluste
   assert(j>=0);
   j = std::min(int(j),int(n-1));
   if (equal(me,sl.links_d[j])) {
-    auto const & l = sl.links_d[j];
-    auto const tk = l[2];
+    //auto const & l = sl.links_d[j];
+    auto const tk = j; // l[2];
     auto old = atomicCAS(&sl.tkId_d[cl],0,tk);
     if (0==old ||tk==old) atomicAdd(&sl.n1_d[cl],1);
     else {
@@ -121,10 +121,14 @@ void dumpLink(int ev, HitsOnGPU const * hhp, uint32_t nhits, ClusterSLGPU const 
   auto const & hh = *hhp;
   auto const & sl = *slp;
 
-  printf("HIT: %d %d %d %d %f %f %f %f %d %d %d %d %d\n",ev, i, 
+  auto const & tk1 = sl.links_d[sl.tkId_d[i]];
+  auto const & tk2 = sl.links_d[sl.tkId2_d[i]];
+
+  printf("HIT: %d %d %d %d %f %f %f %f %d %d %d %d %d %d %d\n",ev, i, 
          hh.detInd_d[i], hh.charge_d[i], 
          hh.xg_d[i],hh.yg_d[i],hh.zg_d[i],hh.rg_d[i],hh.iphi_d[i], 
-         sl.tkId_d[i],sl.n1_d[i],sl.tkId2_d[i],sl.n2_d[i]
+         tk1[2],tk1[3],sl.n1_d[i],
+         tk2[2],tk2[3],sl.n2_d[i]
         );
 
 }
@@ -135,10 +139,10 @@ namespace clusterSLOnGPU {
 
   struct CSVHeader {
      CSVHeader() {
-      printf("HIT: %s %s %s %s %s %s %s %s %s %s %s %s %s\n", "ev", "ind",
+      printf("HIT: %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n", "ev", "ind",
          "det", "charge",	
          "xg","yg","zg","rg","iphi", 
-         "tkId","n1","tkId2","n2" 
+         "tkId","pt","n1","tkId2","pt2","n2" 
         );
      }
 

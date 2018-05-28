@@ -42,7 +42,7 @@
 
 void
 ClusterSLGPU::alloc() {
-   cudaCheck(cudaMalloc((void**) & links_d,(MAX_DIGIS)*sizeof(std::array<uint32_t,3>)));
+   cudaCheck(cudaMalloc((void**) & links_d,(MAX_DIGIS)*sizeof(std::array<uint32_t,4>)));
 
    cudaCheck(cudaMalloc((void**) & tkId_d,(MaxNumModules*256)*sizeof(uint32_t)));
    cudaCheck(cudaMalloc((void**) & tkId2_d,(MaxNumModules*256)*sizeof(uint32_t)));
@@ -201,7 +201,8 @@ void ClusterTPAssociationProducer::produce(edm::Event& iEvent, const edm::EventS
     auto nhits = gHits[1];
 
     uint32_t nn=0, ng=0, ng10=0;
-    std::vector<std::array<uint32_t,3>> digi2tp;
+    std::vector<std::array<uint32_t,4>> digi2tp;
+    {std::array<uint32_t,4> a{{0,0,0,0}}; digi2tp.push_back(a);} // put at 0 0
     for (auto const & links : *sipixelSimLinks) {
       DetId detId(links.detId());
       const GeomDetUnit * genericDet = geom->idToDetUnit(detId);
@@ -212,9 +213,10 @@ void ClusterTPAssociationProducer::produce(edm::Event& iEvent, const edm::EventS
         if (link.fraction() < 0.5f) continue;
         auto tkid = std::make_pair(link.SimTrackId(), link.eventId());
         auto ipos = mapping.find(tkid);
-          if (ipos != mapping.end()) { 
+          if (ipos != mapping.end()) {
+            uint32_t pt = 1000*(*ipos).second->pt();
             ++nn;
-            std::array<uint32_t,3> a{{gind,uint32_t(link.channel()),1+(*ipos).second.key()}};
+            std::array<uint32_t,4> a{{gind,uint32_t(link.channel()),(*ipos).second.key(),pt}};
             digi2tp.push_back(a);
           }
       }
@@ -223,7 +225,7 @@ void ClusterTPAssociationProducer::produce(edm::Event& iEvent, const edm::EventS
 
     std::cout << "In tpsimlink found " << nn << " valid link out of " << ng << '/' << ng10 << ' ' << digi2tp.size() << std::endl;
 
-    cudaCheck(cudaMemcpyAsync(slGPU.links_d, digi2tp.data(), sizeof(std::array<uint32_t,3>)*digi2tp.size(), cudaMemcpyDefault, dcont.stream));
+    cudaCheck(cudaMemcpyAsync(slGPU.links_d, digi2tp.data(), sizeof(std::array<uint32_t,4>)*digi2tp.size(), cudaMemcpyDefault, dcont.stream));
     slGPU.zero(dcont.stream);
     clusterSLOnGPU::wrapper(dcont, ndigis, hh, nhits, slGPU, digi2tp.size());
 
