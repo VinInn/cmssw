@@ -16,7 +16,7 @@ void go() {
   T v[N];
 
   using Hist = HistoContainer<T,7,8>;
-  std::cout << "HistoContainer " << Hist::nbins << ' ' << Hist::binSize << std::endl;
+  std::cout << "HistoContainer " << Hist::nbins() << ' ' << Hist::binSize() << std::endl;
   
   Hist h;
   for (int it=0; it<5; ++it) {
@@ -31,7 +31,7 @@ void go() {
       if ( T(v[t1]-v[t2])<=0) std::cout << "for " << i <<':'<< v[k] <<" failed " << v[t1] << ' ' << v[t2] << std::endl;
     };
 
-    for (uint32_t i=0; i<Hist::nbins; ++i) {
+    for (uint32_t i=0; i<Hist::nbins(); ++i) {
       if (0==h.n[i]) continue;
       auto k= *h.begin(i);
       assert(k<N);

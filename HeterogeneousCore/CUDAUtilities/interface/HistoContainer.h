@@ -40,7 +40,7 @@
   template<typename Histo>
   __host__
   void zero(Histo * h, uint32_t nh, int nthreads, cudaStream_t stream) {
-    auto nblocks = (nh*Histo::nbins+nthreads-1)/nthreads;
+    auto nblocks = (nh*Histo::nbins()+nthreads-1)/nthreads;
     zeroMany<<<nblocks,nthreads, 0, stream>>>(h,nh);
   }
 
@@ -64,11 +64,11 @@
   __global__
   void zeroMany(Histo * h, uint32_t nh) {
     auto i = blockIdx.x*blockDim.x + threadIdx.x;
-    auto ih = i/Histo::nbins;
-    auto k = i - ih*Histo::nbins;
+    auto ih = i/Histo::nbins();
+    auto k = i - ih*Histo::nbins();
     if (ih<nh) {
       h[ih].nspills=0;
-      if(k<Histo::nbins) h[ih].n[k]=0;
+      if(k<Histo::nbins()) h[ih].n[k]=0;
     }
   }
 
@@ -98,15 +98,15 @@
 template<typename T, uint32_t N, uint32_t M>
 class HistoContainer {
 public:
-  static constexpr uint32_t sizeT = sizeof(T)*8;
-  static constexpr uint32_t nbins = 1<<N;
-  static constexpr uint32_t shift = sizeT -N;
-  static constexpr uint32_t mask =  nbins-1;
-  static constexpr uint32_t binSize=1<<M;
-  static constexpr uint32_t spillSize=4*binSize;
+  static constexpr uint32_t sizeT() { return sizeof(T)*8; }
+  static constexpr uint32_t nbins() { return 1<<N; }
+  static constexpr uint32_t shift() { return sizeT() -N; }
+  static constexpr uint32_t mask() { return  nbins()-1; }
+  static constexpr uint32_t binSize() { return 1<<M; }
+  static constexpr uint32_t spillSize() { return 4*binSize(); }
 
   static constexpr uint32_t bin(T t) {
-    return (t>>shift)&mask;
+    return (t>>shift())&mask();
   }
 
 
@@ -116,11 +116,11 @@ public:
   void fill(T const * t, uint32_t j) {
     auto b = bin(t[j]);
     auto w = atomicAdd(&n[b],1); // atomic
-    if (w<binSize) {
-      bins[b*binSize+w] = j;
+    if (w<binSize()) {
+      bins[b*binSize()+w] = j;
     } else {
       auto w = atomicAdd(&nspills,1); // atomic
-      if (w<spillSize) spillBin[w] = j;
+      if (w<spillSize()) spillBin[w] = j;
     }
   }     
 
@@ -136,29 +136,29 @@ public:
   void fill(T const * t, uint32_t j) {
     auto b = bin(t[j]);
     auto w = n[b]++; // atomic
-    if (w<binSize) {
-      bins[b*binSize+w] = j;
+    if (w<binSize()) {
+      bins[b*binSize()+w] = j;
     } else {
       auto w = nspills++; // atomic
-      if (w<spillSize) spillBin[w] = j;
+      if (w<spillSize()) spillBin[w] = j;
     }     
   }
 #endif
 
   constexpr bool fullSpill() const {
-    return nspills>=spillSize;
+    return nspills>=spillSize();
   }
 
   constexpr bool full(uint32_t b) const {
-    return n[b]>=binSize;
+    return n[b]>=binSize();
   }
 
   constexpr auto const * begin(uint32_t b) const {
-     return bins+b*binSize;
+     return bins+b*binSize();
   }
 
   constexpr auto const * end(uint32_t b) const {
-     return begin(b)+std::min(binSize,uint32_t(n[b]));
+     return begin(b)+std::min(binSize(),uint32_t(n[b]));
   }
 
   constexpr auto size(uint32_t b) const {
@@ -171,9 +171,9 @@ public:
   using Counter = std::atomic<uint32_t>;
 #endif
 
-  uint32_t bins[nbins*binSize];
-  Counter  n[nbins];
-  uint32_t spillBin[spillSize];
+  uint32_t bins[nbins()*binSize()];
+  Counter  n[nbins()];
+  uint32_t spillBin[spillSize()];
   Counter  nspills;
 
 };

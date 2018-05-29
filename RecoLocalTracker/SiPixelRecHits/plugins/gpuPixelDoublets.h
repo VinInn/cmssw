@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <limits>
 #include <cmath>
+#include<algorithm>
 
 namespace gpuPixelDoublets {
 
@@ -58,7 +59,7 @@ namespace gpuPixelDoublets {
 
 
   __global__
-  void getDoublets(int16_t * iphi, uint16_t * index, uint32_t * offsets, float phiCut) {
+  void getDoubletsFromSorted(int16_t * iphi, uint16_t * index, uint32_t * offsets, float phiCut) {
 
   auto iphicut = phi2short(phiCut);
 
@@ -110,6 +111,46 @@ namespace gpuPixelDoublets {
  
   }
 
+  template<typename Hist>
+  __global__
+  void getDoubletsFromHisto(int16_t const * iphi, Hist const * hist, uint32_t const * offsets, float phiCut) {
+
+  auto iphicut = phi2short(phiCut);
+
+  auto i = blockIdx.x*blockDim.x + threadIdx.x;
+  if (i>=offsets[9]) return; // get rid of last layer
+
+  assert(0==offsets[0]);
+  int top = (i>offsets[5]) ? 5: 0;
+  while (i>=offsets[++top]){};
+  assert(top<10);
+  auto bottom = top-1;
+  if (bottom==3 || bottom==6) return; // do not have UP... (9 we got rid already)
+  assert(i>=offsets[bottom]);
+  assert(i<offsets[top]);
+
+  auto mep = iphi[i];
+
+  auto kl = hist[top].bin(mep-iphicut);
+  auto kh = hist[top].bin(mep+iphicut);
+
+  auto incr = [](auto & k) { return k = (k+1)%Hist::nbins();};
+
+  int tot=0;
+  int nmin=0;
+  auto khh=kh;
+  incr(khh); 
+  for (auto kk=kl; kk!=khh; incr(kk)) {
+     if (kk!=kl && kk!=kh) nmin+=hist[top].size(kk);
+     for (auto p=hist[top].begin(kk); p<hist[top].end(kk); ++p) {
+        if ( std::min(std::abs(iphi[*p]-mep), std::abs(mep-iphi[*p])) > iphicut ) continue;
+        ++tot;
+     }
+  }
+  assert(tot>=nmin);
+  // look in spill bin as well....
+
+  }
 
 } // namespace end
 

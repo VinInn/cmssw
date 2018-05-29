@@ -36,6 +36,8 @@ HitsOnGPU allocHitsOnGPU() {
    cudaCheck(cudaMalloc((void**) & hh.iphi_d,(gpuClustering::MaxNumModules*256)*sizeof(int16_t)));
    cudaCheck(cudaMalloc((void**) & hh.sortIndex_d,(gpuClustering::MaxNumModules*256)*sizeof(uint16_t)));
    cudaCheck(cudaMalloc((void**) & hh.mr_d,(gpuClustering::MaxNumModules*256)*sizeof(uint16_t)));
+   cudaCheck(cudaMalloc((void**) & hh.hist_d, 10*sizeof(HitsOnGPU::Hist)));
+
    cudaCheck(cudaMalloc((void**) & hh.me_d, sizeof(HitsOnGPU)));
    cudaCheck(cudaMemcpy(hh.me_d, &hh, sizeof(HitsOnGPU), cudaMemcpyDefault));
    cudaCheck(cudaDeviceSynchronize());
@@ -99,10 +101,14 @@ pixelRecHits_wrapper(
 
   radixSortMultiWrapper<int16_t><<<10, 256, 0, c.stream>>>(hh.iphi_d,hh.sortIndex_d,hh.hitsLayerStart_d);
 
+  fillManyFromVector(hh.hist_d,10,hh.iphi_d, hh.hitsLayerStart_d, nhits,256,c.stream);
+
   float phiCut=0.2;
   threadsPerBlock = 256;
   blocks = (hitsLayerStart[9]/256+1);
-  gpuPixelDoublets::getDoublets<<<blocks, threadsPerBlock, 0, c.stream>>>(hh.iphi_d,hh.sortIndex_d,hh.hitsLayerStart_d,phiCut);
+  gpuPixelDoublets::getDoubletsFromSorted<<<blocks, threadsPerBlock, 0, c.stream>>>(hh.iphi_d,hh.sortIndex_d,hh.hitsLayerStart_d,phiCut);
+
+  gpuPixelDoublets::getDoubletsFromHisto<<<blocks, threadsPerBlock, 0, c.stream>>>(hh.iphi_d,hh.hist_d,hh.hitsLayerStart_d,phiCut);
 
   // all this needed only if hits on CPU are required...
   HitsOnCPU hoc(nhits);

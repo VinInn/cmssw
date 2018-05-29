@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <vector>
 
+#include "HeterogeneousCore/CUDAUtilities/interface/HistoContainer.h"
+
+
 namespace pixelCPEforGPU {
   struct ParamsOnGPU;
 }
@@ -23,6 +26,9 @@ struct HitsOnGPU{
    int16_t * iphi_d;
    uint16_t * sortIndex_d;
    uint16_t * mr_d;
+
+   using Hist = HistoContainer<int16_t,7,8>;
+   Hist * hist_d;
 };
 
 struct HitsOnCPU {

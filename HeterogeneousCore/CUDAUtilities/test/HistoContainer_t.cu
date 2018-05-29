@@ -36,7 +36,7 @@ void go() {
   uint32_t offsets[nParts+1];
 
   using Hist = HistoContainer<T,7,8>;
-  std::cout << "HistoContainer " << Hist::nbins << ' ' << Hist::binSize << std::endl;
+  std::cout << "HistoContainer " << Hist::nbins() << ' ' << Hist::binSize() << std::endl;
   
   Hist h[nParts];
 
@@ -80,13 +80,13 @@ void go() {
       if ( T(v[t1]-v[t2])<=0) std::cout << "for " << i <<':'<< v[k] <<" failed " << v[t1] << ' ' << v[t2] << std::endl;
     };
 
-    auto incr = [](auto & k) { return k = (k+1)%Hist::nbins;};
+    auto incr = [](auto & k) { return k = (k+1)%Hist::nbins();};
 
 
     
     for (uint32_t j=0; j<nParts; ++j) {
       std::cout << "nspills " << h[j].nspills << std::endl;
-      for (uint32_t i=0; i<Hist::nbins; ++i) {
+      for (uint32_t i=0; i<Hist::nbins(); ++i) {
         if (0==h[j].n[i]) continue;
         auto k= *h[j].begin(i);
         assert(k<offsets[j+1]);
