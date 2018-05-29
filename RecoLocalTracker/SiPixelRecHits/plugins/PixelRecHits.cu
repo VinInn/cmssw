@@ -103,7 +103,7 @@ pixelRecHits_wrapper(
 
   fillManyFromVector(hh.hist_d,10,hh.iphi_d, hh.hitsLayerStart_d, nhits,256,c.stream);
 
-  float phiCut=0.2;
+  float phiCut=0.1;
   threadsPerBlock = 256;
   blocks = (hitsLayerStart[9]/256+1);
   gpuPixelDoublets::getDoubletsFromSorted<<<blocks, threadsPerBlock, 0, c.stream>>>(hh.iphi_d,hh.sortIndex_d,hh.hitsLayerStart_d,phiCut);

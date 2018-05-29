@@ -143,11 +143,11 @@ namespace gpuPixelDoublets {
   for (auto kk=kl; kk!=khh; incr(kk)) {
      if (kk!=kl && kk!=kh) nmin+=hist[top].size(kk);
      for (auto p=hist[top].begin(kk); p<hist[top].end(kk); ++p) {
-        if ( std::min(std::abs(iphi[*p]-mep), std::abs(mep-iphi[*p])) > iphicut ) continue;
+        if ( std::min(std::abs(int16_t(iphi[*p]-mep)), std::abs(int16_t(mep-iphi[*p]))) > iphicut ) continue;
         ++tot;
      }
   }
-  assert(tot>=nmin);
+  if (0==hist[top].nspills) assert(tot>=nmin);
   // look in spill bin as well....
 
   }
