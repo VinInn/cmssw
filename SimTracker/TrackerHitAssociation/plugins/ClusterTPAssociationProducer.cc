@@ -3,8 +3,9 @@
 #include <utility>
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/global/EDProducer.h"
+#include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "FWCore/Utilities/interface/EDGetToken.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -12,6 +13,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 
 #include "DataFormats/Common/interface/Handle.h"
+#include "FWCore/Framework/interface/ESHandle.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 #include "DataFormats/DetId/interface/DetId.h"
@@ -29,7 +31,40 @@
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
 #include "SimTracker/TrackerHitAssociation/interface/ClusterTPAssociation.h"
 
-class ClusterTPAssociationProducer : public edm::global::EDProducer<>
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+
+
+// gpu
+#include <cuda_runtime.h>
+#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
+#include "ClusterSLOnGPU.h"
+
+void
+ClusterSLGPU::alloc() {
+   cudaCheck(cudaMalloc((void**) & links_d,(MAX_DIGIS)*sizeof(std::array<uint32_t,4>)));
+
+   cudaCheck(cudaMalloc((void**) & tkId_d,(MaxNumModules*256)*sizeof(uint32_t)));
+   cudaCheck(cudaMalloc((void**) & tkId2_d,(MaxNumModules*256)*sizeof(uint32_t)));
+   cudaCheck(cudaMalloc((void**) & n1_d,(MaxNumModules*256)*sizeof(uint32_t)));
+   cudaCheck(cudaMalloc((void**) & n2_d,(MaxNumModules*256)*sizeof(uint32_t)));
+
+
+   cudaCheck(cudaMalloc((void**) & me_d, sizeof(ClusterSLGPU)));
+   cudaCheck(cudaMemcpy(me_d, this, sizeof(ClusterSLGPU), cudaMemcpyDefault));
+   cudaCheck(cudaDeviceSynchronize());
+
+}
+
+void
+ClusterSLGPU::zero(cudaStream_t stream) {
+   cudaCheck(cudaMemsetAsync(tkId_d,0,(MaxNumModules*256)*sizeof(uint32_t), stream));
+   cudaCheck(cudaMemsetAsync(tkId2_d,0,(MaxNumModules*256)*sizeof(uint32_t), stream));
+   cudaCheck(cudaMemsetAsync(n1_d,0,(MaxNumModules*256)*sizeof(uint32_t), stream));
+   cudaCheck(cudaMemsetAsync(n2_d,0,(MaxNumModules*256)*sizeof(uint32_t), stream));
+}
+
+class ClusterTPAssociationProducer : public edm::stream::EDProducer<>
 {
 public:
   typedef std::vector<OmniClusterRef> OmniClusterCollection;
@@ -40,7 +75,7 @@ public:
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
-  void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
+  void produce(edm::Event&, const edm::EventSetup&) override;
 
   template <typename T>
   std::vector<std::pair<uint32_t, EncodedEventId> >
@@ -53,6 +88,16 @@ private:
   edm::EDGetTokenT<edmNew::DetSetVector<SiStripCluster> > stripClustersToken_;
   edm::EDGetTokenT<edmNew::DetSetVector<Phase2TrackerCluster1D> > phase2OTClustersToken_;
   edm::EDGetTokenT<TrackingParticleCollection> trackingParticleToken_;
+
+  // FIXME gpu gpu
+  using GPUProd = std::vector<unsigned long long>; 
+  edm::InputTag gpuDigis_ = edm::InputTag("siPixelDigis");
+  edm::InputTag gpuHits_ = edm::InputTag("siPixelRecHitsPreSplitting");
+  edm::EDGetTokenT<GPUProd> tGpuDigis;
+  edm::EDGetTokenT<GPUProd> tGpuHits;
+
+  ClusterSLGPU slGPU;
+
 };
 
 ClusterTPAssociationProducer::ClusterTPAssociationProducer(const edm::ParameterSet & cfg)
@@ -62,7 +107,9 @@ ClusterTPAssociationProducer::ClusterTPAssociationProducer(const edm::ParameterS
     pixelClustersToken_(consumes<edmNew::DetSetVector<SiPixelCluster> >(cfg.getParameter<edm::InputTag>("pixelClusterSrc"))),
     stripClustersToken_(consumes<edmNew::DetSetVector<SiStripCluster> >(cfg.getParameter<edm::InputTag>("stripClusterSrc"))),
     phase2OTClustersToken_(consumes<edmNew::DetSetVector<Phase2TrackerCluster1D> >(cfg.getParameter<edm::InputTag>("phase2OTClusterSrc"))),
-    trackingParticleToken_(consumes<TrackingParticleCollection>(cfg.getParameter<edm::InputTag>("trackingParticleSrc")))
+    trackingParticleToken_(consumes<TrackingParticleCollection>(cfg.getParameter<edm::InputTag>("trackingParticleSrc"))),
+    tGpuDigis(consumes<GPUProd>(gpuDigis_)),
+    tGpuHits(consumes<GPUProd>(gpuHits_))
 {
   produces<ClusterTPAssociation>();
 }
@@ -83,7 +130,13 @@ void ClusterTPAssociationProducer::fillDescriptions(edm::ConfigurationDescriptio
   descriptions.add("tpClusterProducerDefault", desc);
 }
 		
-void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, const edm::EventSetup& es) const {
+void ClusterTPAssociationProducer::produce(edm::Event& iEvent, const edm::EventSetup& es) {
+
+    edm::ESHandle<TrackerGeometry> geom;
+    es.get<TrackerDigiGeometryRecord>().get( geom );
+
+
+
   // Pixel DigiSimLink
   edm::Handle<edm::DetSetVector<PixelDigiSimLink> > sipixelSimLinks;
   //  iEvent.getByLabel(_pixelSimLinkSrc, sipixelSimLinks);
@@ -131,6 +184,55 @@ void ClusterTPAssociationProducer::produce(edm::StreamID, edm::Event& iEvent, co
       mapping.insert(std::make_pair(trkid, trackingParticle));
     }
   }
+
+  //  gpu stuff ------------------------
+
+    std::cout << "In tpsimlink " << mapping.size() << std::endl;
+
+    edm::Handle<GPUProd> gd;
+    edm::Handle<GPUProd> gh;
+    iEvent.getByToken(tGpuDigis, gd);  
+    iEvent.getByToken(tGpuHits, gh);
+    auto gDigis = *gd;
+    auto gHits = *gh;
+    auto const & dcont = *(context const *)(gDigis[0]);
+    auto const & hh = *(HitsOnGPU const *)(gHits[0]);
+    auto ndigis = gDigis[1];
+    auto nhits = gHits[1];
+
+    uint32_t nn=0, ng=0, ng10=0;
+    std::vector<std::array<uint32_t,4>> digi2tp;
+    {std::array<uint32_t,4> a{{0,0,0,0}}; digi2tp.push_back(a);} // put at 0 0
+    for (auto const & links : *sipixelSimLinks) {
+      DetId detId(links.detId());
+      const GeomDetUnit * genericDet = geom->idToDetUnit(detId);
+      uint32_t gind = genericDet->index();
+      for (auto const & link : links) {
+        ++ng;
+        if (link.fraction() > 0.3f) ++ng10;
+        if (link.fraction() < 0.5f) continue;
+        auto tkid = std::make_pair(link.SimTrackId(), link.eventId());
+        auto ipos = mapping.find(tkid);
+          if (ipos != mapping.end()) {
+            uint32_t pt = 1000*(*ipos).second->pt();
+            ++nn;
+            std::array<uint32_t,4> a{{gind,uint32_t(link.channel()),(*ipos).second.key(),pt}};
+            digi2tp.push_back(a);
+          }
+      }
+    }
+    std::sort(digi2tp.begin(),digi2tp.end());
+
+    std::cout << "In tpsimlink found " << nn << " valid link out of " << ng << '/' << ng10 << ' ' << digi2tp.size() << std::endl;
+
+    cudaCheck(cudaMemcpyAsync(slGPU.links_d, digi2tp.data(), sizeof(std::array<uint32_t,4>)*digi2tp.size(), cudaMemcpyDefault, dcont.stream));
+    slGPU.zero(dcont.stream);
+    clusterSLOnGPU::wrapper(dcont, ndigis, hh, nhits, slGPU, digi2tp.size());
+
+  //  end gpu stuff ---------------------
+
+
+
 
   if ( foundPixelClusters ) {
     // Pixel Clusters 

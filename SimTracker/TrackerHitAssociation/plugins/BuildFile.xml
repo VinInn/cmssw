@@ -1,5 +1,8 @@
 <use name="SimTracker/TrackerHitAssociation" />
 <use name="SimDataFormats/TrackingAnalysis" />
-<library file="*.cc" name="SimTrackerTrackerHitAssociationPlugins">
+<use name="Geometry/TrackerGeometryBuilder" />
+<use name="Geometry/Records" />
+<library file="*.cc *.cu" name="SimTrackerTrackerHitAssociationPlugins">
+  <use name="cuda"/>
   <flags EDM_PLUGIN="1"/>
 </library>

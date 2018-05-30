@@ -1,0 +1,125 @@
+// C++ headers
+#include <algorithm>
+#include <numeric>
+
+// CUDA runtime
+#include <cuda_runtime.h>
+
+// thrust heders
+#include <thrust/scan.h>
+#include <thrust/system/cuda/execution_policy.h>
+
+// CMSSW headers
+#include "EventFilter/SiPixelRawToDigi/plugins/RawToDigiGPU.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
+#include "RecoLocalTracker/SiPixelClusterizer/plugins/gpuClustering.h"
+#include "gpuPixelDoublets.h"
+#include "PixelRecHits.h"
+#include "gpuPixelRecHits.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/radixSort.h"
+
+HitsOnGPU allocHitsOnGPU() {
+   HitsOnGPU hh;
+   cudaCheck(cudaMalloc((void**) & hh.bs_d,3*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.hitsModuleStart_d,(gpuClustering::MaxNumModules+1)*sizeof(uint32_t)));
+   cudaCheck(cudaMalloc((void**) & hh.hitsLayerStart_d,(11)*sizeof(uint32_t)));
+   cudaCheck(cudaMalloc((void**) & hh.charge_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.detInd_d,(gpuClustering::MaxNumModules*256)*sizeof(uint16_t)));
+   cudaCheck(cudaMalloc((void**) & hh.xg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.yg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.zg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.rg_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.xl_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.yl_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.xerr_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.yerr_d,(gpuClustering::MaxNumModules*256)*sizeof(float)));
+   cudaCheck(cudaMalloc((void**) & hh.iphi_d,(gpuClustering::MaxNumModules*256)*sizeof(int16_t)));
+   cudaCheck(cudaMalloc((void**) & hh.sortIndex_d,(gpuClustering::MaxNumModules*256)*sizeof(uint16_t)));
+   cudaCheck(cudaMalloc((void**) & hh.mr_d,(gpuClustering::MaxNumModules*256)*sizeof(uint16_t)));
+   cudaCheck(cudaMalloc((void**) & hh.hist_d, 10*sizeof(HitsOnGPU::Hist)));
+
+   cudaCheck(cudaMalloc((void**) & hh.me_d, sizeof(HitsOnGPU)));
+   cudaCheck(cudaMemcpy(hh.me_d, &hh, sizeof(HitsOnGPU), cudaMemcpyDefault));
+   cudaCheck(cudaDeviceSynchronize());
+
+   return hh;
+}
+
+HitsOnCPU
+pixelRecHits_wrapper(
+      context const & c,
+      float const * bs,
+      pixelCPEforGPU::ParamsOnGPU const * cpeParams,
+      uint32_t ndigis,
+      uint32_t nModules, // active modules (with digis)
+      HitsOnGPU & hh
+)
+{
+  // copy beamspot
+  cudaCheck(cudaMemcpyAsync(hh.bs_d, bs, 3 * sizeof(float), cudaMemcpyDefault, c.stream));
+
+  thrust::exclusive_scan(thrust::cuda::par,
+      c.clusInModule_d,
+      c.clusInModule_d + gpuClustering::MaxNumModules,
+      hh.hitsModuleStart_d);
+  
+  int threadsPerBlock = 256;
+  int blocks = nModules;
+  gpuPixelRecHits::getHits<<<blocks, threadsPerBlock, 0, c.stream>>>(
+      cpeParams,
+      hh.bs_d,
+      c.moduleInd_d,
+      c.xx_d, c.yy_d, c.adc_d,
+      c.moduleStart_d,
+      c.clusInModule_d, c.moduleId_d,
+      c.clus_d,
+      ndigis,
+      hh.hitsModuleStart_d,
+      hh.charge_d,
+      hh.detInd_d,
+      hh.xg_d, hh.yg_d, hh.zg_d, hh.rg_d,
+      hh.iphi_d,
+      hh.xl_d, hh.yl_d,
+      hh.xerr_d, hh.yerr_d, hh.mr_d,
+      true // for the time being stay local...
+      );
+
+
+  uint32_t hitsModuleStart[gpuClustering::MaxNumModules+1];
+  cudaCheck(cudaMemcpyAsync(hitsModuleStart, hh.hitsModuleStart_d, (gpuClustering::MaxNumModules+1) * sizeof(uint32_t), cudaMemcpyDefault, c.stream));
+  cudaCheck(cudaDeviceSynchronize());
+  auto nhits = hitsModuleStart[gpuClustering::MaxNumModules-1];
+
+  uint32_t hitsLayerStart[11];
+  for (int i=0;i<10;++i) hitsLayerStart[i]=hitsModuleStart[phase1PixelTopology::layerStart[i]];
+  hitsLayerStart[10]=nhits;
+  std::cout << "hit layerStart "; 
+  for (int i=0;i<10;++i) std::cout << phase1PixelTopology::layerName[i] << ':' << hitsLayerStart[i] << ' ';
+  std::cout << "end:" << hitsLayerStart[10] << std::endl;
+
+  cudaCheck(cudaMemcpyAsync(hh.hitsLayerStart_d, hitsLayerStart, (11) * sizeof(uint32_t), cudaMemcpyDefault, c.stream));
+
+  radixSortMultiWrapper<int16_t><<<10, 256, 0, c.stream>>>(hh.iphi_d,hh.sortIndex_d,hh.hitsLayerStart_d);
+
+  fillManyFromVector(hh.hist_d,10,hh.iphi_d, hh.hitsLayerStart_d, nhits,256,c.stream);
+
+  float phiCut=0.1;
+  threadsPerBlock = 256;
+  blocks = (hitsLayerStart[9]/256+1);
+  gpuPixelDoublets::getDoubletsFromSorted<<<blocks, threadsPerBlock, 0, c.stream>>>(hh.iphi_d,hh.sortIndex_d,hh.hitsLayerStart_d,phiCut);
+
+  gpuPixelDoublets::getDoubletsFromHisto<<<blocks, threadsPerBlock, 0, c.stream>>>(hh.iphi_d,hh.hist_d,hh.hitsLayerStart_d,phiCut);
+
+  // all this needed only if hits on CPU are required...
+  HitsOnCPU hoc(nhits);
+  memcpy(hoc.hitsModuleStart, hitsModuleStart, (gpuClustering::MaxNumModules+1) * sizeof(uint32_t));
+  cudaCheck(cudaMemcpyAsync(hoc.charge.data(), hh.charge_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
+  cudaCheck(cudaMemcpyAsync(hoc.xl.data(), hh.xl_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
+  cudaCheck(cudaMemcpyAsync(hoc.yl.data(), hh.yl_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
+  cudaCheck(cudaMemcpyAsync(hoc.xe.data(), hh.xerr_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
+  cudaCheck(cudaMemcpyAsync(hoc.ye.data(), hh.yerr_d, nhits*sizeof(uint32_t), cudaMemcpyDefault, c.stream));
+  cudaCheck(cudaMemcpyAsync(hoc.mr.data(), hh.mr_d, nhits*sizeof(uint16_t), cudaMemcpyDefault, c.stream));
+  cudaCheck(cudaDeviceSynchronize());
+
+  return hoc;
+}
