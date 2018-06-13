@@ -112,6 +112,8 @@ void TrackerDigiGeometryAnalyzer::checkPixelLayout(TrackerGeometry const & geom,
       
       auto theDetR = theDet->surface().position().perp();
       auto theDetZ = theDet->surface().position().z();
+      auto theDetX = theDet->surface().position().x();
+      auto theDetY = theDet->surface().position().y();
 
 
       if (i==phase1PixelTopology::layerStart[il+1]) ++il;
@@ -126,7 +128,9 @@ void TrackerDigiGeometryAnalyzer::checkPixelLayout(TrackerGeometry const & geom,
         auto ring = topo.pxfRing(id);
         if (ring!=pring) {
            pring=ring;
-           std::cout << "new ring " << ring << " at " << i << ' ' << il << ' ' << theDetR << '/' << theDetZ << std::endl;
+           std::cout << "new ring " << ring << " at " << i << ' ' << il 
+                     << ' ' << theDetR << '/' << theDetZ
+                     << ' ' << theDetX << '/' << theDetY << std::endl;
         }         
         if (1==ring) assert(theDetR<10);
         if (2==ring) assert(theDetR>10);
