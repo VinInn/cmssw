@@ -462,6 +462,10 @@ class TrackerTopology {
     return int((id.rawId()>>pfVals_.panelStartBit_) & pfVals_.panelMask_);
   }
 
+  unsigned int pxfRing(const DetId &id) const {
+    return pxfBlade(id) < 23 ? 1 : 2;  // valid for Phase1 only
+  }
+
   //old constructors, now return DetId
   DetId pxbDetId(uint32_t layer,
 		 uint32_t ladder,

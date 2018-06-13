@@ -1,17 +1,19 @@
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("GeometryTest")
-# empty input service, fire 10 events
-process.load("FWCore.MessageLogger.MessageLogger_cfi")
+from Configuration.StandardSequences.Eras import eras
 
-# Choose Tracker Geometry
-process.load("Geometry.TrackerRecoData.trackerRecoGeometryXML_cfi")
+process = cms.Process("GeometryTest",eras.Run2_2018)
 
-process.load("Geometry.TrackerNumberingBuilder.trackerNumberingGeometry_cfi")
+# import of standard configurations
+process.load('Configuration.StandardSequences.Services_cff')
+process.load('FWCore.MessageService.MessageLogger_cfi')
+process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
+process.load('Configuration.StandardSequences.MagneticField_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
-process.load("Geometry.TrackerGeometryBuilder.trackerGeometry_cfi")
-process.load("Geometry.TrackerGeometryBuilder.trackerParameters_cfi")
-process.trackerGeometry.applyAlignment = cms.bool(False)
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase1_2018_realistic', '')
+
 
 process.source = cms.Source("EmptySource")
 

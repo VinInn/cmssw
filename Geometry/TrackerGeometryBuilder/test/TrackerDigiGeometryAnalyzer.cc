@@ -1,15 +1,3 @@
-// -*- C++ -*-
-//
-// Package:    TrackerDigiGeometryAnalyzer
-// Class:      TrackerDigiGeometryAnalyzer
-// 
-/**\class TrackerDigiGeometryAnalyzer TrackerDigiGeometryAnalyzer.cc 
-
- Description: <one line class summary>
-
- Implementation:
-     <Notes on implementation>
-*/
 //
 // Original Author:  Filippo Ambroglini
 //         Created:  Tue Jul 26 08:47:57 CEST 2005
@@ -46,6 +34,11 @@
 #include "DataFormats/GeometrySurface/interface/TrapezoidalPlaneBounds.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
+
+#include "Geometry/Records/interface/TrackerTopologyRcd.h"
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
+#include "Geometry/TrackerGeometryBuilder/interface/phase1PixelTopology.h"
+
 //
 //
 // class decleration
@@ -66,6 +59,7 @@ public:
   void endJob() override {}
 
 private:
+  void checkPixelLayout(TrackerGeometry const & geom, TrackerTopology const & topo) const;
   void analyseTrapezoidal( const GeomDetUnit& det);
   void checkRotation( const GeomDetUnit& det);
   void checkTopology( const GeomDetUnit& det);
@@ -78,6 +72,77 @@ TrackerDigiGeometryAnalyzer::TrackerDigiGeometryAnalyzer( const edm::ParameterSe
 TrackerDigiGeometryAnalyzer::~TrackerDigiGeometryAnalyzer()
 {}
 
+
+void TrackerDigiGeometryAnalyzer::checkPixelLayout(TrackerGeometry const & geom, TrackerTopology const & topo) const {
+
+  auto const & dus = geom.detUnits();
+   unsigned m_detectors = dus.size();
+   for(unsigned int i=1;i<7;++i) {
+      PRINT("LookingForFirstStrip") << " Subdetector " << i
+      << " GeomDetEnumerator " << GeomDetEnumerators::tkDetEnum[i]
+      << " offset " << geom.offsetDU(GeomDetEnumerators::tkDetEnum[i])
+      << " is it strip? " << (geom.offsetDU(GeomDetEnumerators::tkDetEnum[i]) != dus.size() ?
+                              dus[geom.offsetDU(GeomDetEnumerators::tkDetEnum[i])]->type().isTrackerStrip() : false) << '\n';
+      if(geom.offsetDU(GeomDetEnumerators::tkDetEnum[i]) != dus.size() &&
+         dus[geom.offsetDU(GeomDetEnumerators::tkDetEnum[i])]->type().isTrackerStrip()) {
+         if(geom.offsetDU(GeomDetEnumerators::tkDetEnum[i]) < m_detectors) m_detectors = geom.offsetDU(GeomDetEnumerators::tkDetEnum[i]);
+      }
+   }
+   PRINT("LookingForFirstStrip") << " Chosen offset: " << m_detectors << std::endl;
+
+   if (1856!=m_detectors) return;
+
+   std::cout << "This should be Phase1 pixel with " << m_detectors << " modules" << std::endl; 
+
+   assert(phase1PixelTopology::layerStart[10]==m_detectors);
+
+   uint32_t il=0;
+   float minR=100000, minZ=100000;
+   float maxR=0, maxZ=0;
+   uint32_t pring=0;
+   for (unsigned i=0; i!=m_detectors;++i) {
+      auto theDet = dynamic_cast<const PixelGeomDetUnit*>(dus[i]);
+      assert(theDet);
+      assert(theDet->index()==int(i));
+
+      auto id = theDet->geographicalId();
+      
+      //--- theDet->type() returns a GeomDetType, which implements subDetector()
+      auto thePart =theDet->type().subDetector();
+      
+      auto theDetR = theDet->surface().position().perp();
+      auto theDetZ = theDet->surface().position().z();
+
+
+      if (i==phase1PixelTopology::layerStart[il+1]) ++il;
+   
+      if (il<4) {  // barrel
+        assert(thePart==GeomDetEnumerators::P1PXB);
+      } else {
+        assert(thePart==GeomDetEnumerators::P1PXEC);
+        if (il<7) assert(theDetZ>0);
+        else assert(theDetZ<0);
+        
+        auto ring = topo.pxfRing(id);
+        if (ring!=pring) {
+           pring=ring;
+           std::cout << "new ring " << ring << " at " << i << ' ' << il << ' ' << theDetR << '/' << theDetZ << std::endl;
+        }         
+        if (1==ring) assert(theDetR<10);
+        if (2==ring) assert(theDetR>10);
+
+      }
+   
+      minR = std::min(theDetR,minR);
+      minZ = std::min(std::abs(theDetZ),minZ);
+      maxR = std::max(theDetR,maxR);
+      maxZ = std::max(std::abs(theDetZ),maxZ);
+
+   }
+   assert(9==il);
+
+}
+
 // ------------ method called to produce the data  ------------
 void
 TrackerDigiGeometryAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup& iSetup )
@@ -89,20 +154,39 @@ TrackerDigiGeometryAnalyzer::analyze( const edm::Event& iEvent, const edm::Event
    //
    edm::ESHandle<TrackerGeometry> pDD;
    iSetup.get<TrackerDigiGeometryRecord>().get( pDD );     
+
+   // get Topology
+   edm::ESHandle<TrackerTopology> hTT;
+   iSetup.get<TrackerTopologyRcd>().get(hTT);
+
    PRINT("TrackerDigiGeometryAnalyzer")<< " Geometry node for TrackerGeom is  "<<&(*pDD) <<'\n';   
    PRINT("TrackerDigiGeometryAnalyzer")<<" I have "<<pDD->detUnits().size() <<" detectors"<<'\n';
    PRINT("TrackerDigiGeometryAnalyzer")<<" I have "<<pDD->detTypes().size() <<" types"<<'\n';
 
+   checkPixelLayout(*pDD,*hTT);
+
+   for (auto const & it  :pDD->detTypes() ){
+     if (dynamic_cast<const PixelGeomDetType*>((it))!=nullptr){
+       const PixelTopology& p = (dynamic_cast<const PixelGeomDetType*>((it)))->specificTopology();
+       PRINT("TrackerDigiGeometryAnalyzer")<<" PIXEL Det "
+                      <<"    Rows    "<<p.nrows() <<"    Columns "<<p.ncolumns()<<'\n';
+     }else{
+       const StripTopology& p = (dynamic_cast<const StripGeomDetType*>((it)))->specificTopology();
+       PRINT("TrackerDigiGeometryAnalyzer") <<" STRIP Det "
+                                            <<"    Strips    "<<p.nstrips()<<'\n';
+     }
+   }
+
    for(auto const & it : pDD->detUnits()){
        if(dynamic_cast<const PixelGeomDetUnit*>((it))!=nullptr){
 	const BoundPlane& p = (dynamic_cast<const PixelGeomDetUnit*>((it)))->specificSurface();
-	PRINT("TrackerDigiGeometryAnalyzer") << it->geographicalId()
+	PRINT("TrackerDigiGeometryAnalyzer") << int(it->geographicalId())
               <<" RadLeng Pixel "<<p.mediumProperties().radLen()<<' ' <<" Xi Pixel "<<p.mediumProperties().xi()<<'\n';
        } 
 
        if(dynamic_cast<const StripGeomDetUnit*>((it))!=nullptr){
 	const BoundPlane& s = (dynamic_cast<const StripGeomDetUnit*>((it)))->specificSurface();
-	PRINT("TrackerDigiGeometryAnalyzer")<< it->geographicalId()
+	PRINT("TrackerDigiGeometryAnalyzer")<< int(it->geographicalId())
              << " RadLeng Strip "<<s.mediumProperties().radLen() <<" Xi Strip "<<s.mediumProperties().xi()<<'\n';
        }
        
@@ -110,18 +194,8 @@ TrackerDigiGeometryAnalyzer::analyze( const edm::Event& iEvent, const edm::Event
 
     }	
 
-   for (auto const & it  :pDD->detTypes() ){
-     if (dynamic_cast<const PixelGeomDetType*>((it))!=nullptr){
-       const PixelTopology& p = (dynamic_cast<const PixelGeomDetType*>((it)))->specificTopology();
-       PRINT("TrackerDigiGeometryAnalyzer")<<" PIXEL Det " // << it->geographicalId()
-                      <<"    Rows    "<<p.nrows() <<"    Columns "<<p.ncolumns()<<'\n';
-     }else{
-       const StripTopology& p = (dynamic_cast<const StripGeomDetType*>((it)))->specificTopology();
-       PRINT("TrackerDigiGeometryAnalyzer") <<" STRIP Det " // << it->geographicalId()
-                                            <<"    Strips    "<<p.nstrips()<<'\n';
-     }
-   }
 }
+
 void TrackerDigiGeometryAnalyzer::analyseTrapezoidal( const GeomDetUnit& det)
 {
 
