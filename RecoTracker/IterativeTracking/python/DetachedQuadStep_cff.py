@@ -18,12 +18,16 @@ detachedQuadStepSeedLayers = RecoTracker.TkSeedingLayers.PixelLayerQuadruplets_c
 )
 
 # TrackingRegion
-from RecoTracker.TkTrackingRegions.globalTrackingRegionFromBeamSpotFixedZ_cfi import globalTrackingRegionFromBeamSpotFixedZ as _globalTrackingRegionFromBeamSpotFixedZ
-detachedQuadStepTrackingRegions = _globalTrackingRegionFromBeamSpotFixedZ.clone(RegionPSet = dict(
+# TrackingRegion
+from RecoTracker.TkTrackingRegions.globalTrackingRegionWithVertices_cff import globalTrackingRegionWithVertices as _globalTrackingRegionWithVertices
+detachedQuadStepTrackingRegions = _globalTrackingRegionWithVertices.clone(RegionPSet = dict(
     ptMin = 0.3,
-    originHalfLength = 15.0,
-    originRadius = 1.5
+    originRadius = 1.0,
+    fixedError = 1.0,
+#    useMultipleScattering = False,
+    maxNVertices = 1
 ))
+
 from RecoTracker.TkTrackingRegions.globalTrackingRegionFromBeamSpot_cfi import globalTrackingRegionFromBeamSpot as _globalTrackingRegionFromBeamSpot
 from Configuration.Eras.Modifier_trackingPhase2PU140_cff import trackingPhase2PU140
 trackingPhase2PU140.toReplaceWith(detachedQuadStepTrackingRegions, _globalTrackingRegionFromBeamSpot.clone(RegionPSet = dict(

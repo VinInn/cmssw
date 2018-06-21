@@ -40,12 +40,15 @@ tobTecStepSeedLayersTripl = cms.EDProducer("SeedingLayersEDProducer",
 )
 
 # Triplet TrackingRegion
-from RecoTracker.TkTrackingRegions.globalTrackingRegionFromBeamSpotFixedZ_cfi import globalTrackingRegionFromBeamSpotFixedZ as _globalTrackingRegionFromBeamSpotFixedZ
-tobTecStepTrackingRegionsTripl = _globalTrackingRegionFromBeamSpotFixedZ.clone(RegionPSet = dict(
+from RecoTracker.TkTrackingRegions.globalTrackingRegionWithVertices_cff import globalTrackingRegionWithVertices as _globalTrackingRegionWithVertices
+tobTecStepTrackingRegionsTripl = _globalTrackingRegionWithVertices.clone(RegionPSet = dict(
     ptMin = 0.55,
-    originHalfLength = 20.0,
-    originRadius = 3.5
+    originRadius = 3.5,
+    fixedError = 3.5,
+    useMultipleScattering = False,
+    maxNVertices = 1
 ))
+
 
 from Configuration.Eras.Modifier_pp_on_XeXe_2017_cff import pp_on_XeXe_2017
 from Configuration.Eras.Modifier_pp_on_AA_2018_cff import pp_on_AA_2018
@@ -137,10 +140,12 @@ tobTecStepSeedLayersPair = cms.EDProducer("SeedingLayersEDProducer",
     )
 )
 # Pair TrackingRegion
-tobTecStepTrackingRegionsPair = _globalTrackingRegionFromBeamSpotFixedZ.clone(RegionPSet = dict(
+tobTecStepTrackingRegionsPair = _globalTrackingRegionWithVertices.clone(RegionPSet = dict(
     ptMin = 0.6,
-    originHalfLength = 30.0,
-    originRadius = 6.0,
+    originRadius = 4.0,
+    fixedError = 4.0,
+    useMultipleScattering = False,
+    maxNVertices = 1
 ))
 
 from RecoTracker.TkTrackingRegions.globalTrackingRegionWithVertices_cff import globalTrackingRegionWithVertices as _globalTrackingRegionWithVertices

@@ -102,12 +102,15 @@ trackingLowPU.toModify(pixelLessStepSeedLayers,
 )
 
 # TrackingRegion
-from RecoTracker.TkTrackingRegions.globalTrackingRegionFromBeamSpotFixedZ_cfi import globalTrackingRegionFromBeamSpotFixedZ as _globalTrackingRegionFromBeamSpotFixedZ
-pixelLessStepTrackingRegions = _globalTrackingRegionFromBeamSpotFixedZ.clone(RegionPSet = dict(
+from RecoTracker.TkTrackingRegions.globalTrackingRegionWithVertices_cff import globalTrackingRegionWithVertices as _globalTrackingRegionWithVertices
+pixelLessStepTrackingRegions = _globalTrackingRegionWithVertices.clone(RegionPSet = dict(
     ptMin = 0.4,
-    originHalfLength = 12.0,
-    originRadius = 1.0
+    originRadius = 1.0,
+    fixedError = 1.0,
+    useMultipleScattering = False,
+    maxNVertices = 1
 ))
+
 trackingLowPU.toModify(pixelLessStepTrackingRegions, RegionPSet = dict(
     ptMin = 0.7,
     originHalfLength = 10.0,

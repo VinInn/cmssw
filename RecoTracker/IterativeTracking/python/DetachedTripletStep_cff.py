@@ -40,12 +40,15 @@ from Configuration.Eras.Modifier_trackingPhase1_cff import trackingPhase1
 trackingPhase1.toModify(detachedTripletStepSeedLayers, layerList=_phase1LayerList)
 
 # TrackingRegion
-from RecoTracker.TkTrackingRegions.globalTrackingRegionFromBeamSpotFixedZ_cfi import globalTrackingRegionFromBeamSpotFixedZ as _globalTrackingRegionFromBeamSpotFixedZ
-detachedTripletStepTrackingRegions = _globalTrackingRegionFromBeamSpotFixedZ.clone(RegionPSet = dict(
+from RecoTracker.TkTrackingRegions.globalTrackingRegionWithVertices_cff import globalTrackingRegionWithVertices as _globalTrackingRegionWithVertices
+detachedTripletStepTrackingRegions = _globalTrackingRegionWithVertices.clone(RegionPSet = dict(
     ptMin = 0.3,
-    originHalfLength = 15.0,
-    originRadius = 1.5
+    originRadius = 1.0,
+    fixedError = 1.0,
+#    useMultipleScattering = False,
+    maxNVertices = 1
 ))
+
 trackingPhase1.toModify(detachedTripletStepTrackingRegions, RegionPSet = dict(ptMin = 0.25))
 
 from Configuration.Eras.Modifier_pp_on_XeXe_2017_cff import pp_on_XeXe_2017

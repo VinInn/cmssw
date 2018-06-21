@@ -48,12 +48,15 @@ from Configuration.Eras.Modifier_trackingPhase2PU140_cff import trackingPhase2PU
 trackingPhase2PU140.toModify(lowPtTripletStepSeedLayers, layerList = _layerListForPhase2)
 
 # TrackingRegion
-from RecoTracker.TkTrackingRegions.globalTrackingRegionFromBeamSpot_cfi import globalTrackingRegionFromBeamSpot as _globalTrackingRegionFromBeamSpot
-lowPtTripletStepTrackingRegions = _globalTrackingRegionFromBeamSpot.clone(RegionPSet = dict(
+from RecoTracker.TkTrackingRegions.globalTrackingRegionWithVertices_cff import globalTrackingRegionWithVertices as _globalTrackingRegionWithVertices
+lowPtTripletStepTrackingRegions = _globalTrackingRegionWithVertices.clone(RegionPSet = dict(
     ptMin = 0.2,
-    originRadius = 0.02,
-    nSigmaZ = 4.0
+    originRadius = 0.04,
+    fixedError = 1.0,
+#    useMultipleScattering = False,
+    maxNVertices = 1
 ))
+
 trackingPhase1.toModify(lowPtTripletStepTrackingRegions, RegionPSet = dict(ptMin = 0.2))
 trackingPhase2PU140.toModify(lowPtTripletStepTrackingRegions, RegionPSet = dict(ptMin = 0.40))
 

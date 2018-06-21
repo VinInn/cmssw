@@ -14,13 +14,18 @@ lowPtQuadStepSeedLayers = RecoTracker.TkSeedingLayers.PixelLayerQuadruplets_cfi.
     FPix = dict(skipClusters = cms.InputTag('lowPtQuadStepClusters'))
 )
 
+
 # TrackingRegion
-from RecoTracker.TkTrackingRegions.globalTrackingRegionFromBeamSpot_cfi import globalTrackingRegionFromBeamSpot as _globalTrackingRegionFromBeamSpot
-lowPtQuadStepTrackingRegions = _globalTrackingRegionFromBeamSpot.clone(RegionPSet = dict(
+from RecoTracker.TkTrackingRegions.globalTrackingRegionWithVertices_cff import globalTrackingRegionWithVertices as _globalTrackingRegionWithVertices
+lowPtQuadStepTrackingRegions = _globalTrackingRegionWithVertices.clone(RegionPSet = dict(
     ptMin = 0.15,
-    originRadius = 0.02,
-    nSigmaZ = 4.0
+    originRadius = 0.04,
+    fixedError = 1.0,
+#    useMultipleScattering = False,
+    maxNVertices = 1
 ))
+
+
 from Configuration.Eras.Modifier_trackingPhase2PU140_cff import trackingPhase2PU140
 trackingPhase2PU140.toModify(lowPtQuadStepTrackingRegions, RegionPSet = dict(ptMin = 0.35,originRadius = 0.025))
 
