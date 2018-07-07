@@ -38,7 +38,7 @@
 
 namespace pixelgpudetails {
 
-  SiPixelRawToClusterGPUKernel::SiPixelRawToClusterGPUKernel() {
+  SiPixelRawToClusterGPUKernel::SiPixelRawToClusterGPUKernel(cuda::stream_t<>& cudaStream) {
     int WSIZE = pixelgpudetails::MAX_FED * pixelgpudetails::MAX_WORD;
     cudaMallocHost(&word,       sizeof(unsigned int)*WSIZE);
     cudaMallocHost(&fedId_h,    sizeof(unsigned char)*WSIZE);
@@ -92,6 +92,12 @@ namespace pixelgpudetails {
     cudaCheck(cudaMalloc((void**) & moduleId_d,    (MaxNumModules)*sizeof(uint32_t) ));
 
     cudaCheck(cudaMalloc((void**) & debug_d,        MAX_WORD32_SIZE));
+
+    cudaCheck(cudaMalloc((void**) & gpuProduct_d, sizeof(GPUProduct)));
+    gpuProduct = getProduct();
+      
+    cudaCheck(cudaMemcpyAsync(gpuProduct_d, &gpuProduct, sizeof(GPUProduct), cudaMemcpyDefault,cudaStream.id()));
+
   }
 
  
@@ -115,6 +121,10 @@ namespace pixelgpudetails {
     cudaCheck(cudaFree(clusInModule_d));
     cudaCheck(cudaFree(moduleId_d));
     cudaCheck(cudaFree(debug_d));
+
+    cudaCheck(cudaFree(gpuProduct_d));
+
+
   }
 
   void SiPixelRawToClusterGPUKernel::initializeWordFed(int fedId, unsigned int wordCounterGPU, const cms_uint32_t *src, unsigned int length) {
