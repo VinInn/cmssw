@@ -111,7 +111,7 @@ void MeasurementTrackerTest::analyze(const edm::Event& iEvent, const edm::EventS
   KFUpdator kfu;
   LocalError he(0.01*0.01,0,0.02*0.02);
 
-  for (float tl = 0.1f; tl<5.0f; tl+=0.5f) {
+  for (float tl = 0.1f; tl<6.0f; tl+=0.5f) {
 
   float p = 450.0f;
   float phi = 0.2; // 0.1415f;

@@ -110,11 +110,11 @@ void Det2DetPropTest::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
 
 
-  auto const & detI = *geom.idToDet(352459020);
-  auto const & detO = *geom.idToDet(402676364);
+  auto const & detI = *geom.idToDet(352459272); // 352459020);
+  auto const & detO = *geom.idToDet(470311716); // 402676364);
 
   GlobalVector vdir(detO.position() - detI.position());
-  float p = 45.0f;
+  float p = 450.0f;
   GlobalVector startingMomentum  = p*vdir/vdir.mag();
 
   std::cout << "Angles " << startingMomentum.phi()<< ' ' << startingMomentum.eta()  << std::endl;
