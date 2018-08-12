@@ -94,8 +94,9 @@ void MeasurementTrackerTest::analyze(const edm::Event& iEvent, const edm::EventS
   iSetup.get<IdealMagneticFieldRecord>().get(magfield);
 
   edm::ESHandle<Propagator>             propagatorHandle;
-  iSetup.get<TrackingComponentsRecord>().get("PropagatorWithMaterial", propagatorHandle);
-  auto const & ANprop = *propagatorHandle;  
+  iSetup.get<TrackingComponentsRecord>().get("RungeKuttaTrackerPropagator", propagatorHandle);
+  // iSetup.get<TrackingComponentsRecord>().get("PropagatorWithMaterial", propagatorHandle);
+  auto & ANprop = *(*propagatorHandle).clone();  // leak
 
   // error (very very small)
   ROOT::Math::SMatrixIdentity id;
@@ -110,18 +111,20 @@ void MeasurementTrackerTest::analyze(const edm::Event& iEvent, const edm::EventS
   KFUpdator kfu;
   LocalError he(0.01*0.01,0,0.02*0.02);
 
-  for (float tl = 0.1f; tl<3.0f; tl+=0.5f) {
+  for (float tl = 0.1f; tl<5.0f; tl+=0.5f) {
 
-  float p = 1.0f;
-  float phi = 0.1415f;
+  float p = 450.0f;
+  float phi = 0.2; // 0.1415f;
   float tanlmd = tl; // 0.1f;
   auto sinth2 = 1.f/(1.f+tanlmd*tanlmd);
   auto sinth = std::sqrt(sinth2);
   auto costh = tanlmd*sinth;
 
-  std::cout << tanlmd << ' ' << sinth << ' ' << costh << std::endl;
-
   GlobalVector startingMomentum(p*std::sin(phi)*sinth,p*std::cos(phi)*sinth,p*costh);
+
+  std::cout << "Angles " << tanlmd << ' ' << sinth << ' ' << costh << ' ' << startingMomentum.eta()  << std::endl;
+
+
   float z = 0.1f;
   GlobalPoint startingPosition(0,0,z);
 
@@ -131,9 +134,14 @@ void MeasurementTrackerTest::analyze(const edm::Event& iEvent, const edm::EventS
   auto rot = rotation(startingMomentum);
   auto startingPlane = pb.plane( startingPosition, rot);
 
-  GlobalVector moms[3] = { 0.5f*startingMomentum,startingMomentum,10.f*startingMomentum};
+  auto overP = 1.f/startingMomentum.mag();
+  GlobalVector moms[3] = { overP/(.99f*overP)*startingMomentum , startingMomentum,  overP/(1.01f*overP)*startingMomentum};
   
+  // GlobalVector moms[3] = { 0.5f*startingMomentum,startingMomentum,10.f*startingMomentum};
+
   for (auto mom : moms) {
+  ANprop.setPropagationDirection(alongMomentum);
+  std::cout << "\n\nMom " << mom << ' ' << mom.perp() << std::endl;
 
   TrajectoryStateOnSurface startingStateP( GlobalTrajectoryParameters(startingPosition, 
 	  				          mom, 1, magfield.product()), 
@@ -144,40 +152,56 @@ void MeasurementTrackerTest::analyze(const edm::Event& iEvent, const edm::EventS
   const DetLayer* layer = searchGeom.pixelBarrelLayers().front();
   {
     auto it = layer;
-   std::cout << "first layer " << (it->isBarrel() ? " Barrel" : " Forward") << " layer " << it->seqNum() << " SubDet " << it->subDetector()<< std::endl;
+   std::cout << "\nfirst layer " << (it->isBarrel() ? " Barrel" : " Forward") << " layer " << it->seqNum() << " SubDet " << it->subDetector()<< std::endl;
   }
   auto const & detWithState = layer->compatibleDets(tsos,ANprop,estimator);
   if(!detWithState.size()) { std::cout << "no det on first layer" << std::endl; continue;}
   auto did = detWithState.front().first->geographicalId();
-  std::cout << "arrived at " << int(did) << std::endl;
+  std::cout << "arrived at " << int(did) << ' ' << detWithState.front().first->index() << std::endl;
   tsos = detWithState.front().second;
   std::cout << tsos.globalPosition() << ' ' << tsos.localError().positionError() << std::endl;
 
   SiPixelRecHit::ClusterRef pref;
   SiPixelRecHit   hitpx(tsos.localPosition(),he,1.,*detWithState.front().first,pref);
   tsos = kfu.update(tsos, hitpx);
+  std::cout << "Mom " << tsos.globalMomentum() << ' ' << tsos.globalMomentum().perp() << std::endl;
   std::cout << tsos.globalPosition() << ' ' << tsos.localError().positionError() << std::endl;
 
 
-  for (auto il=1; il<5;	++il) {
-  if (!layer) break;
-  auto const & compLayers = (*navSchool).nextLayers(*layer,*tsos.freeState(),alongMomentum);
-  layer = nullptr;
-  for(auto it : compLayers){
-    if (it->basicComponents().empty()) {
+  auto oneStep = [&](int il,  PropagationDirection dir) {
+    ANprop.setPropagationDirection(dir);
+    auto const & compLayers = (*navSchool).nextLayers(*layer,*tsos.freeState(),dir);
+    if (compLayers.empty()) std::cout << "NO comp layers after " << layer->seqNum() << "??" << std::endl; 
+    layer = nullptr;
+    for(auto it : compLayers){
+      if (it->basicComponents().empty()) {
 	   //this should never happen. but better protect for it
 	   std::cout <<"a detlayer with no components: I cannot figure out a DetId from this layer. please investigate." << std::endl;
 	   continue;
         }
-    std::cout << il << (it->isBarrel() ? " Barrel" : " Forward") << " layer " << it->seqNum() << " SubDet " << it->subDetector()<< std::endl;
-    auto const & detWithState = it->compatibleDets(tsos,ANprop,estimator);
-    if(!detWithState.size()) { std::cout << "no det on this layer" << std::endl; continue;}
-    layer = it;
-    auto did = detWithState.front().first->geographicalId();
-    std::cout << "arrived at " << int(did) << std::endl;
-    tsos = detWithState.front().second;
-    std::cout << tsos.globalPosition() << ' ' << tsos.localError().positionError() << std::endl; 
-  }
+      std::cout << il << (it->isBarrel() ? " Barrel" : " Forward") << " layer " << it->seqNum() << " SubDet " << it->subDetector()<< std::endl;
+      auto const & detWithState = it->compatibleDets(tsos,ANprop,estimator);
+      if(!detWithState.size()) { std::cout << "no det on this layer" << std::endl; continue;}
+      else std::cout << "found " << detWithState.size() << " compatible dets" << std::endl;
+      layer = it;
+      auto const & ds  = (dir ==  alongMomentum) ? detWithState.front() : detWithState.back(); 
+      auto did =  ds.first->geographicalId(); 
+      std::cout << "arrived at " << int(did) << ' ' << ds.first->index() << std::endl;
+      tsos = ds.second;
+      std::cout << "Mon " << tsos.globalMomentum() << ' ' << tsos.globalMomentum().perp() << std::endl;
+      std::cout << "Pos " << tsos.globalPosition() << ' ' << tsos.localPosition() << ' ' << tsos.localError().positionError() << std::endl; 
+    }
+  }; // oneStep
+  PropagationDirection dir =  alongMomentum;
+  for (auto il=1; il<6; ++il) {
+    if (!layer) break;
+    oneStep(il,dir);
+  } // layer loop
+  std::cout << "\nNOW backward " << std::endl;
+  dir =  oppositeToMomentum;
+  for (auto il=1; il<6; ++il) {
+    if (!layer) break;
+    oneStep(il,dir);
   } // layer loop
   }  // loop on moms
  } // loop  on tanLa
