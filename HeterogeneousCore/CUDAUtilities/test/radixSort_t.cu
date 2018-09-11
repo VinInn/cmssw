@@ -89,6 +89,7 @@ void go() {
 
   auto v_d = cuda::memory::device::make_unique<U[]>(current_device, N);
   auto ind_d = cuda::memory::device::make_unique<uint16_t[]>(current_device, N);
+  auto ws_d = cuda::memory::device::make_unique<uint16_t[]>(current_device, N);
   auto off_d = cuda::memory::device::make_unique<uint32_t[]>(current_device, blocks+1);
 
   cuda::memory::copy(v_d.get(), v, N*sizeof(T));
@@ -100,7 +101,7 @@ void go() {
    cuda::launch(
                 radixSortMultiWrapper<U,NS>,
                 { blocks, 256 },
-                v_d.get(),ind_d.get(),off_d.get()
+                v_d.get(),ind_d.get(),off_d.get(),ws_d.get()
         );
 
  if (i==0) std::cout << "done for " << offsets[blocks] << std::endl;
