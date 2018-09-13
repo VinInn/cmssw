@@ -1,6 +1,7 @@
 <use   name="DataFormats/VertexReco"/>
 <use   name="RecoPixelVertexing/PixelLowPtUtilities"/>
 <use   name="FWCore/Concurrency"/>
+<flags   CXXFLAGS="-lClusEllipseDNN_sse  -lruntime  -lxla_compiled_cpu_function"/>
 <library   file="*.cc" name="RecoPixelVertexingPixelLowPtUtilitiesPlugins">
   <flags   EDM_PLUGIN="1"/>
 </library>

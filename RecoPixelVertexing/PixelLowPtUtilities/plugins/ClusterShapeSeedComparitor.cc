@@ -17,6 +17,16 @@
 #include "FWCore/Utilities/interface/EDGetToken.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/SiPixelCluster/interface/SiPixelClusterShapeCache.h"
+
+
+#include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
+#include "Geometry/CommonTopologies/interface/PixelTopology.h"
+
+#include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseParams.h"
+#include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseDim.h"
+#include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseSigma.h"
+
+
 #include <cstdio>
 #include <cassert>
 
@@ -37,12 +47,18 @@ class PixelClusterShapeSeedComparitor : public SeedComparitor {
     private:
         bool compatibleHit(const TrackingRecHit &hit, const GlobalVector &direction) const ;
 
+        float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir) const;
+
         std::string filterName_;
         edm::ESHandle<ClusterShapeHitFilter> filterHandle_;
         edm::EDGetTokenT<SiPixelClusterShapeCache> pixelClusterShapeCacheToken_;
         const SiPixelClusterShapeCache *pixelClusterShapeCache_;
+
+        edm::ESHandle<TrackerTopology> tTopoHandle_;
+
         const bool filterAtHelixStage_;
         const bool filterPixelHits_, filterStripHits_;
+        const bool useDNN_;
 };
 
 
@@ -51,11 +67,13 @@ PixelClusterShapeSeedComparitor::PixelClusterShapeSeedComparitor(const edm::Para
     pixelClusterShapeCache_(nullptr),
     filterAtHelixStage_(cfg.getParameter<bool>("FilterAtHelixStage")),
     filterPixelHits_(cfg.getParameter<bool>("FilterPixelHits")),
-    filterStripHits_(cfg.getParameter<bool>("FilterStripHits"))
+    filterStripHits_(cfg.getParameter<bool>("FilterStripHits")),
+    useDNN_(false) // (filterPixelHits_)
 {
   if(filterPixelHits_) {
     pixelClusterShapeCacheToken_ = iC.consumes<SiPixelClusterShapeCache>(cfg.getParameter<edm::InputTag>("ClusterShapeCacheSrc"));
   }
+  std::cout << "PixelClusterShapeSeedComparitor using dnn " << (useDNN_ ? "YES" : "NO") << std::endl;  
 }
 
 PixelClusterShapeSeedComparitor::~PixelClusterShapeSeedComparitor() 
@@ -70,6 +88,8 @@ PixelClusterShapeSeedComparitor::init(const edm::Event& ev, const edm::EventSetu
       ev.getByToken(pixelClusterShapeCacheToken_, hcache);
       pixelClusterShapeCache_ = hcache.product();
     }
+    es.get<TrackerTopologyRcd>().get(tTopoHandle_);
+ 
 }
 
 
@@ -80,6 +100,52 @@ PixelClusterShapeSeedComparitor::compatible(const TrajectoryStateOnSurface &tsos
     if (filterAtHelixStage_) return true;
     assert(hit->isValid() && tsos.isValid());
     return compatibleHit(*hit, tsos.globalDirection());
+}
+
+
+float PixelClusterShapeSeedComparitor::dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir) const {
+
+    ClusEllipseDim dnnD;
+    ClusEllipseSigma dnnS;
+ 
+
+   auto const & tkTpl = *tTopoHandle_;
+
+       
+   auto ldir = recHit.det()->toLocal(gdir);
+   
+   auto id = recHit.geographicalId();
+ 
+   bool isBarrel = id.subdetId() == PixelSubdetector::PixelBarrel;
+
+   float thickness = isBarrel ? 0.0285f : 0.029f;  // phase1
+   constexpr float ipx = 1.f/0.01f; constexpr float ipy = 1.f/0.015f;  // phase1 pitch
+
+   auto tkdx = ipx*thickness * ldir.x()/ldir.z();
+   auto tkdy = ipy*thickness * ldir.y()/ldir.z();
+   if( tkdy<0) { tkdx = -tkdx;}
+   tkdy = std::abs(tkdy);
+
+   ClusEllipseParams cep; cep.fill(recHit,tkTpl);
+   if (cep.m_layer==0) return -1.f;
+   memcpy(dnnD.arg0_data(),cep.data(),9*4);
+   memcpy(dnnS.arg0_data(),dnnD.arg0_data(),9*4);
+   dnnD.Run();
+   dnnS.Run();
+
+   tkdx = cep.m_sy>1 ? tkdx : std::abs(tkdx);
+
+   auto pdx = 0.25f *(cep.m_dx + dnnD.result0_data()[0]);
+   auto pdy = cep.m_dy + dnnD.result0_data()[1];
+
+   auto psx = dnnS.result0_data()[0];
+   auto psy = dnnS.result0_data()[1];
+
+   auto zx = (pdx-tkdx)/psx;
+   auto zy = (pdy-tkdy)/psy;
+
+   return zx*zx+zy*zy;
+
 }
 
 bool
@@ -98,6 +164,7 @@ PixelClusterShapeSeedComparitor::compatible(const SeedingHitSet  &hits,
     GlobalPoint  vertex = helixStateAtVertex.position();
     GlobalVector momvtx = helixStateAtVertex.momentum();
     float x0 = vertex.x(), y0 = vertex.y();
+    int nh=0; float chi2=0;
     for (unsigned int i = 0, n = hits.size(); i < n; ++i) {
         auto const  & hit = *hits[i];
         GlobalPoint pos = hit.globalPosition();
@@ -115,10 +182,20 @@ PixelClusterShapeSeedComparitor::compatible(const SeedingHitSet  &hits,
         float perpscale = sqrt(pmom2/mom2 / perp2), zscale = sqrt((1-pmom2/mom2));
         GlobalVector gdir(perpx*perpscale, perpy*perpscale, (momvtx.z() > 0 ? zscale : -zscale));
 
-        if (!compatibleHit(hit, gdir)) {
+        auto const & recHit = reinterpret_cast<BaseTrackerRecHit const &>(hit); 
+        if (useDNN_ && recHit.isPixel()) {
+            auto const & pRecHit = reinterpret_cast<SiPixelRecHit const &>(recHit);
+            auto lc = dnnChi2(pRecHit,gdir);
+            if (lc>=0) {
+              ++nh; chi2+=lc;
+            }
+        } 
+        else if (!compatibleHit(hit, gdir)) {
             return false; // not yet
         }
     }
+    // if (useDNN_) std::cout << "PixelClusterShapeSeedComparitor chi2 " << chi2 << ' ' << nh << std::endl;
+    if (useDNN_) return nh==0 || chi2 < 18.f*float(nh);
     return true; 
 }
 

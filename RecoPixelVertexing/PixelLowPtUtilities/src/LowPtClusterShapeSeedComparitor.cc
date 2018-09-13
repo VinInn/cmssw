@@ -20,6 +20,21 @@
 #include "RecoTracker/Record/interface/CkfComponentsRecord.h"
 #include "RecoTracker/TkSeedingLayers/interface/SeedingHitSet.h"
 
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "DataFormats/GeometryVector/interface/GlobalVector.h"
+#include "DataFormats/GeometryVector/interface/Basic2DVector.h"
+
+
+#include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
+#include "Geometry/CommonTopologies/interface/PixelTopology.h"
+
+#include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseParams.h"
+#include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseDim.h"
+#include "RecoPixelVertexing/PixelLowPtUtilities/interface/ClusEllipseSigma.h"
+
+
+#include<cmath>
+
 namespace {
   typedef Basic2DVector<float>   Vector2D;
 
@@ -108,7 +123,79 @@ void LowPtClusterShapeSeedComparitor::init(const edm::Event& e, const edm::Event
   es.get<TrackerTopologyRcd>().get(theTTopo);
 
   e.getByToken(thePixelClusterShapeCacheToken, thePixelClusterShapeCache);
+
+
 }
+
+constexpr bool useDNN = true;
+float dnnChi2(SiPixelRecHit const & recHit, GlobalVector gdir, TrackerTopology const & tkTpl) {
+
+    ClusEllipseDim dnnD;
+    ClusEllipseSigma dnnS;
+ 
+   auto ldir = recHit.det()->toLocal(gdir);
+   
+   auto id = recHit.geographicalId();
+ 
+   bool isBarrel = id.subdetId() == PixelSubdetector::PixelBarrel;
+
+   float thickness = isBarrel ? 0.0285f : 0.029f;  // phase1
+   constexpr float ipx = 1.f/0.01f; constexpr float ipy = 1.f/0.015f;  // phase1 pitch
+
+   auto tkdx = ipx*thickness * ldir.x()/ldir.z();
+   auto tkdy = ipy*thickness * ldir.y()/ldir.z();
+   if( tkdy<0) { tkdx = -tkdx;}
+   tkdy = std::abs(tkdy);
+
+   ClusEllipseParams cep; cep.fill(recHit,tkTpl);
+   if (cep.m_layer==0) return -1.f;
+   memcpy(dnnD.arg0_data(),cep.data(),9*4);
+   memcpy(dnnS.arg0_data(),dnnD.arg0_data(),9*4);
+   dnnD.Run();
+   dnnS.Run();
+
+   tkdx = cep.m_sy>1 ? tkdx : std::abs(tkdx);
+
+   auto pdx = 0.25f *(cep.m_dx + dnnD.result0_data()[0]);
+   auto pdy = cep.m_dy + dnnD.result0_data()[1];
+
+   auto psx = dnnS.result0_data()[0];
+   auto psy = dnnS.result0_data()[1];
+
+   auto zx = (pdx-tkdx)/psx;
+   auto zy = (pdy-tkdy)/psy;
+
+   /* if trained with MB 0PU */
+   // in endcap the x-distribution has peaks at +/-1 :  try to correct
+   // in endcap the x-distribution has peaks at +/-1 :  try to correct
+   if (!isBarrel  && cep.m_sy<3.f ) zx = 1.5f*std::max(0.f,std::abs(zx)-1.f);
+   // in endcap the y-distribution is shifted toward negative values for large size...
+   if (!isBarrel && cep.m_sy==3.f) zy -=1.0f;  // and toward positive for sy==3!
+   if (!isBarrel && cep.m_sy>3.f) zy +=0.8f;
+
+   // little tail for zx positive and small size y
+   if (isBarrel  && cep.m_sy<3.f ) zx = zx<1.5f ? zx : 0.8f*zx;
+   
+   // in Barrel L1 there is a tail for large negative zy at large PU due to ??Broken clusters??  
+   if (isBarrel&&cep.m_layer==1.f&& cep.m_sy>4.f) { zy-=0.5f; zy = zy>-2.f ? zy : 0.75f*zy; }
+
+   /* if trained with realisitc ttbar 50PU
+   // in endcap the x-distribution has peaks at +/-1 :  try to correct
+   if (!isBarrel) zx = 1.5f*std::max(0.f,std::abs(zx)-1.f);
+   // in endcap the y-distribution is shifted toward negative values for large size ...
+   if (!isBarrel && cep.m_sy>3) zy +=0.75f;
+   // in Barrel L1 is sharply peaked at +1 with a negative tail...
+   if (isBarrel&&cep.m_layer==1.f) {zy-=0.8f; zy = zy>0 ? 2.f*zy : zy;}
+   */
+
+   if (std::max(std::abs(zx),std::abs(zy))>4.f) return 100.f; // kill outliers
+   auto chi2 = zx*zx+zy*zy;
+   return chi2;
+
+}
+
+
+
 
 bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) const
 //(const reco::Track* track, const vector<const TrackingRecHit *> & recHits) const
@@ -139,6 +226,8 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
       return true;
     }
 
+  int nh=0; float chi2=0;
+ 
   for(int i = 0; i < 3; i++)
   {
     const SiPixelRecHit* pixelRecHit =
@@ -159,6 +248,13 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
 					       <<"global direction:"<< globalDirs[i];
 
 
+    if (useDNN) {
+      auto lc = dnnChi2(*pixelRecHit,globalDirs[i],*theTTopo);
+      if (lc>=0) {
+        if (lc>25.f) return false; // kill outliers...
+        ++nh; chi2+=lc;
+      }
+    }else
     if(! filter->isCompatible(*pixelRecHit, globalDirs[i], *thePixelClusterShapeCache) )
     {
       LogTrace("LowPtClusterShapeSeedComparitor")
@@ -168,7 +264,9 @@ bool LowPtClusterShapeSeedComparitor::compatible(const SeedingHitSet &hits) cons
       ok = false; break;
     }
   }
-
+  // if (useDNN) std::cout << "LowPtClusterShapeSeedComparitor chi2 " << chi2 << ' ' << nh << std::endl;
+  if (useDNN) return nh==0 || chi2 < 15.f*float(nh);
+ 
   return ok;
 }
 
