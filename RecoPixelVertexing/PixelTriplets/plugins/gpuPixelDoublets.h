@@ -134,7 +134,9 @@ namespace gpuPixelDoublets {
   }
 
   __global__
-  void getDoubletsFromHisto(GPUCACell * cells, uint32_t * nCells, siPixelRecHitsHeterogeneousProduct::HitsOnGPU const *  __restrict__ hhp,                
+  void 
+  __launch_bounds__(256, 4)
+  getDoubletsFromHisto(GPUCACell * cells, uint32_t * nCells, siPixelRecHitsHeterogeneousProduct::HitsOnGPU const *  __restrict__ hhp,                
                             GPU::VecArray< unsigned int, 2048> *isOuterHitOfCell) {
 
     uint8_t const layerPairs[2*13] = {0,1 ,1,2 ,2,3 

@@ -75,8 +75,10 @@ template<
   int NS, // number of significant bytes to use in sorting
   typename RF
 >
-__device__  
-void radixSortImpl(T const * __restrict__ a, uint16_t * ind, uint16_t * ind2, uint32_t size, RF reorder) {
+__device__
+void
+__forceinline__
+radixSortImpl(T const * __restrict__ a, uint16_t * ind, uint16_t * ind2, uint32_t size, RF reorder) {
     
   constexpr int d = 8, w = 8*sizeof(T);
   constexpr int sb = 1<<d;
@@ -200,7 +202,9 @@ template<
   typename std::enable_if<std::is_unsigned<T>::value,T>::type* = nullptr
 >
 __device__
-void radixSort(T const * a, uint16_t * ind, uint16_t * ind2, uint32_t size) {
+void 
+__forceinline__
+radixSort(T const * a, uint16_t * ind, uint16_t * ind2, uint32_t size) {
   radixSortImpl<T,NS>(a,ind,ind2,size,dummyReorder<T>);
 }
 
@@ -210,7 +214,9 @@ template<
   typename std::enable_if<std::is_integral<T>::value&&std::is_signed<T>::value,T>::type* = nullptr
 >
 __device__
-void radixSort(T const * a, uint16_t * ind, uint16_t * ind2, uint32_t size) {
+void 
+__forceinline__
+radixSort(T const * a, uint16_t * ind, uint16_t * ind2, uint32_t size) {
   radixSortImpl<T,NS>(a,ind,ind2,size,reorderSigned<T>);
 }
 
@@ -220,7 +226,9 @@ template<
   typename std::enable_if<std::is_floating_point<T>::value,T>::type* = nullptr
 >
 __device__
-void radixSort(T const * a, uint16_t * ind, uint16_t * ind2, uint32_t size) {
+void
+__forceinline__
+ radixSort(T const * a, uint16_t * ind, uint16_t * ind2, uint32_t size) {
   using I = int;
   radixSortImpl<I,NS>((I const *)(a),ind,ind2, size,reorderFloat<I>);
 }
@@ -229,11 +237,15 @@ void radixSort(T const * a, uint16_t * ind, uint16_t * ind2, uint32_t size) {
 
 template<typename T, int NS=sizeof(T)>
 __device__
-void radixSortMulti(T const * v, uint16_t * index, uint32_t const * offsets, uint16_t * workspace) {
+void 
+__forceinline__
+radixSortMulti(T const * v, uint16_t * index, uint32_t const * offsets, uint16_t * workspace) {
+
+  extern __shared__ uint16_t ws[];
 
   auto a = v+offsets[blockIdx.x];
   auto ind = index+offsets[blockIdx.x];
-  auto ind2 = workspace+offsets[blockIdx.x];
+  auto ind2 = nullptr==workspace ? ws : workspace+offsets[blockIdx.x];
   auto size = offsets[blockIdx.x+1]-offsets[blockIdx.x];
   assert(offsets[blockIdx.x+1]>=offsets[blockIdx.x]);
   if (size>0) radixSort<T,NS>(a,ind,ind2,size);
@@ -242,8 +254,19 @@ void radixSortMulti(T const * v, uint16_t * index, uint32_t const * offsets, uin
 
 template<typename T, int NS=sizeof(T)>
 __global__
-void radixSortMultiWrapper(T const * v, uint16_t * index, uint32_t const * offsets, uint16_t * workspace) {
+void 
+__launch_bounds__(256, 4)
+radixSortMultiWrapper(T const * v, uint16_t * index, uint32_t const * offsets, uint16_t * workspace) {
   radixSortMulti<T,NS>(v,index,offsets, workspace);
 }
+
+template<typename T, int NS=sizeof(T)>
+__global__
+void 
+// __launch_bounds__(256, 4)
+radixSortMultiWrapper2(T const * v, uint16_t * index, uint32_t const * offsets, uint16_t * workspace) {
+  radixSortMulti<T,NS>(v,index,offsets, workspace);
+}
+
 
 #endif // HeterogeneousCoreCUDAUtilities_radixSort_H
