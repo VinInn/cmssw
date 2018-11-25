@@ -12,3 +12,7 @@
 <bin   file="ErrorPropOri_t.cpp">
   <use   name="TrackingTools/GeomPropagators"/>
 </bin>
+
+<bin   file="ErrorPropPlane2Plane_t.cpp">
+  <use   name="TrackingTools/GeomPropagators"/>
+</bin>
