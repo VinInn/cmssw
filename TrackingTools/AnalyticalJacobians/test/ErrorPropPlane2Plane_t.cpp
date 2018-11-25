@@ -29,10 +29,6 @@ namespace {
 
 }
 
-#include "FWCore/Utilities/interface/HRRealTime.h"
-void st(){}
-void en(){}
-
 #include<iostream>
 
 int main(int argc, char** argv) {
@@ -56,12 +52,26 @@ int main(int argc, char** argv) {
   std::cout << "pos/mom @1 " << tpg.position() << " " << tpg.momentum() << std::endl;
   std::cout << "pt/p " << tpg.momentum().perp() << ' ' << tpg.momentum().mag() << std::endl;
 
-  GlobalTrajectoryParameters tpg0(tpg);
-
   GlobalPoint zero(0.,0.,0.); 
   std::cout << std::endl;
+  {
+  // compute plane perpedicular to track
+  float sp = tpg.momentum().y()/tpg.momentum().perp();
+  float cp = tpg.momentum().x()/tpg.momentum().perp();
+  Surface::RotationType prot(
+                 sp, -cp,  0,
+                 0 ,   0, -1.,
+                 cp,  sp,  0);
+   Plane pplane(pos,prot);
+   LocalTrajectoryParameters lpg(pplane.toLocal(tpg.position()),
+                                    pplane.toLocal(tpg.momentum()),tpg.charge());
+  std::cout << "on ip plane " << lpg.vector() << std::endl;
+  JacobianCurvilinearToLocal jcl(pplane,lpg,m);
+  std::cout << "jcl\n" << jcl.jacobian() << std::endl;
+  JacobianLocalToCurvilinear jlc(pplane,lpg,m);
+  std::cout << "jlc\n" << jlc.jacobian() << std::endl;
+  }
 
-  
 {
     std::cout << "BARREL PLANE" << std::endl;
     GlobalVector h = tpg.magneticFieldInInverseGeV(tpg.position());
@@ -108,6 +118,7 @@ int main(int argc, char** argv) {
 
   std::cout << "full  p2p\n" << fjacobianL2L << std::endl;
   std::cout << "delta p2p\n" << djacobianL2L << std::endl;
+
   {
        // let's play the Delta game
        auto lp = lplane.toLocal(tpg.position());
