@@ -62,12 +62,6 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
 
   
-    double singleStep(1.);
-
-    double s = singleStep;
-
-
-
 {
     std::cout << "BARREL PLANE" << std::endl;
     GlobalVector h = tpg.magneticFieldInInverseGeV(tpg.position());
@@ -94,8 +88,8 @@ int main(int argc, char** argv) {
       std::cout << "pt/p " << tpg2.momentum().perp() << ' ' << tpg2.momentum().mag() << std::endl;
       AnalyticalCurvilinearJacobian full;
       AnalyticalCurvilinearJacobian delta;
-      full.computeFullJacobian(tpg,tpg2.position(),tpg2.momentum(),h,s);
-      delta.computeInfinitesimalJacobian(tpg,tpg2.position(),tpg2.momentum(),h,s);
+      full.computeFullJacobian(tpg,tpg2.position(),tpg2.momentum(),h,st);
+      delta.computeInfinitesimalJacobian(tpg,tpg2.position(),tpg2.momentum(),h,st);
       std::cout <<  "full\n" << full.jacobian() << std::endl;
       std::cout << std::endl;
       std::cout << "delta\n" << delta.jacobian() << std::endl;
@@ -153,35 +147,38 @@ int main(int argc, char** argv) {
     GlobalVector h = tpg.magneticFieldInInverseGeV(tpg.position());
     Surface::RotationType rot(Basic3DVector<float>(h),0);
 
+    // here local and global is the same...)
     Plane lplane(zero,rot);
-    HelixForwardPlaneCrossing::PositionType  a(lplane.toLocal(tpg.position()));
-    HelixForwardPlaneCrossing::DirectionType p(lplane.toLocal(tpg.momentum()));
+    GlobalPoint one(0.,0.,1.);
+    Plane newplane(one ,rot);
+    HelixForwardPlaneCrossing::PositionType  a(tpg.position());
+    HelixForwardPlaneCrossing::DirectionType p(tpg.momentum());
       double lcurv =   -h.mag()/p.perp()*tpg.charge();
       std::cout << "c/p "<< lcurv << " " <<  p.mag() << std::endl;
-      HelixForwardPlaneCrossing prop(a, p, lcurv);
-      LocalPoint x(prop.position(s));
-      LocalVector dir(prop.direction(s));
+      HelixForwardPlaneCrossing prop(a, p, curv);
+      auto [ok, st] = prop.pathLength(newplane);
+      if(ok) std::cout << "step " << st << std::endl;
+      GlobalPoint x(prop.position(st));
+      GlobalVector dir(prop.direction(st));
       std::cout <<  dir.mag() << std::endl;
       LocalTrajectoryParameters lpg(lplane.toLocal(tpg.position()),
                                     lplane.toLocal(tpg.momentum()),tpg.charge());
       
 
-      GlobalTrajectoryParameters tpg2( lplane.toGlobal(x), 
-				       (p.mag()/dir.mag())*lplane.toGlobal(dir), 
+      GlobalTrajectoryParameters tpg2( x, (tpg.momentum().mag()/dir.mag())*dir, 
 				       tpg.charge(), &m);
       
       std::cout << "pos/mom/curv @2 "<< tpg2.position() << " " << tpg2.momentum() << " " << tpg2.transverseCurvature() << std::endl;
       std::cout << "pt/p " << tpg2.momentum().perp() << ' ' << tpg2.momentum().mag() << std::endl;
       AnalyticalCurvilinearJacobian full;
       AnalyticalCurvilinearJacobian delta;
-      full.computeFullJacobian(tpg,tpg2.position(),tpg2.momentum(),h,s);
-      delta.computeInfinitesimalJacobian(tpg,tpg2.position(),tpg2.momentum(),h,s);
+      full.computeFullJacobian(tpg,tpg2.position(),tpg2.momentum(),h,st);
+      delta.computeInfinitesimalJacobian(tpg,tpg2.position(),tpg2.momentum(),h,st);
       std::cout <<  "full\n" << full.jacobian() << std::endl;
       std::cout << std::endl;
       std::cout << "delta\n" << delta.jacobian() << std::endl;
       std::cout << std::endl;
 
-      Plane newplane(tpg2.position() ,rot);
       JacobianLocalToCurvilinear jlc(lplane,lpg,m);
       LocalTrajectoryParameters newlpg(newplane.toLocal(tpg2.position()),
                                        newplane.toLocal(tpg2.momentum()),tpg.charge());
