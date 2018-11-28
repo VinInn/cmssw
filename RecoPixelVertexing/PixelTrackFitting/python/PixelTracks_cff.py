@@ -46,12 +46,17 @@ pixelTracksHitDoublets = initialStepHitDoublets.clone(
     trackingRegions = "pixelTracksTrackingRegions"
 )
 
+
 pixelTracksHitQuadruplets = _initialStepCAHitQuadruplets.clone(
     doublets = "pixelTracksHitDoublets",
     SeedComparitorPSet = dict(clusterShapeCacheSrc = 'siPixelClusterShapeCachePreSplitting')
 )
+
 from Configuration.ProcessModifiers.gpu_cff import gpu
+from RecoPixelVertexing.PixelTriplets.caHitQuadrupletHeterogeneousEDProducer_cfi import caHitQuadrupletHeterogeneousEDProducer as _caHitQuadrupletHeterogeneousEDProducer
+gpu.toReplaceWith(pixelTracksHitQuadruplets, _caHitQuadrupletHeterogeneousEDProducer)
 gpu.toModify(pixelTracksHitQuadruplets, trackingRegions = "pixelTracksTrackingRegions")
+
 
 # for trackingLowPU
 pixelTracksHitTriplets = _pixelTripletHLTEDProducer.clone(
@@ -66,6 +71,10 @@ pixelTracks = _pixelTracks.clone(
     SeedingHitSets = "pixelTracksHitQuadruplets"
 )
 trackingLowPU.toModify(pixelTracks, SeedingHitSets = "pixelTracksHitTriplets")
+
+from Configuration.ProcessModifiers.gpu_cff import gpu
+from RecoPixelVertexing.PixelTrackFitting.pixelTrackProducerFromCUDA_cfi import pixelTrackProducerFromCUDA as _pixelTrackProducerFromCUDA
+gpu.toReplaceWith(pixelTracks, _pixelTrackProducerFromCUDA)
 
 pixelTracksSequence = cms.Sequence(
     pixelTracksTrackingRegions +
