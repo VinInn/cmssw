@@ -57,7 +57,7 @@ int main() {
 
   //!<(phi,Tip,pt,cotan(theta)),Zip)
   Vector5d par0; par0 << 0.2,0.1,3.5,0.8,0.1;
-  Vector5d del0; del0 << 0.01,0.01,0.035,0.04,0.01;
+  Vector5d del0; del0 << 0.01,0.01,0.035,-0.03,-0.01;
 
   Matrix5d J = Jacobian(par0);
 
@@ -77,6 +77,8 @@ int main() {
 
   std::cout << "par1 " << par1.transpose() << std::endl;
   std::cout << "del1 " << del1.transpose() << std::endl;
+  std::cout << "del2 " << (J*del0).transpose() << std::endl;
+
   std::cout << "del1^2 " << (del1.array()*del1.array()).transpose() << std::endl;
   std::cout << std::endl;
   std::cout << "J\n" << J << std::endl;
