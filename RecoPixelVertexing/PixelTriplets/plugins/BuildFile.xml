@@ -12,6 +12,8 @@
 <use name="RecoTracker/TkSeedingLayers"/>
 <use name="RecoTracker/TkTrackingRegions"/>
 <flags CXXFLAGS="-fno-math-errno"/>
+<flags CUDA_FLAGS="-DEIGEN_NO_DEBUG"/>
 <library file="*.cu *.cc" name="RecoPixelVertexingPixelTripletsPlugins">
+  <flags CUDA_FLAGS="-DEIGEN_NO_DEBUG"/>
   <flags EDM_PLUGIN="1"/>
 </library>

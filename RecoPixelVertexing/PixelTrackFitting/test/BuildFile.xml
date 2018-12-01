@@ -1,3 +1,4 @@
+<library   file="PixelTrackTest.cc" name="PixelTrackTest">
 <use   name="boost"/>
 <use   name="root"/>
 <use   name="FWCore/Framework"/>
@@ -11,6 +12,11 @@
 <use   name="RecoTracker/TkTrackingRegions"/>
 <use   name="RecoPixelVertexing/PixelTriplets"/>
 <use   name="RecoPixelVertexing/PixelTrackFitting"/>
+  <flags   EDM_PLUGIN="1"/>
+</library>
+
+<use   name="eigen"/>
+<use name="cuda"/>
 <bin file="testEigenGPU.cu" name="testEigenGPU_t">
   <use name="cuda"/>
   <use name="cuda-api-wrappers"/>
@@ -21,14 +27,10 @@
   <use name="cuda-api-wrappers"/>
   <flags CXXFLAGS="-g"/>
 </bin>
-<library   file="PixelTrackTest.cc" name="PixelTrackTest">
-  <flags   EDM_PLUGIN="1"/>
-</library>
 <bin file="PixelTrackRiemannFit.cc">
-  <flags   CXXFLAGS="-g"/>
+  <use   name="root"/>
+  <flags   CXXFLAGS="-g -DEIGEN_NO_DEBUG"/>
 </bin>
-
-
 <bin file="testEigenJacobian.cpp">
   <flags   CXXFLAGS="-g"/>
 </bin>

@@ -4,5 +4,7 @@
 <use name="HeterogeneousCore/Product"/>
 <use name="RecoPixelVertexing/PixelTrackFitting"/>
 <library file="*.cc *.cu" name="RecoPixelVertexingPixelTrackFittingPlugins">
+  <flags CUDA_FLAGS="-DEIGEN_NO_DEBUG"/>
+  <flags   CXXFLAGS="-DEIGEN_NO_DEBUG"/>
   <flags EDM_PLUGIN="1"/>
 </library>

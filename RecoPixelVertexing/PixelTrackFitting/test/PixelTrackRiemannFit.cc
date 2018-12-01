@@ -385,7 +385,7 @@ void test_helix_fit(bool getcin) {
     << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
   auto delta = start-start;
-  for (int i = 0; i < iteration; i++) {
+  for (int i = 0; i < 100*iteration; i++) {
     hits_gen gen;
     gen = Hits_gen(n_, gen_par);
     //      gen.hits = MatrixXd::Zero(3, 4);
@@ -395,12 +395,12 @@ void test_helix_fit(bool getcin) {
     //      gen.hits.col(2) << 7.25991010666, 7.74653434753, 30.6931324005;
     //      gen.hits.col(3) << 8.99161434174, 9.54262828827, 38.1338043213;
     delta -= std::chrono::high_resolution_clock::now()-start;
-    helixRiemann_fit[i] = Rfit::Helix_fit(gen.hits, gen.hits_cov, B_field, return_err);
+    helixRiemann_fit[i%iteration] = Rfit::Helix_fit(gen.hits, gen.hits_cov, B_field, return_err);
     delta += std::chrono::high_resolution_clock::now()-start;
 
 //    helixBrokenLine_fit[i] = BrokenLine::Helix_fit(gen.hits, gen.hits_cov, B_field);
 
-    
+    if (helixRiemann_fit[i%iteration].par(0)>10.) std::cout << "error" << std::endl;
     if (0==i)
       cout << std::setprecision(6)
         << "phi:  " << helixRiemann_fit[i].par(0) << " +/- " << sqrt(helixRiemann_fit[i].cov(0, 0)) << " vs "
@@ -420,7 +420,7 @@ void test_helix_fit(bool getcin) {
         << "Initial Covariance:\n" << gen.hits_cov << endl;
         
   }
-  std::cout << "elapsted time " << double(std::chrono::duration_cast<std::chrono::nanoseconds>(delta).count())/1000. << std::endl;
+  std::cout << "elapsted time " << double(std::chrono::duration_cast<std::chrono::nanoseconds>(delta).count())/1.e6 << std::endl;
   computePull(helixRiemann_fit, "Riemann", n_, iteration, true_par);
 //  computePull(helixBrokenLine_fit, "BrokenLine", n_, iteration, true_par);
 }
