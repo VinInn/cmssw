@@ -184,7 +184,7 @@ __host__ __device__ inline MatrixNd Scatter_cov_rad(const Matrix2xNf& p2D,
     u_int n = p2D.cols();
     auto p_t = std::min(20.f,fast_fit(2) * B);   // limit pt to avoid too small error!!!
     auto p_2 = p_t * p_t * (1.f + 1.f / (fast_fit(3) * fast_fit(3)));
-    double theta = atanf(fast_fit(3));
+    auto theta = atanf(fast_fit(3));
     theta = theta < 0. ? theta + float(M_PI) :  theta;
     VectorNf s_values(n);
     VectorNf rad_lengths(n);
@@ -199,7 +199,7 @@ __host__ __device__ inline MatrixNd Scatter_cov_rad(const Matrix2xNf& p2D,
         auto atan2_ = atan2f(cross, dot);
         s_values(i) = std::abs(atan2_ * fast_fit(2));
     }
-    computeRadLenUniformMaterial(s_values*sqrt(1.f + 1.f/(fast_fit(3)*fast_fit(3))), rad_lengths);
+    computeRadLenUniformMaterial(s_values*sqrtf(1.f + 1.f/(fast_fit(3)*fast_fit(3))), rad_lengths);
     MatrixNf scatter_cov_rad = MatrixXf::Zero(n, n);
     VectorNf sig2(n);
     sig2 =  (1.f + 0.038f * rad_lengths.array().log()).abs2() * rad_lengths.array();
@@ -853,7 +853,7 @@ __host__ __device__ inline circle_fit Circle_fit(const Matrix2xNd& hits2D,
 
         Matrix4d Cvc;  // joint cov matrix of (v0,v1,v2,c)
         {
-            Matrix3d t0 = J2 * E * J2.transpose();
+            Matrix3d t0; t0.noalias() = J2 * E * J2.transpose();
             Vector3d t1 = -t0 * r0;
             Cvc.block(0, 0, 3, 3) = t0;
             Cvc.block(0, 3, 3, 1) = t1;
@@ -880,7 +880,7 @@ __host__ __device__ inline circle_fit Circle_fit(const Matrix2xNd& hits2D,
         const RowVector2Nd Jq = mc.transpose() * s * 1. / n;  // var(q)
         printIt(&Jq, "circle_fit - Jq:");
 
-        Matrix3d cov_uvr = J3 * Cvc * J3.transpose() * sqr(s_inv)  // cov(X0,Y0,R)
+        Matrix3d cov_uvr; cov_uvr.noalias() = J3 * Cvc * J3.transpose() * sqr(s_inv)  // cov(X0,Y0,R)
                            + (par_uvr_ * par_uvr_.transpose()) * (Jq * V * Jq.transpose());
 
         circle.cov = cov_uvr;
