@@ -46,6 +46,11 @@ __host__ __device__ inline double cross2D(const Vector2d& a, const Vector2d& b)
     return a.x() * b.y() - a.y() * b.x();
 }
 
+__host__ __device__ inline float cross2D(const Vector2f& a, const Vector2f& b)
+{
+    return a.x() * b.y() - a.y() * b.x();
+}
+
 /*!  Compute the Radiation length in the uniform hypothesis
  *
  * The Pixel detector, barrel and forward, is considered as an omogeneous
@@ -69,11 +74,11 @@ __host__ __device__ inline double cross2D(const Vector2d& a, const Vector2d& b)
  */
 
 __host__ __device__ inline
-void computeRadLenUniformMaterial(const VectorNd &length_values,
-    VectorNd & rad_lengths) {
+void computeRadLenUniformMaterial(const VectorNf &length_values,
+    VectorNf & rad_lengths) {
   // Radiation length of the pixel detector in the uniform assumption, with
   // 0.06 rad_len at 16 cm
-  constexpr double XX_0_inv = 0.06/16.;
+  constexpr float XX_0_inv = 0.06/16.;
 //  const double XX_0 = 1000.*16.f/(0.06);
   u_int n = length_values.rows();
   rad_lengths(0) = length_values(0)*XX_0_inv;
@@ -101,44 +106,44 @@ void computeRadLenUniformMaterial(const VectorNd &length_values,
     correspond to the case at eta = 0.
  */
 
-__host__ __device__ inline MatrixNd Scatter_cov_line(Matrix2Nd& cov_sz,
+__host__ __device__ inline MatrixNd Scatter_cov_line(Matrix2Nf const& cov_sz,
                                                      const Vector4d& fast_fit,
-                                                     VectorNd const& s_arcs,
-                                                     VectorNd const& z_values,
-                                                     const double theta,
-                                                     const double B)
+                                                     VectorNf const& s_arcs,
+                                                     VectorNf const& z_values,
+                                                     const float theta,
+                                                     const float B)
 {
 #if RFIT_DEBUG
     Rfit::printIt(&s_arcs, "Scatter_cov_line - s_arcs: ");
 #endif
     u_int n = s_arcs.rows();
-    double p_t = std::min(20.,fast_fit(2) * B);   // limit pt to avoid too small error!!!
-    double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
-    VectorNd rad_lengths_S(n);
+    auto p_t = std::min(20.f,float(fast_fit(2)) * B);   // limit pt to avoid too small error!!!
+    auto p_2 = p_t * p_t * (1.f + 1.f / (float(fast_fit(3)) * float(fast_fit(3))));
+    VectorNf rad_lengths_S(n);
     // See documentation at http://eigen.tuxfamily.org/dox/group__TutorialArrayClass.html
     // Basically, to perform cwise operations on Matrices and Vectors, you need
     // to transform them into Array-like objects.
-    VectorNd S_values = s_arcs.array() * s_arcs.array() + z_values.array() * z_values.array();
+    VectorNf S_values = s_arcs.array() * s_arcs.array() + z_values.array() * z_values.array();
     S_values = S_values.array().sqrt();
     computeRadLenUniformMaterial(S_values, rad_lengths_S);
-    VectorNd sig2_S(n);
-    sig2_S = .000225 / p_2 * (1. + 0.038 * rad_lengths_S.array().log()).abs2() * rad_lengths_S.array();
+    VectorNf sig2_S(n);
+    sig2_S = .000225f / p_2 * (1.f + 0.038f * rad_lengths_S.array().log()).abs2() * rad_lengths_S.array();;
 #if RFIT_DEBUG
     Rfit::printIt(&cov_sz, "Scatter_cov_line - cov_sz: ");
 #endif
-    Matrix2Nd rot = MatrixXd::Zero(2 * n, 2 * n);
+    Matrix2Nf rot = MatrixXf::Zero(2 * n, 2 * n);
     for (u_int i = 0; i < n; ++i) {
-      rot(i, i) = sin(theta);
-      rot(n + i, n + i) = sin(theta);
+      rot(i, i) = sinf(theta);
+      rot(n + i, n + i) = sinf(theta);
       u_int j = (i + n);
-      rot(i, j) = i < j ? cos(theta) : -cos(theta);
+      rot(i, j) = i < j ? cosf(theta) : -cosf(theta);
     }
 
 #if RFIT_DEBUG
     Rfit::printIt(&rot, "Scatter_cov_line - rot: ");
 #endif
 
-    Matrix2Nd tmp = rot*cov_sz*rot.transpose();
+    Matrix2Nf tmp; tmp.noalias() = rot*cov_sz*rot.transpose();
     for (u_int k = 0; k < n; ++k)
     {
       for (u_int l = k; l < n; ++l)
@@ -155,7 +160,7 @@ __host__ __device__ inline MatrixNd Scatter_cov_line(Matrix2Nd& cov_sz,
 #if RFIT_DEBUG
     Rfit::printIt(&tmp, "Scatter_cov_line - tmp: ");
 #endif
-    return tmp.block(n, n, n, n);
+    return tmp.block(n, n, n, n).cast<double>();
 }
 
 /*!
@@ -171,34 +176,34 @@ __host__ __device__ inline MatrixNd Scatter_cov_line(Matrix2Nd& cov_sz,
     \details Only the tangential component is computed (the radial one is
     negligible).
  */
-__host__ __device__ inline MatrixNd Scatter_cov_rad(const Matrix2xNd& p2D,
-                                                    const Vector4d& fast_fit,
-                                                    VectorNd const& rad,
-                                                    double B)
+__host__ __device__ inline MatrixNd Scatter_cov_rad(const Matrix2xNf& p2D,
+                                                    const Vector4f& fast_fit,
+                                                    VectorNf const& rad,
+                                                    float B)
 {
     u_int n = p2D.cols();
-    double p_t = std::min(20.,fast_fit(2) * B);   // limit pt to avoid too small error!!!
-    double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
-    double theta = atan(fast_fit(3));
-    theta = theta < 0. ? theta + M_PI :  theta;
-    VectorNd s_values(n);
-    VectorNd rad_lengths(n);
-    const Vector2d o(fast_fit(0), fast_fit(1));
+    auto p_t = std::min(20.f,fast_fit(2) * B);   // limit pt to avoid too small error!!!
+    auto p_2 = p_t * p_t * (1.f + 1.f / (fast_fit(3) * fast_fit(3)));
+    double theta = atanf(fast_fit(3));
+    theta = theta < 0. ? theta + float(M_PI) :  theta;
+    VectorNf s_values(n);
+    VectorNf rad_lengths(n);
+    const Vector2f o(fast_fit(0), fast_fit(1));
 
     // associated Jacobian, used in weights and errors computation
     for (u_int i = 0; i < n; ++i)
     {  // x
-        Vector2d p = p2D.block(0, i, 2, 1) - o;
-        const double cross = cross2D(-o, p);
-        const double dot = (-o).dot(p);
-        const double atan2_ = atan2(cross, dot);
+        Vector2f p = p2D.block(0, i, 2, 1) - o;
+        float cross = cross2D(-o, p);
+        float dot = (-o).dot(p);
+        auto atan2_ = atan2f(cross, dot);
         s_values(i) = std::abs(atan2_ * fast_fit(2));
     }
-    computeRadLenUniformMaterial(s_values*sqrt(1. + 1./(fast_fit(3)*fast_fit(3))), rad_lengths);
-    MatrixNd scatter_cov_rad = MatrixXd::Zero(n, n);
-    VectorNd sig2(n);
-    sig2 =  (1. + 0.038 * rad_lengths.array().log()).abs2() * rad_lengths.array();
-    sig2 *= 0.000225 / ( p_2 * sqr(sin(theta)) );
+    computeRadLenUniformMaterial(s_values*sqrt(1.f + 1.f/(fast_fit(3)*fast_fit(3))), rad_lengths);
+    MatrixNf scatter_cov_rad = MatrixXf::Zero(n, n);
+    VectorNf sig2(n);
+    sig2 =  (1.f + 0.038f * rad_lengths.array().log()).abs2() * rad_lengths.array();
+    sig2 *= 0.000225f / ( p_2 * sqr(sinf(theta)) );
     for (u_int k = 0; k < n; ++k)
     {
         for (u_int l = k; l < n; ++l)
@@ -213,7 +218,7 @@ __host__ __device__ inline MatrixNd Scatter_cov_rad(const Matrix2xNd& p2D,
 #if RFIT_DEBUG
     Rfit::printIt(&scatter_cov_rad, "Scatter_cov_rad - scatter_cov_rad: ");
 #endif
-    return scatter_cov_rad;
+    return scatter_cov_rad.cast<double>();
 }
 
 /*!
@@ -583,7 +588,7 @@ __host__ __device__ inline circle_fit Circle_fit(const Matrix2xNd& hits2D,
         printIt(&cov_rad, "circle_fit - cov_rad:");
         // cov_rad = cov_carttorad(hits2D, V);
 
-        MatrixNd scatter_cov_rad = Scatter_cov_rad(hits2D, fast_fit, rad, B);
+        MatrixNd scatter_cov_rad = Scatter_cov_rad(hits2D.cast<float>(), fast_fit.cast<float>(), rad.cast<float>(), B);
         printIt(&scatter_cov_rad, "circle_fit - scatter_cov_rad:");
         printIt(&hits2D, "circle_fit - hits2D bis:");
 #if RFIT_DEBUG
@@ -638,10 +643,10 @@ __host__ __device__ inline circle_fit Circle_fit(const Matrix2xNd& hits2D,
     // COST FUNCTION
 
     // compute
-    Matrix3d A = Matrix3d::Zero();
+    Matrix3d A;
     const Vector3d r0 = p3D * weight;  // center of gravity
     const Matrix3xNd X = p3D.colwise() - r0;
-    A = X * G * X.transpose();
+    A.noalias() = X * G * X.transpose();
     printIt(&A, "circle_fit - A:");
 
 #if RFIT_DEBUG
@@ -725,24 +730,31 @@ __host__ __device__ inline circle_fit Circle_fit(const Matrix2xNd& hits2D,
             printIt(&Vcs, "circle_fit - Vcs:");
         }
 
-        MatrixNd C[3][3];  // cov matrix of 3D transformed points
-        {
+        MatrixNd * CP[3][3];  // cov matrix oaf 3D transformed points
+        
             const ArrayNd t0 = (VectorXd::Constant(n, 1.) * p3D.row(0));
             const ArrayNd t1 = (VectorXd::Constant(n, 1.) * p3D.row(1));
             const ArrayNd t00 = p3D.row(0).transpose() * p3D.row(0);
             const ArrayNd t01 = p3D.row(0).transpose() * p3D.row(1);
             const ArrayNd t11 = p3D.row(1).transpose() * p3D.row(1);
             const ArrayNd t10 = t01.transpose();
-            C[0][0] = Vcs_[0][0];
-            C[0][1] = Vcs_[0][1];
-            C[0][2] = 2. * (Vcs_[0][0] * t0 + Vcs_[0][1] * t1);
-            C[1][1] = Vcs_[1][1];
-            C[1][2] = 2. * (Vcs_[1][0] * t0 + Vcs_[1][1] * t1);
-            C[2][2] = 2. * (Vcs_[0][0] * Vcs_[0][0] + Vcs_[0][0] * Vcs_[0][1] + Vcs_[1][1] * Vcs_[1][0] +
+            MatrixNd C00 = Vcs_[0][0];
+            MatrixNd C01 = Vcs_[0][1];
+            MatrixNd C02 = 2. * (Vcs_[0][0] * t0 + Vcs_[0][1] * t1);
+            MatrixNd C11 = Vcs_[1][1];
+            MatrixNd C12 = 2. * (Vcs_[1][0] * t0 + Vcs_[1][1] * t1);
+            MatrixNd C22 = 2. * (Vcs_[0][0] * Vcs_[0][0] + Vcs_[0][0] * Vcs_[0][1] + Vcs_[1][1] * Vcs_[1][0] +
                             Vcs_[1][1] * Vcs_[1][1]) +
                       4. * (Vcs_[0][0] * t00 + Vcs_[0][1] * t01 + Vcs_[1][0] * t10 + Vcs_[1][1] * t11);
-        }
-        printIt(&C[0][0], "circle_fit - C[0][0]:");
+        
+        // printIt(&C[0][0], "circle_fit - C[0][0]:");
+
+        CP[0][0] = &C00;
+        CP[0][1] = &C01;
+        CP[0][2] = &C02;
+        CP[1][1] = &C11;
+        CP[1][2] = &C12;
+        CP[2][2] = &C22;
 
         Matrix3d C0;  // cov matrix of center of gravity (r0.x,r0.y,r0.z)
         for (u_int i = 0; i < 3; ++i)
@@ -750,29 +762,29 @@ __host__ __device__ inline circle_fit Circle_fit(const Matrix2xNd& hits2D,
             for (u_int j = i; j < 3; ++j)
             {
                 Eigen::Matrix<double, 1, 1> tmp;
-                tmp = weight.transpose() * C[i][j] * weight;
+                tmp = weight.transpose() * (*CP[i][j]) * weight;
                 const double c = tmp(0, 0);
-                C0(i, j) = c;  //weight.transpose() * C[i][j] * weight;
+                C0(i, j) = c;  //weight.transpose() * (*CP[i][j]) * weight;
                 C0(j, i) = C0(i, j);
             }
         }
         printIt(&C0, "circle_fit - C0:");
 
-        const MatrixNd W = weight * weight.transpose();
+        MatrixNd W; W.noalias() = weight * weight.transpose();
         const MatrixNd H = MatrixXd::Identity(n, n).rowwise() - weight.transpose();
-        const MatrixNx3d s_v = H * p3D.transpose();
+        MatrixNx3d s_v; s_v.noalias() = H * p3D.transpose();
         printIt(&W, "circle_fit - W:");
         printIt(&H, "circle_fit - H:");
         printIt(&s_v, "circle_fit - s_v:");
 
         MatrixNd D_[3][3];  // cov(s_v)
         {
-            D_[0][0] = (H * C[0][0] * H.transpose()).cwiseProduct(W);
-            D_[0][1] = (H * C[0][1] * H.transpose()).cwiseProduct(W);
-            D_[0][2] = (H * C[0][2] * H.transpose()).cwiseProduct(W);
-            D_[1][1] = (H * C[1][1] * H.transpose()).cwiseProduct(W);
-            D_[1][2] = (H * C[1][2] * H.transpose()).cwiseProduct(W);
-            D_[2][2] = (H * C[2][2] * H.transpose()).cwiseProduct(W);
+            D_[0][0].noalias() = (H * C00 * H.transpose()).cwiseProduct(W);
+            D_[0][1].noalias() = (H * C01 * H.transpose()).cwiseProduct(W);
+            D_[0][2].noalias() = (H * C02 * H.transpose()).cwiseProduct(W);
+            D_[1][1].noalias() = (H * C11 * H.transpose()).cwiseProduct(W);
+            D_[1][2].noalias() = (H * C12 * H.transpose()).cwiseProduct(W);
+            D_[2][2].noalias() = (H * C22 * H.transpose()).cwiseProduct(W);
             D_[1][0] = D_[0][1].transpose();
             D_[2][0] = D_[0][2].transpose();
             D_[2][1] = D_[1][2].transpose();
@@ -984,7 +996,7 @@ __host__ __device__ inline line_fit Line_fit_odr(const Matrix3xNd& hits,
 #if RFIT_DEBUG
     printIt(&cov_sz, "line_fit - cov_sz:");
 #endif
-    MatrixNd cov_with_ms = Scatter_cov_line(cov_sz, fast_fit, p2D.row(0), p2D.row(1), theta, B);
+    MatrixNd cov_with_ms = Scatter_cov_line(cov_sz.cast<float>(), fast_fit, p2D.row(0).cast<float>(), p2D.row(1).cast<float>(), theta, B);
 #if RFIT_DEBUG
     printIt(&cov_with_ms, "line_fit - cov_with_ms: ");
 #endif
@@ -1188,18 +1200,18 @@ __host__ __device__ inline line_fit Line_fit(const Matrix3xNd& hits,
 
   // The following matrix will contain errors orthogonal to the rotated S
   // component only, with the Multiple Scattering properly treated!!
-  MatrixNd cov_with_ms = Scatter_cov_line(cov_sz, fast_fit, p2D.row(0), p2D.row(1), theta, B);
+  MatrixNd cov_with_ms = Scatter_cov_line(cov_sz.cast<float>(), fast_fit, p2D.row(0).cast<float>(), p2D.row(1).cast<float>(), theta, B);
 #if RFIT_DEBUG
   printIt(&cov_sz, "line_fit - cov_sz:");
   printIt(&cov_with_ms, "line_fit - cov_with_ms: ");
 #endif
 
   // Prepare the Rotation Matrix to rotate the points
-  Eigen::Matrix<double, 2, 2> rot = Eigen::Matrix<double, 2, 2>::Zero();
+  Eigen::Matrix<double, 2, 2>  rot;
   rot << sin(theta), cos(theta), -cos(theta), sin(theta);
 
   // Rotate Points with the shape [2, n]
-  Matrix2xNd p2D_rot = rot*p2D;
+  Matrix2xNd p2D_rot; p2D_rot.noalias() = rot*p2D;
 
 #if RFIT_DEBUG
   printf("Fast fit Tan(theta): %g\n", fast_fit(3));
@@ -1220,7 +1232,7 @@ __host__ __device__ inline line_fit Line_fit(const Matrix3xNd& hits,
 
   // Build A^T V-1 A, where V-1 is the covariance of only the Y components.
   MatrixNd Vy_inv = cov_with_ms.inverse();
-  Eigen::Matrix<double, 2, 2> Inv_Cov = A*Vy_inv*A.transpose();
+  Eigen::Matrix<double, 2, 2> Inv_Cov; Inv_Cov.noalias() = A*Vy_inv*A.transpose();
 
   // Compute the Covariance Matrix of the fit parameters
   Eigen::Matrix<double, 2, 2> Cov_params = Inv_Cov.inverse();
@@ -1237,7 +1249,7 @@ __host__ __device__ inline line_fit Line_fit(const Matrix3xNd& hits,
 
   // We need now to transfer back the results in the original s-z plane
   auto common_factor = 1./(sin(theta)-sol(1,0)*cos(theta));
-  Eigen::Matrix<double, 2, 2> J = Eigen::Matrix<double, 2, 2>::Zero();
+  Eigen::Matrix<double, 2, 2> J;
   J << 0., common_factor*common_factor, common_factor, sol(0,0)*cos(theta)*common_factor*common_factor;
 
   double m = common_factor*(sol(1,0)*sin(theta)+cos(theta));

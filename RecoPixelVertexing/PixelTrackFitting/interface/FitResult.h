@@ -33,7 +33,6 @@ using Vector3Nd = Eigen::Matrix<double, Dynamic, 1, 0, 3 * max_nop, 1>;
 using RowVectorNd = Eigen::Matrix<double, 1, Dynamic, 1, 1, max_nop>;
 using RowVector2Nd = Eigen::Matrix<double, 1, Dynamic, 1, 1, 2 * max_nop>;
 
-
 using Vector2d = Eigen::Vector2d;
 using Vector3d = Eigen::Vector3d;
 using Vector4d = Eigen::Vector4d;
@@ -44,7 +43,19 @@ using Matrix5d = Eigen::Matrix<double, 5, 5>;
 using Matrix6d = Eigen::Matrix<double, 6, 6>;
 using Vector5d = Eigen::Matrix<double, 5, 1>;
 
+using MatrixXf = Eigen::MatrixXf;
+using Vector2f = Eigen::Vector2f;
+using Vector3f = Eigen::Vector3f;
+using Vector4f = Eigen::Vector4f;
+using Matrix2f = Eigen::Matrix2f;
 using Matrix3f = Eigen::Matrix3f;
+using Matrix4f = Eigen::Matrix4f;
+using Matrix2Nf = Eigen::Matrix<float, Dynamic, Dynamic, 0, 2 * max_nop, 2 * max_nop>;
+using Array2xNf = Eigen::Array<float, 2, Dynamic, 0, 2, max_nop>;
+using VectorNf = Eigen::Matrix<float, Dynamic, 1, 0, max_nop, 1>;
+using MatrixNf = Eigen::Matrix<float, Dynamic, Dynamic, 0, max_nop, max_nop>;
+using ArrayNf = Eigen::Array<float, Dynamic, Dynamic, 0, max_nop, max_nop>;
+using Matrix2xNf = Eigen::Matrix<float, 2, Dynamic, 0, 2, max_nop>;
 
 using u_int = unsigned int;
 
