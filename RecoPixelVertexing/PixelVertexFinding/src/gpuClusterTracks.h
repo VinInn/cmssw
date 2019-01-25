@@ -96,22 +96,19 @@ namespace gpuVertexFinder {
     }
 
 
-    __shared__ int nloops;
-    nloops=0;
-      
     __syncthreads();
-
 
     
     // cluster seeds only
+    int nloops=0;
     bool more = true;
     while (__syncthreads_or(more)) {
-     if (1==nloops%2) {
-      for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-        auto m = iv[i];
-        while (m!=iv[m]) m=iv[m];
-        iv[i]=m;
-      }
+      if (1==nloops%2) {
+        for (int i = threadIdx.x; i < nt; i += blockDim.x) {
+          auto m = iv[i];
+          while (m!=iv[m]) m=iv[m];
+          iv[i]=m;
+        }
       }  else {
        more=false;
        for (int  k = threadIdx.x; k < hist.size(); k += blockDim.x) {
@@ -136,7 +133,7 @@ namespace gpuVertexFinder {
         for (;p<hist.end(be);++p) loop(*p);
        } // for i
       }
-      if (threadIdx.x==0) ++nloops;
+      ++nloops;
     } // while
     
     
