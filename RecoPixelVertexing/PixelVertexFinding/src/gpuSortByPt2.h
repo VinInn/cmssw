@@ -48,7 +48,7 @@ namespace gpuVertexFinder {
       return;
     }
     __shared__ uint16_t ws[1024];
-    radixSort(ptv2,sortInd,ws,nvFinal);
+    radixSort<float,2>(ptv2,sortInd,ws,nvFinal);
 
     assert(ptv2[sortInd[nvFinal-1]]>=ptv2[sortInd[nvFinal-2]]);
     assert(ptv2[sortInd[1]]>=ptv2[sortInd[0]]);

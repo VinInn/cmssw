@@ -50,8 +50,11 @@ namespace gpuPixelDoublets {
     }
     auto ntot = innerLayerCumulativeSize[nPairs-1];
 
-    auto idx = blockIdx.x * blockDim.x + threadIdx.x;
-    for (auto j = idx; j < ntot; j += blockDim.x * gridDim.x) {
+    // x runs faster
+    auto idy = blockIdx.y * blockDim.y + threadIdx.y;
+    auto first = threadIdx.x;
+    auto stride = blockDim.x;
+    for (auto j = idy; j < ntot; j += blockDim.y * gridDim.y ) {
 
       uint32_t pairLayerId=0;
       while (j >= innerLayerCumulativeSize[pairLayerId++]);
@@ -104,18 +107,24 @@ namespace gpuPixelDoublets {
       auto kl = Hist::bin(int16_t(mep-iphicut));
       auto kh = Hist::bin(int16_t(mep+iphicut));
       auto incr = [](auto & k) { return k = (k+1) % Hist::nbins();};
+
+#ifdef GPU_DEBUG
       int  tot  = 0;
       int  nmin = 0;
+      int tooMany=0;
+#endif
+
       auto khh = kh;
       incr(khh);
-
-      int tooMany=0;
       for (auto kk = kl; kk != khh; incr(kk)) {
+#ifdef GPU_DEBUG
         if (kk != kl && kk != kh)
           nmin += hist.size(kk+hoff);
+#endif
         auto const * __restrict__ p = hist.begin(kk+hoff);
         auto const * __restrict__ e = hist.end(kk+hoff);
-        for (;p < e; ++p) {
+        p+=first;
+        for (;p < e; p+=stride) {
           auto oi=__ldg(p);
           assert(oi>=offsets[outer]);
           assert(oi<offsets[outer+1]);
@@ -128,8 +137,10 @@ namespace gpuPixelDoublets {
           // int layerPairId, int doubletId, int innerHitId, int outerHitId)
           cells[ind].init(hh, pairLayerId, ind, i, oi);
           isOuterHitOfCell[oi].push_back(ind);
+#ifdef GPU_DEBUG
           if (isOuterHitOfCell[oi].full()) ++tooMany;
           ++tot;
+#endif
         }
       }
 #ifdef GPU_DEBUG
@@ -139,7 +150,7 @@ namespace gpuPixelDoublets {
     }  // loop in block...
   }
 
-  constexpr auto getDoubletsFromHistoMaxBlockSize = 64;
+  constexpr auto getDoubletsFromHistoMaxBlockSize = 64;  // for both x and y
   constexpr auto getDoubletsFromHistoMinBlocksPerMP = 16;
 
   __global__

@@ -1,10 +1,11 @@
-#include "HeterogeneousCore/CUDAUtilities/interface/HistoContainer.h"
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <limits>
+#include <random>
 
-#include<algorithm>
-#include<cassert>
-#include<iostream>
-#include<random>
-#include<limits>
+#include "HeterogeneousCore/CUDAUtilities/interface/HistoContainer.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/exitSansCUDADevices.h"
 
 template<typename T, int NBINS=128, int S=8*sizeof(T), int DELTA=1000>
 void go() {
@@ -17,10 +18,7 @@ void go() {
     rmax=NBINS*2-1;
   }
 
-
-
   std::uniform_int_distribution<T> rgen(rmin,rmax);
-
   
   constexpr int N=12000;
   T v[N];
@@ -31,7 +29,6 @@ void go() {
   std::cout << "bins " << int(Hist::bin(0)) << ' ' <<  int(Hist::bin(rmin)) << ' ' << int(Hist::bin(rmax)) << std::endl;  
   std::cout << "HistoContainer4 " << Hist4::nbits() << ' ' << Hist4::nbins() << ' ' << Hist4::totbins() << ' ' << Hist4::capacity() << ' ' << (rmax-rmin)/Hist::nbins() << std::endl;
   for (auto nh=0; nh<4; ++nh) std::cout << "bins " << int(Hist4::bin(0))+Hist4::histOff(nh) << ' ' <<  int(Hist::bin(rmin))+Hist4::histOff(nh) << ' ' << int(Hist::bin(rmax))+Hist4::histOff(nh) << std::endl;
-
 
   Hist h;
   Hist4 h4;
@@ -46,7 +43,7 @@ void go() {
     h.finalize(); h4.finalize();
     assert(h.size()==N);
     assert(h4.size()==N);
-    for (long long j = 0; j < N; j++) { h.fill(v[j],j);  if(j<2000) h4.fill(v[j],2); else h4.fill(v[j],j,j%4); }
+    for (long long j = 0; j < N; j++) { h.fill(v[j],j);  if(j<2000) h4.fill(v[j],j,2); else h4.fill(v[j],j,j%4); }
     assert(h.off[0]==0);
     assert(h4.off[0]==0);
     assert(h.size()==N);
@@ -101,10 +98,11 @@ void go() {
 }
 
 int main() {
-  go<int16_t>();
-  go<uint8_t,128,8,4>();
-  go<uint16_t,313/2,9,4>();
+  exitSansCUDADevices();
 
+  go<int16_t>();
+  go<uint8_t, 128, 8, 4>();
+  go<uint16_t, 313/2, 9, 4>();
 
   return 0;
 }
