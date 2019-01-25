@@ -139,7 +139,6 @@ void computeRadLenUniformMaterial(const VNd1 &length_values,
   // Radiation length of the pixel detector in the uniform assumption, with
   // 0.06 rad_len at 16 cm
   constexpr double XX_0_inv = 0.06/16.;
-//  const double XX_0 = 1000.*16.f/(0.06);
   u_int n = length_values.rows();
   rad_lengths(0) = length_values(0)*XX_0_inv;
   for (u_int j = 1; j < n; ++j) {
@@ -178,7 +177,7 @@ __host__ __device__ inline auto Scatter_cov_line(Matrix2d const * cov_sz,
 #ifdef RFIT_DEBUG
     Rfit::printIt(&s_arcs, "Scatter_cov_line - s_arcs: ");
 #endif
-    constexpr auto n = N;
+    constexpr u_int n = N;
     double p_t = std::min(20.,fast_fit(2) * B);   // limit pt to avoid too small error!!!
     double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
     VectorNd<N> rad_lengths_S;
@@ -237,7 +236,7 @@ __host__ __device__ inline auto Scatter_cov_line(Matrix2d const * cov_sz,
 							 VectorNd<N> const& rad,
 							 double B)
 {
-    u_int n = N;
+    constexpr u_int n = N;
     double p_t = std::min(20.,fast_fit(2) * B);   // limit pt to avoid too small error!!!
     double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
     double theta = atan(fast_fit(3));
@@ -293,7 +292,7 @@ __host__ __device__ inline auto Scatter_cov_line(Matrix2d const * cov_sz,
     printf("Address of p2D: %p\n", &p2D);
 #endif
     printIt(&p2D, "cov_radtocart - p2D:");
-    u_int n = p2D.cols();
+    constexpr u_int n = N;
     Matrix2Nd<N> cov_cart = Matrix2Nd<N>::Zero();
     VectorNd<N> rad_inv = rad.cwiseInverse();
     printIt(&rad_inv, "cov_radtocart - rad_inv:");
@@ -329,7 +328,7 @@ __host__ __device__ inline auto Scatter_cov_line(Matrix2d const * cov_sz,
 							 const Matrix2Nd<N>& cov_cart,
 							 const VectorNd<N>& rad)
 {
-    u_int n = p2D.cols();
+    constexpr u_int n = N;
     VectorNd<N> cov_rad;
     const VectorNd<N> rad_inv2 = rad.cwiseInverse().array().square();
     for (u_int i = 0; i < n; ++i)
@@ -362,7 +361,7 @@ template<typename M2xN, typename V4, int N>
 							      V4& fast_fit,
 							      const VectorNd<N>& rad)
 {
-    u_int n = p2D.cols();
+    constexpr u_int n = N;
     VectorNd<N> cov_rad;
     for (u_int i = 0; i < n; ++i)
     {
@@ -528,7 +527,8 @@ __host__ __device__ inline Vector2d min_eigen2D(const Matrix2d& A, double& chi2)
 template<typename M3xN, typename V4>
 __host__ __device__ inline void Fast_fit(const M3xN& hits, V4 & result)
 {
-    u_int n = hits.cols();  // get the number of hits
+    constexpr uint32_t N = M3xN::ColsAtCompileTime;
+    constexpr auto n = N; // get the number of hits
     printIt(&hits, "Fast_fit - hits: ");
 
     // CIRCLE FIT
@@ -618,7 +618,7 @@ __host__ __device__ inline circle_fit Circle_fit(const  M2xN& hits2D,
 #endif
     // INITIALIZATION
     Matrix2Nd<N> V = hits_cov2D;
-    u_int n = hits2D.cols();
+    constexpr u_int n = N;
     printIt(&hits2D, "circle_fit - hits2D:");
     printIt(&hits_cov2D, "circle_fit - hits_cov2D:");
 
@@ -804,7 +804,7 @@ __host__ __device__ inline circle_fit Circle_fit(const  M2xN& hits2D,
         printIt(&C0, "circle_fit - C0:");
 
         const MatrixNd<N> W = weight * weight.transpose();
-        const MatrixNd<N> H = MatrixXd::Identity(n, n).rowwise() - weight.transpose();
+        const MatrixNd<N> H = MatrixNd<N>::Identity().rowwise() - weight.transpose();
         const MatrixNx3d<N> s_v = H * p3D.transpose();
         printIt(&W, "circle_fit - W:");
         printIt(&H, "circle_fit - H:");
@@ -953,7 +953,7 @@ inline line_fit Line_fit(const M3xN& hits,
 			 const bool error) {
     
   constexpr uint32_t N = M3xN::ColsAtCompileTime;
-  auto n = hits.cols();
+  constexpr auto n = N;
   double theta = -circle.q*atan(fast_fit(3));
   theta = theta < 0. ? theta + M_PI : theta;
     
@@ -1143,7 +1143,7 @@ template<int N>
 inline helix_fit Helix_fit(const Matrix3xNd<N>& hits, const Eigen::Matrix<float,6,4>& hits_ge, const double B,
                            const bool error)
 {
-    u_int n = hits.cols();
+    constexpr u_int n = N;
     VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
 
     // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
