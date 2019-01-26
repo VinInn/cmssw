@@ -15,10 +15,13 @@ namespace gpuVertexFinder {
 
   // this algo does not really scale as it works in a single block...
   // enough for <10K tracks we have
+  // 
+  // based on Rodrighez&Laio algo
+  //
   __global__ 
   void clusterTracks(
 		     OnGPU * pdata,
-		     int minT,  // min number of neighbours to be "core"
+		     int minT,  // min number of neighbours to be "seed"
 		     float eps, // max absolute distance to cluster
 		     float errmax, // max error to be "seed"
 		     float chi2max   // max normalized distance to cluster
@@ -115,12 +118,13 @@ namespace gpuVertexFinder {
 
    __syncthreads();
 
+#ifdef GPU_DEBUG
    //  mini verification
    for (int i = threadIdx.x; i < nt; i += blockDim.x) {
     if (iv[i]!=i) assert(iv[iv[i]]!=i);  
    }
    __syncthreads();
-
+#endif
 
    // consolidate graph (percolate index of seed)
    for (int i = threadIdx.x; i < nt; i += blockDim.x) {
@@ -129,14 +133,13 @@ namespace gpuVertexFinder {
        iv[i]=m;
    }
 
-
+#ifdef GPU_DEBUG
    __syncthreads();
-
    //  mini verification
    for (int i = threadIdx.x; i < nt; i += blockDim.x) {
     if (iv[i]!=i) assert(iv[iv[i]]!=i);
    }
-
+#endif
     
     __shared__ unsigned int foundClusters;
     foundClusters = 0;
