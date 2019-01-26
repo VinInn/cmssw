@@ -140,6 +140,26 @@ namespace gpuVertexFinder {
     if (iv[i]!=i) assert(iv[iv[i]]!=i);
    }
 #endif
+
+  // and verify that we did not spit any cluster...
+  for (int i = threadIdx.x; i < nt; i += blockDim.x) {
+      auto minJ=i;
+      auto mdist=eps;
+      auto loop = [&](int j) {
+        if (nn[j]<nn[i]) return;
+        if (nn[j]==nn[i] && j>=i) return; // if equal use natural order...
+        auto dist = std::abs(zt[i]-zt[j]);
+        if (dist>mdist) return;
+        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return; // needed?
+        mdist = dist;
+        minJ=j;
+      };
+      forEachInBins(hist,izt[i],1,loop);
+      // should belong ot the same cluster...
+      assert(iv[i]==iv[minJ]);
+  }
+  __syncthreads();
+
     
     __shared__ unsigned int foundClusters;
     foundClusters = 0;
