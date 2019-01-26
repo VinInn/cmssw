@@ -95,47 +95,51 @@ namespace gpuVertexFinder {
       forEachInBins(hist,izt[i],1,loop);
     }
 
-
     __syncthreads();
 
-    
-    // cluster seeds only
-    int nloops=0;
-    bool more = true;
-    while (__syncthreads_or(more)) {
-      if (1==nloops%2) {
-        for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-          auto m = iv[i];
-          while (m!=iv[m]) m=iv[m];
-          iv[i]=m;
-        }
-      }  else {
-       more=false;
-       for (int  k = threadIdx.x; k < hist.size(); k += blockDim.x) {
-        auto p = hist.begin()+k;
-        auto i = (*p);
-        auto be = std::min(Hist::bin(izt[i])+1,int(hist.nbins()-1));
-	if (nn[i]<minT) continue; // DBSCAN core rule
-	auto loop = [&](int j) {
-	  assert (i!=j);
-	  if (nn[j]<minT) return;  // DBSCAN core rule
-          auto dist = std::abs(zt[i]-zt[j]);
-          if (dist>eps) return;
-	  if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
-	  auto old = atomicMin(&iv[j], iv[i]);
-	  if (old != iv[i]) {
-	    // end the loop only if no changes were applied
-	    more = true;
-	  }
-	  atomicMin(&iv[i], old);
-	};
-        ++p;
-        for (;p<hist.end(be);++p) loop(*p);
-       } // for i
-      }
-      ++nloops;
-    } // while
-    
+    // find NN onlu with smaller index...
+    for (int i = threadIdx.x; i < nt; i += blockDim.x) {
+      if (nn[i]<minT) continue;    // DBSCAN edge rule
+      float mdist=eps;
+      auto loop = [&](int j) {
+        if (j>=i) return;
+        if (nn[j]<minT) return;    // DBSCAN edge rule
+        auto dist = std::abs(zt[i]-zt[j]);
+        if (dist>mdist) return;
+        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return; // needed?
+        mdist=dist;
+        iv[i] = iv[j]; // assign to cluster (better be unique??)
+      };
+      forEachInBins(hist,izt[i],1,loop);
+    }
+
+   __syncthreads();
+
+#ifdef GPU_DEBUG
+   //  mini verification
+   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
+    if (iv[i]!=i) assert(iv[iv[i]]!=i);
+   }
+   __syncthreads();
+#endif
+
+
+   // consolidate graph (percolate index of seed)
+   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
+       auto m = iv[i];
+       while (m!=iv[m]) m=iv[m];
+       iv[i]=m;
+   }
+
+   __syncthreads();
+
+#ifdef GPU_DEBUG
+   //  mini verification
+   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
+    if (iv[i]!=i) assert(iv[iv[i]]!=i);
+   }
+   __syncthreads();
+#endif
     
     
     // collect edges (assign to closest cluster of closest point??? here to closest point)

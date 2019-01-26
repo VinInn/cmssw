@@ -7,7 +7,12 @@
 #include <cuda/api_wrappers.h>
 
 #include "HeterogeneousCore/CUDAUtilities/interface/exitSansCUDADevices.h"
+#ifdef USE_DBSCAN
+#include "RecoPixelVertexing/PixelVertexFinding/src/gpuClusterTracksDBSCAN.h"
+#else
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuClusterTracks.h"
+#endif
+
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuFitVertices.h"
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuSortByPt2.h"
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuSplitVertices.h"
@@ -145,29 +150,31 @@ int main() {
   
   std::cout << "M eps " << kk << ' ' << eps << std::endl;
   
+#define CLUSTERIZE clusterTracks
+
   if ( (i%4) == 0 )
-    cuda::launch(clusterTracks,
+    cuda::launch(CLUSTERIZE,
 		 { 1, 512+256 },
 		 onGPU_d.get(),kk,eps,
 		 0.02f,12.0f
 		 );
   
   if ( (i%4) == 1 )
-    cuda::launch(clusterTracks,
+    cuda::launch(CLUSTERIZE,
 		 { 1, 512+256 },
 		 onGPU_d.get(),kk,eps,
 		 0.02f,9.0f
 		 );
   
   if ( (i%4) == 2 )
-    cuda::launch(clusterTracks,
+    cuda::launch(CLUSTERIZE,
 		 { 1, 512+256 },
 		 onGPU_d.get(),kk,eps,
 		 0.01f,9.0f
 		 );
   
   if ( (i%4) == 3 )
-    cuda::launch(clusterTracks,
+    cuda::launch(CLUSTERIZE,
 		 { 1, 512+256 },
 		 onGPU_d.get(),kk,0.7f*eps,
 		 0.01f,9.0f
