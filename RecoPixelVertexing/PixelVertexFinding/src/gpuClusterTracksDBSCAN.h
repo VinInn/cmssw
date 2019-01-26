@@ -95,54 +95,71 @@ namespace gpuVertexFinder {
       forEachInBins(hist,izt[i],1,loop);
     }
 
+
     __syncthreads();
 
-    // find closest above me ....
+    
+    // cluster seeds only
+    int nloops=0;
+    bool more = true;
+    while (__syncthreads_or(more)) {
+      if (1==nloops%2) {
+        for (int i = threadIdx.x; i < nt; i += blockDim.x) {
+          auto m = iv[i];
+          while (m!=iv[m]) m=iv[m];
+          iv[i]=m;
+        }
+      }  else {
+       more=false;
+       for (int  k = threadIdx.x; k < hist.size(); k += blockDim.x) {
+        auto p = hist.begin()+k;
+        auto i = (*p);
+        auto be = std::min(Hist::bin(izt[i])+1,int(hist.nbins()-1));
+	if (nn[i]<minT) continue; // DBSCAN core rule
+	auto loop = [&](int j) {
+	  assert (i!=j);
+	  if (nn[j]<minT) return;  // DBSCAN core rule
+          auto dist = std::abs(zt[i]-zt[j]);
+          if (dist>eps) return;
+	  if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
+	  auto old = atomicMin(&iv[j], iv[i]);
+	  if (old != iv[i]) {
+	    // end the loop only if no changes were applied
+	    more = true;
+	  }
+	  atomicMin(&iv[i], old);
+	};
+        ++p;
+        for (;p<hist.end(be);++p) loop(*p);
+       } // for i
+      }
+      ++nloops;
+    } // while
+    
+    
+    
+    // collect edges (assign to closest cluster of closest point??? here to closest point)
     for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-//      if (nn[i]>=minT) continue;    // DBSCAN edge rule
+      //    if (nn[i]==0 || nn[i]>=minT) continue;    // DBSCAN edge rule
+      if (nn[i]>=minT) continue;    // DBSCAN edge rule
       float mdist=eps;
       auto loop = [&](int j) {
-        if (nn[j]<nn[i]) return;
-        if (nn[j]==nn[i] && j>=i) return; // if equal use natural order...
-        auto dist = std::abs(zt[i]-zt[j]);
-        if (dist>mdist) return;
-        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return; // needed?
-        mdist=dist;
-        iv[i] = iv[j]; // assign to cluster (better be unique??)
+	if (nn[j]<minT) return;  // DBSCAN core rule
+	auto dist = std::abs(zt[i]-zt[j]);
+	if (dist>mdist) return;
+	if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return; // needed?
+	mdist=dist;
+	iv[i] = iv[j]; // assign to cluster (better be unique??)
       };
       forEachInBins(hist,izt[i],1,loop);
     }
-
-   __syncthreads();
-
-   //  mini verification
-   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-    if (iv[i]!=i) assert(iv[iv[i]]!=i);  
-   }
-   __syncthreads();
-
-
-   // consolidate graph (percolate index of seed)
-   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-       auto m = iv[i];
-       while (m!=iv[m]) m=iv[m];
-       iv[i]=m;
-   }
-
-
-   __syncthreads();
-
-   //  mini verification
-   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-    if (iv[i]!=i) assert(iv[iv[i]]!=i);
-   }
-
+    
     
     __shared__ unsigned int foundClusters;
     foundClusters = 0;
     __syncthreads();
     
-    // find the number of different clusters, identified by a tracks with clus[i] == i and density larger than threshold;
+    // find the number of different clusters, identified by a tracks with clus[i] == i;
     // mark these tracks with a negative id.
     for (int i = threadIdx.x; i < nt; i += blockDim.x) {
       if (iv[i] == i) {
