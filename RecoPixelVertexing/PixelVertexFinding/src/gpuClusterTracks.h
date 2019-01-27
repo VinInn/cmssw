@@ -100,16 +100,15 @@ namespace gpuVertexFinder {
 
     __syncthreads();
 
-    // find closest above me ....
+    // find closest above me .... (we ignore the possibility of two j at same distance from i)
     for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-//      if (nn[i]>=minT) continue;    // DBSCAN edge rule
       float mdist=eps;
       auto loop = [&](int j) {
         if (nn[j]<nn[i]) return;
         if (nn[j]==nn[i] && zt[j]>=zt[i]) return; // if equal use natural order...
         auto dist = std::abs(zt[i]-zt[j]);
         if (dist>mdist) return;
-        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return; // needed?
+        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
         mdist=dist;
         iv[i] = j; // assign to cluster (better be unique??)
       };
@@ -151,12 +150,12 @@ namespace gpuVertexFinder {
         if (nn[j]==nn[i] && zt[j]>=zt[i]) return; // if equal use natural order...
         auto dist = std::abs(zt[i]-zt[j]);
         if (dist>mdist) return;
-        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return; // needed?
+        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
         mdist = dist;
         minJ=j;
       };
       forEachInBins(hist,izt[i],1,loop);
-      // should belong ot the same cluster...
+      // should belong to the same cluster...
       assert(iv[i]==iv[minJ]);
   }
   __syncthreads();

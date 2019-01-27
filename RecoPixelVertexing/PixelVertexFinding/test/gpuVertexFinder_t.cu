@@ -139,7 +139,7 @@ int main() {
 
   gen(ev);
   
-  std::cout << ev.zvert.size() << ' ' << ev.ztrack.size() << std::endl;
+  std::cout << "v,t size " << ev.zvert.size() << ' ' << ev.ztrack.size() << std::endl;
   auto nt = ev.ztrack.size();
   cuda::memory::copy(onGPU.ntrks,&nt,sizeof(uint32_t));
   cuda::memory::copy(onGPU.zt,ev.ztrack.data(),sizeof(float)*ev.ztrack.size());
@@ -148,7 +148,7 @@ int main() {
 
   float eps = 0.1f;
   
-  std::cout << "M eps " << kk << ' ' << eps << std::endl;
+  std::cout << "M eps, pset " << kk << ' ' << eps << ' ' << (i%4) << std::endl;
   
 #define CLUSTERIZE clusterTracks
 
@@ -206,7 +206,7 @@ int main() {
   for (auto j=0U; j<nv; ++j) if (nn[j]>0) chi2[j]/=float(nn[j]);
   {
     auto mx = std::minmax_element(chi2,chi2+nv);
-    std::cout << "after fit min max chi2 " << nv << " " << *mx.first << ' ' <<  *mx.second << std::endl;
+    std::cout << "after fit nv, min max chi2 " << nv << " " << *mx.first << ' ' <<  *mx.second << std::endl;
   }
 
   cuda::launch(fitVertices,
@@ -219,7 +219,7 @@ int main() {
   for (auto j=0U; j<nv; ++j) if (nn[j]>0) chi2[j]/=float(nn[j]);
   {
     auto mx = std::minmax_element(chi2,chi2+nv);
-    std::cout << "before splitting min max chi2 " << nv << " " << *mx.first << ' ' <<  *mx.second << std::endl;
+    std::cout << "before splitting nv, min max chi2 " << nv << " " << *mx.first << ' ' <<  *mx.second << std::endl;
   }
 
   cuda::launch(splitVertices,
@@ -259,7 +259,7 @@ int main() {
   for (auto j=0U; j<nv; ++j) if (nn[j]>0) chi2[j]/=float(nn[j]); 
   {
     auto mx = std::minmax_element(chi2,chi2+nv);
-    std::cout << "min max chi2 " << nv << " " << *mx.first << ' ' <<  *mx.second << std::endl;
+    std::cout << "nv, min max chi2 " << nv << " " << *mx.first << ' ' <<  *mx.second << std::endl;
   }
 
   {
