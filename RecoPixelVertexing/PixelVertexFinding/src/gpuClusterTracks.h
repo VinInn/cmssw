@@ -106,12 +106,12 @@ namespace gpuVertexFinder {
       float mdist=eps;
       auto loop = [&](int j) {
         if (nn[j]<nn[i]) return;
-        if (nn[j]==nn[i] && j>=i) return; // if equal use natural order...
+        if (nn[j]==nn[i] && zt[j]>=zt[i]) return; // if equal use natural order...
         auto dist = std::abs(zt[i]-zt[j]);
         if (dist>mdist) return;
         if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return; // needed?
         mdist=dist;
-        iv[i] = iv[j]; // assign to cluster (better be unique??)
+        iv[i] = j; // assign to cluster (better be unique??)
       };
       forEachInBins(hist,izt[i],1,loop);
     }
@@ -141,13 +141,14 @@ namespace gpuVertexFinder {
    }
 #endif
 
+#ifdef GPU_DEBUG
   // and verify that we did not spit any cluster...
   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
       auto minJ=i;
       auto mdist=eps;
       auto loop = [&](int j) {
         if (nn[j]<nn[i]) return;
-        if (nn[j]==nn[i] && j>=i) return; // if equal use natural order...
+        if (nn[j]==nn[i] && zt[j]>=zt[i]) return; // if equal use natural order...
         auto dist = std::abs(zt[i]-zt[j]);
         if (dist>mdist) return;
         if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return; // needed?
@@ -159,7 +160,7 @@ namespace gpuVertexFinder {
       assert(iv[i]==iv[minJ]);
   }
   __syncthreads();
-
+#endif
     
     __shared__ unsigned int foundClusters;
     foundClusters = 0;
