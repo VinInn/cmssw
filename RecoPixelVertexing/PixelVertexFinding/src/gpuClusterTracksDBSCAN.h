@@ -99,14 +99,14 @@ namespace gpuVertexFinder {
 
     // find NN with smaller z...
     for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-      if (nn[i]<minT) continue;    // DBSCAN edge rule
+      if (nn[i]<minT) continue;    // DBSCAN core rule
       float mz=zt[i];
       auto loop = [&](int j) {
         if (zt[j]>=mz) return;
-        if (nn[j]<minT) return;    // DBSCAN edge rule
+        if (nn[j]<minT) return;    // DBSCAN core rule
         auto dist = std::abs(zt[i]-zt[j]);
         if (dist>eps) return;
-        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
+//        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
         mz = zt[j];
         iv[i] = j; // assign to cluster (better be unique??)
       };
@@ -141,20 +141,27 @@ namespace gpuVertexFinder {
    __syncthreads();
 #endif
 
+#ifdef GPU_DEBUG
   // and verify that we did not spit any cluster...
   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-      if (nn[i]<minT) continue;    // DBSCAN edge rule
+      if (nn[i]<minT) continue;    // DBSCAN core rule
+      assert(zt[iv[i]]<=zt[i]);
       auto loop = [&](int j) {
-        if (nn[j]<minT) return;    // DBSCAN edge rule
+        if (nn[j]<minT) return;    // DBSCAN core rule
         auto dist = std::abs(zt[i]-zt[j]);
         if (dist>eps) return;
-        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return; // needed?
+      //  if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
         // they should belong to the same cluster, isn't it?
+        if(iv[i]!=iv[j]) {
+          printf("ERROR %d %d %f %f %d\n",i,iv[i],zt[i],zt[iv[i]],iv[iv[i]]);
+          printf("      %d %d %f %f %d\n",j,iv[j],zt[j],zt[iv[j]],iv[iv[j]]);;
+        }
         assert(iv[i]==iv[j]);
       };
       forEachInBins(hist,izt[i],1,loop);
   }
   __syncthreads();
+#endif
     
     // collect edges (assign to closest cluster of closest point??? here to closest point)
     for (int i = threadIdx.x; i < nt; i += blockDim.x) {

@@ -15,13 +15,10 @@ namespace gpuVertexFinder {
 
   // this algo does not really scale as it works in a single block...
   // enough for <10K tracks we have
-  // 
-  // based on Rodrighez&Laio algo
-  //
   __global__ 
   void clusterTracks(
 		     OnGPU * pdata,
-		     int minT,  // min number of neighbours to be "seed"
+		     int minT,  // min number of neighbours to be "core"
 		     float eps, // max absolute distance to cluster
 		     float errmax, // max error to be "seed"
 		     float chi2max   // max normalized distance to cluster
@@ -97,76 +94,99 @@ namespace gpuVertexFinder {
 
       forEachInBins(hist,izt[i],1,loop);
     }
-
+      
     __syncthreads();
-
-    // find closest above me .... (we ignore the possibility of two j at same distance from i)
-    for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-      float mdist=eps;
-      auto loop = [&](int j) {
-        if (nn[j]<nn[i]) return;
-        if (nn[j]==nn[i] && zt[j]>=zt[i]) return; // if equal use natural order...
-        auto dist = std::abs(zt[i]-zt[j]);
-        if (dist>mdist) return;
-        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;  // (break natural order???)
-        mdist=dist;
-        iv[i] = j; // assign to cluster (better be unique??)
-      };
-      forEachInBins(hist,izt[i],1,loop);
-    }
-
-   __syncthreads();
+    
+    // cluster seeds only
+    bool more = true;
+    int nloops=0;
+    while (__syncthreads_or(more)) {
+     if (1==nloops%2) {
+      for (int i = threadIdx.x; i < nt; i += blockDim.x) {
+        auto m = iv[i];
+        while (m!=iv[m]) m=iv[m];
+        iv[i]=m;
+      }
+      }  else {
+       more=false;
+       for (int  k = threadIdx.x; k < hist.size(); k += blockDim.x) {
+        auto p = hist.begin()+k;
+        auto i = (*p);
+        auto be = std::min(Hist::bin(izt[i])+1,int(hist.nbins()-1));
+	if (nn[i]<minT) continue; // DBSCAN core rule
+	auto loop = [&](int j) {
+	  assert (i!=j);
+	  if (nn[j]<minT) return;  // DBSCAN core rule
+          auto dist = std::abs(zt[i]-zt[j]);
+          if (dist>eps) return;
+	  if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
+	  auto old = atomicMin(&iv[j], iv[i]);
+	  if (old != iv[i]) {
+	    // end the loop only if no changes were applied
+	    more = true;
+	  }
+	  atomicMin(&iv[i], old);
+	};
+        ++p;
+        for (;p<hist.end(be);++p) loop(*p);
+       } // for i
+      }
+      ++nloops;
+    } // while
+    
 
 #ifdef GPU_DEBUG
-   //  mini verification
-   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-    if (iv[i]!=i) assert(iv[iv[i]]!=i);  
-   }
-   __syncthreads();
-#endif
-
-   // consolidate graph (percolate index of seed)
-   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-       auto m = iv[i];
-       while (m!=iv[m]) m=iv[m];
-       iv[i]=m;
-   }
-
-#ifdef GPU_DEBUG
-   __syncthreads();
-   //  mini verification
+   //  mini verification of consistency
    for (int i = threadIdx.x; i < nt; i += blockDim.x) {
     if (iv[i]!=i) assert(iv[iv[i]]!=i);
    }
+   __syncthreads();
 #endif
 
 #ifdef GPU_DEBUG
   // and verify that we did not spit any cluster...
   for (int i = threadIdx.x; i < nt; i += blockDim.x) {
-      auto minJ=i;
-      auto mdist=eps;
+      if (nn[i]<minT) continue;    // DBSCAN core rule
       auto loop = [&](int j) {
-        if (nn[j]<nn[i]) return;
-        if (nn[j]==nn[i] && zt[j]>=zt[i]) return; // if equal use natural order...
+        if (nn[j]<minT) return;    // DBSCAN core rule
         auto dist = std::abs(zt[i]-zt[j]);
-        if (dist>mdist) return;
+        if (dist>eps) return;
         if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
-        mdist = dist;
-        minJ=j;
+        // they should belong to the same cluster, isn't it?
+        if(iv[i]!=iv[j]) {
+          printf("ERROR %d %d %f %f %d\n",i,iv[i],zt[i],zt[iv[i]],iv[iv[i]]);
+          printf("      %d %d %f %f %d\n",j,iv[j],zt[j],zt[iv[j]],iv[iv[j]]);;
+        }
+        assert(iv[i]==iv[j]);
       };
       forEachInBins(hist,izt[i],1,loop);
-      // should belong to the same cluster...
-      assert(iv[i]==iv[minJ]);
-      assert(nn[i]<=nn[iv[i]]);
   }
   __syncthreads();
 #endif
+    
+    
+    // collect edges (assign to closest cluster of closest point??? here to closest point)
+    for (int i = threadIdx.x; i < nt; i += blockDim.x) {
+      //    if (nn[i]==0 || nn[i]>=minT) continue;    // DBSCAN edge rule
+      if (nn[i]>=minT) continue;    // DBSCAN edge rule
+      float mdist=eps;
+      auto loop = [&](int j) {
+	if (nn[j]<minT) return;  // DBSCAN core rule
+	auto dist = std::abs(zt[i]-zt[j]);
+	if (dist>mdist) return;
+	if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return; // needed?
+	mdist=dist;
+	iv[i] = iv[j]; // assign to cluster (better be unique??)
+      };
+      forEachInBins(hist,izt[i],1,loop);
+    }
+    
     
     __shared__ unsigned int foundClusters;
     foundClusters = 0;
     __syncthreads();
     
-    // find the number of different clusters, identified by a tracks with clus[i] == i and density larger than threshold;
+    // find the number of different clusters, identified by a tracks with clus[i] == i;
     // mark these tracks with a negative id.
     for (int i = threadIdx.x; i < nt; i += blockDim.x) {
       if (iv[i] == i) {

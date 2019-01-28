@@ -9,6 +9,8 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/exitSansCUDADevices.h"
 #ifdef USE_DBSCAN
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuClusterTracksDBSCAN.h"
+#elif USE_ITERATIVE
+#include "RecoPixelVertexing/PixelVertexFinding/src/gpuClusterTracksIterative.h"
 #else
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuClusterTracks.h"
 #endif
