@@ -1,4 +1,14 @@
+// #define USE_DBSCAN
+// #define USE_ITERATIVE
+
+#ifdef USE_DBSCAN
+#include "gpuClusterTracksDBSCAN.h"
+#elif defined(USE_ITERATIVE)
+#include "gpuClusterTracksIterative.h"
+#else
 #include "gpuClusterTracks.h"
+#endif
+
 #include "gpuFitVertices.h"
 #include "gpuSortByPt2.h"
 #include "gpuSplitVertices.h"

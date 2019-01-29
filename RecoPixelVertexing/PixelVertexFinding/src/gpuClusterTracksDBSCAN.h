@@ -88,7 +88,7 @@ namespace gpuVertexFinder {
         if (i==j) return;
         auto dist = std::abs(zt[i]-zt[j]);
         if (dist>eps) return;
-        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
+//        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
         nn[i]++;
       };
 
