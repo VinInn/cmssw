@@ -48,6 +48,8 @@ namespace cudaCompat {
   inline void __syncthreads(){}
   inline bool __syncthreads_or(bool x) { return x;}
   inline bool __syncthreads_and(bool x) { return x;}
+  template<typename T>
+  inline T __ldg(T x) { return x;}
 
   inline void resetGrid() {
     blockIdx = {0,0,0};

@@ -74,3 +74,16 @@
   <use name="HeterogeneousCore/CUDAServices"/>
   <use name="catch2"/>
 </bin>
+
+
+<bin file="eigenSOA_t.cpp" name="cpuEigenSOA_t">
+  <use name="eigen"/>
+  <flags CXXFLAGS="-g -DGPU_DEBUG"/>
+</bin>
+
+<bin file="eigenSOA_t.cu" name="gpuEigenSOA_t">
+  <use name="eigen"/>
+  <flags CUDA_FLAGS="-g -DGPU_DEBUG"/>
+  <flags CXXFLAGS="-g -DGPU_DEBUG"/>
+</bin>
+
