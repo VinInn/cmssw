@@ -83,6 +83,19 @@ void testBasicSOA(float * p) {
 }
 
 __global__
+void copyInA(float const * p, myDataView::V * psoa, int n) {
+  using V = myDataView::V;
+  int first = threadIdx.x + blockIdx.x*blockDim.x;
+  for (auto i=first; i<n; i+=blockDim.x*gridDim.x) {
+    auto j = i/V::stride();
+    auto k = i%V::stride();
+    auto & soa = psoa[j];
+    soa.a[k] = p[i];
+    soa.b[k] = 0;
+  }
+}
+
+__global__
 void sum(myDataView::V * psoa, int n) {
   using V = myDataView::V;
   int first = threadIdx.x + blockIdx.x*blockDim.x;
@@ -148,13 +161,48 @@ int main() {
   testBasicSOA(p);
 #endif
 
-
   std::cout << p[0] << std::endl;
 
   for (int i=0, n=64*3; i<n; ++i)
    assert(p[i]>1.);
 
+
+
+  using V = myDataView::V;
+
+  // how many I need???
+
+  constexpr int N = 1000;
+
+  constexpr int asoaSize = (N+V::stride()-1)/V::stride();
+  
+  V v[asoaSize];
+
+#ifdef __CUDACC__
+  V * v_d;
+  cudaCheck(cudaMalloc(&v_d,asoaSize*sizeof(V)));
+  copyInA<<<asoaSize,V::stride()>>>(p_d,v_d,N);
+  cudaCheck(cudaGetLastError());
+  sum<<<64,128>>>(v_d,N); // why not...
+  cudaCheck(cudaGetLastError());
+  cudaCheck(cudaMemcpy(v,v_d,asoaSize*sizeof(V),cudaMemcpyDefault));
+#else
+  copyInA(p,v,N);
+  sum(v,N);
+#endif
+
+  std::cout << v[0].a[0] << std::endl;
+  std::cout << v[0].b[0] << std::endl;
+
+  for (int i=0, n=N; i<n; ++i) {
+    auto j = i/V::stride();
+    auto k = i%V::stride();
+    assert(p[i]==v[j].a[k]);
+    assert(p[i]==v[j].b[k]);
+  }
   return 0;
+
+
 
 }
 
