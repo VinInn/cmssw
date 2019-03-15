@@ -1,4 +1,6 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/eigenSOA.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/ASOA.h"
+
 #include <Eigen/Dense>
 
 template<int32_t S> 
@@ -12,39 +14,14 @@ struct MySOA {
 
 };
 
-// needed to support cpu and gpu
-// can contain multiple independent ASOA
-class myDataView {
-public:
-  static constexpr int32_t S = 256;
-  using V = MySOA<S>;
+using V = MySOA<128>;
+using AV = GPU::ASOA<V>;
 
-  // various deleted constructor
-  // ....
-
-  // proper constructor and setters
-  // ....
-
-  // really needed?????
-  constexpr V & operator()(int32_t i)  { return data_[i];}
-  constexpr V const & operator()(int32_t i) const { return data_[i];}
-
-  constexpr V * data()  { return data_;}
-  constexpr V const * data() const { return data_;}
-
-
-  constexpr int32_t size() const { return n_;}
-
-  V * data_;
-  int32_t n_;
-
-};
 
 __global__
 void testBasicSOA(float * p) {
 
   using namespace eigenSOA;
-  using V = myDataView::V;
 
   assert(!isPowerOf2(0));
   assert(isPowerOf2(1));
@@ -83,41 +60,34 @@ void testBasicSOA(float * p) {
 }
 
 __global__
-void copyInA(float const * p, myDataView::V * psoa, int n) {
-  using V = myDataView::V;
+void copyInA(float const * p, AV * pasoa, int n) {
+  auto & asoa = *pasoa;
   int first = threadIdx.x + blockIdx.x*blockDim.x;
   for (auto i=first; i<n; i+=blockDim.x*gridDim.x) {
-    auto j = i/V::stride();
-    auto k = i%V::stride();
-    auto & soa = psoa[j];
-    soa.a[k] = p[i];
-    soa.b[k] = 0;
+    auto ind = asoa.addOne();
+    if (ind<0) return;
+    assert(ind<asoa.capacity());
+    assert(ind<n);
+    auto jk = AV::indices(ind);
+    assert(jk.k<AV::stride());
+    auto & soa = asoa[jk.j];
+    soa.a[jk.k] = p[ind]; // make it deterministic....
+    soa.b[jk.k] = 0;
   }
+
+  
 }
 
 __global__
-void sum(myDataView::V * psoa, int n) {
-  using V = myDataView::V;
-  int first = threadIdx.x + blockIdx.x*blockDim.x;
-  for (auto i=first; i<n; i+=blockDim.x*gridDim.x) {
-    auto j = i/V::stride();
-    auto k = i%V::stride();
-    auto & soa = psoa[j];
-    soa.b(k) += soa.a(k);
-  }
-}
-
-
-__global__
-void sum2(myDataView::V * psoa, int n) {
-  using V = myDataView::V;
-  int nb = (n+V::stride()-1)/V::stride();
-  for (int j=blockIdx.x; j<nb; j+=gridDim.x) {
-    auto & soa = psoa[j];
-    int kmax = std::min(V::stride(),n - j*V::stride());
-    for(int32_t k=threadIdx.x; k<kmax; k+=blockDim.x) {
-     soa.b(k) += soa.a(k);
-    }
+void sum(AV * pasoa) {
+  auto & asoa = *pasoa;
+  int32_t first = threadIdx.x + blockIdx.x*blockDim.x;
+  for (auto i=first,n=asoa.size(); i<n; i+=blockDim.x*gridDim.x) {
+    assert(i<asoa.capacity());
+    auto jk = AV::indices(i);
+    assert(jk.k<AV::stride());
+    auto & soa = asoa[jk.j];
+    soa.b[jk.k] += soa.a[jk.k];
   }
 }
 
@@ -125,6 +95,7 @@ void sum2(myDataView::V * psoa, int n) {
 
 #include <random>
 #include <cassert>
+#include <memory>
 
 #ifdef __CUDACC__
 #include "HeterogeneousCore/CUDAUtilities/interface/exitSansCUDADevices.h"
@@ -167,39 +138,63 @@ int main() {
    assert(p[i]>1.);
 
 
-
-  using V = myDataView::V;
+// ASOA....
 
   // how many I need???
 
-  constexpr int N = 1000;
+  const int N = 1000;
 
-  constexpr int asoaSize = (N+V::stride()-1)/V::stride();
-  
-  V v[asoaSize];
+  auto v_data = std::make_unique<AV::data_type[]>(AV::dataSize(N));
+  AV av; av.construct(N,v_data.get());
+  assert(N == av.capacity());
+  assert(av.empty());
+  assert(av.data()==v_data.get());
+
+  std::cout << "number of buckets " << AV::dataSize(N) << " " << " capacity " << av.capacity() << " stride " << AV::stride() << std::endl;
+  std::cout << "size of data array " << AV::dataBytes(N) << std::endl;
+  assert(av.capacity()<=AV::dataSize(N)*AV::stride());
 
 #ifdef __CUDACC__
-  V * v_d;
-  cudaCheck(cudaMalloc(&v_d,asoaSize*sizeof(V)));
-  copyInA<<<asoaSize,V::stride()>>>(p_d,v_d,N);
+  AV::data_type * v_d;
+  cudaCheck(cudaMalloc(&v_d,AV::dataBytes(N)));
+  AV av_h; av_h.construct(N,v_d);  // hold device data pointer...
+  AV * av_d;
+  cudaCheck(cudaMalloc(&av_d,sizeof(AV)));
+  cudaCheck(cudaMemcpy(av_d,&av_h,sizeof(AV),cudaMemcpyDefault));
+  copyInA<<<AV::dataSize(N),V::stride()>>>(p_d,av_d,N);
   cudaCheck(cudaGetLastError());
-  sum<<<64,128>>>(v_d,N); // why not...
+  sum<<<64,128>>>(av_d); // why not...
   cudaCheck(cudaGetLastError());
-  cudaCheck(cudaMemcpy(v,v_d,asoaSize*sizeof(V),cudaMemcpyDefault));
+  cudaCheck(cudaMemcpy(&av,av_d,sizeof(int32_t),cudaMemcpyDefault));  // this can be async...
+  cudaCheck(cudaMemcpy(v_data.get(),av_h.data(),AV::dataBytes(N),cudaMemcpyDefault));
+//  av.data() = v_data.get();
+  assert(av.data() == v_data.get());
 #else
-  copyInA(p,v,N);
-  sum(v,N);
+  copyInA(p,&av,N);
+  sum(&av);
 #endif
 
-  std::cout << v[0].a[0] << std::endl;
-  std::cout << v[0].b[0] << std::endl;
+  assert(N == av.capacity());
+  assert(av.data()==v_data.get());
+  assert(av.size()==N);
+
+  std::cout << av[0].a[0] << std::endl;
+  std::cout << av[0].b[0] << std::endl;
 
   for (int i=0, n=N; i<n; ++i) {
-    auto j = i/V::stride();
-    auto k = i%V::stride();
-    assert(p[i]==v[j].a[k]);
-    assert(p[i]==v[j].b[k]);
+    auto j = i/AV::stride();
+    auto k = i%AV::stride();
+    assert(p[i]==av[j].a[k]);
+    assert(p[i]==av[j].b[k]);
   }
+
+
+#ifdef __CUDACC__
+  cudaCheck(cudaFree(av_d));
+  cudaCheck(cudaFree(v_d));
+#endif
+
+  std::cout << "END" << std::endl;
   return 0;
 
 
