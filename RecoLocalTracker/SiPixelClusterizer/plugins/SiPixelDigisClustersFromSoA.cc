@@ -73,7 +73,7 @@ SiPixelDigisClustersFromSoA::SiPixelDigisClustersFromSoA(const edm::ParameterSet
 
 void SiPixelDigisClustersFromSoA::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
-  desc.add<edm::InputTag>("src", edm::InputTag("siPixelDigisSoA"));
+  desc.add<edm::InputTag>("src", edm::InputTag("siPixelDigisLegacySoA"));
   descriptions.addWithDefaultLabel(desc);
 }
 

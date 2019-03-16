@@ -26,9 +26,9 @@ namespace gpuCalibPixel {
                          )
 {
 
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-    if (i >= numElements) return;
-    if (InvId==id[i]) return;
+  int first = blockDim.x * blockIdx.x + threadIdx.x;
+  for (int i=first, iend=numElements; i<iend;  i+=blockDim.x*gridDim.x) {
+    if (InvId==id[i]) continue;
 
     float conversionFactor = id[i]<96 ? VCaltoElectronGain_L1 : VCaltoElectronGain;
     float offset =  id[i]<96 ? VCaltoElectronOffset_L1 : VCaltoElectronOffset;
@@ -49,9 +49,9 @@ namespace gpuCalibPixel {
       float vcal = adc[i] * gain  - pedestal*gain;
       adc[i] = std::max(100, int( vcal * conversionFactor + offset));
     }
-
     // if (threadIdx.x==0)
     //  printf ("calibrated %d\n",id[i]);
+  }
 }
 
  __global__ void calibADCByModule(uint16_t * id,
