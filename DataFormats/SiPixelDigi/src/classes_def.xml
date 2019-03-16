@@ -51,8 +51,8 @@
    <class name="edm::Wrapper<edmNew::DetSetVector<SiPixelCalibDigiError> >"/>
 
    <class name="SiPixelDigisSoA<1024>" persistent="false"/>
-   <class name="SiPixelDigisASoAonCPU" persistent="false"/>
-   <class name="edm::Wrapper<SiPixelDigisASoAonCPU>" persistent="false"/>
+   <class name="SiPixelDigisSoAView<SiPixelDigisASoAonCPU>" persistent="false"/>
+   <class name="edm::Wrapper<SiPixelDigisSoAView<SiPixelDigisASoAonCPU>>" persistent="false"/>
 
    <class name="SiPixelDigisLegacySoA" persistent="false"/>
    <class name="edm::Wrapper<SiPixelDigisLegacySoA>" persistent="false"/>
