@@ -19,5 +19,6 @@ struct SiPixelDigisSoA {
 #include "HeterogeneousCore/CUDAUtilities/interface/ASoA.h"
 
 using SiPixelDigisASoA = GPU::ASoA<SiPixelDigisSoA<1024>>;
+using SiPixelDigisASoAonCPU = GPU::ASoA<SiPixelDigisSoA<1024>,1024,GPU::CPUStorage>;
 
 #endif
