@@ -1,27 +1,27 @@
-#include "HeterogeneousCore/CUDAUtilities/interface/eigenSOA.h"
-#include "HeterogeneousCore/CUDAUtilities/interface/ASOA.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/eigenSoA.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/ASoA.h"
 
 #include <Eigen/Dense>
 
 template<int32_t S> 
-struct MySOA {
+struct MySoA {
 
   // we can find a way to avoid this copy/paste???
   static constexpr int32_t stride() { return S; }  
 
-  eigenSOA::ScalarSOA<float,S> a;
-  eigenSOA::ScalarSOA<float,S> b;
+  eigenSoA::ScalarSoA<float,S> a;
+  eigenSoA::ScalarSoA<float,S> b;
 
 };
 
-using V = MySOA<128>;
-using AV = GPU::ASOA<V>;
+using V = MySoA<128>;
+using AV = GPU::ASoA<V>;
 
 
 __global__
-void testBasicSOA(float * p) {
+void testBasicSoA(float * p) {
 
-  using namespace eigenSOA;
+  using namespace eigenSoA;
 
   assert(!isPowerOf2(0));
   assert(isPowerOf2(1));
@@ -29,7 +29,7 @@ void testBasicSOA(float * p) {
   assert(!isPowerOf2(1026));
 
   using M3 = Eigen::Matrix<float,3,3>;;
-  __shared__ eigenSOA::MatrixSOA<M3,64> m;
+  __shared__ eigenSoA::MatrixSoA<M3,64> m;
 
 
   int first = threadIdx.x + blockIdx.x*blockDim.x;
@@ -124,12 +124,12 @@ int main() {
   float * p_d;
   cudaCheck(cudaMalloc(&p_d,1024*4));
   cudaCheck(cudaMemcpy(p_d,p,1024*4,cudaMemcpyDefault));
-  testBasicSOA<<<1,1024>>>(p_d);
+  testBasicSoA<<<1,1024>>>(p_d);
   cudaCheck(cudaGetLastError());
   cudaCheck(cudaMemcpy(p,p_d,1024*4,cudaMemcpyDefault));
   cudaCheck(cudaDeviceSynchronize());
 #else
-  testBasicSOA(p);
+  testBasicSoA(p);
 #endif
 
   std::cout << p[0] << std::endl;
@@ -138,7 +138,7 @@ int main() {
    assert(p[i]>1.);
 
 
-// ASOA....
+// ASoA....
 
   // how many I need???
 

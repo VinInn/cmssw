@@ -1,10 +1,10 @@
-#ifndef CUDADataFormats_SiPixelDigi_interface_SiPixelDigisSOA_h
-#define CUDADataFormats_SiPixelDigi_interface_SiPixelDigisSOA_h
+#ifndef DataFormats_SiPixelDigi_SiPixelDigisSoA_H
+#define DataFormats_SiPixelDigi_SiPixelDigisSoA_H
 
 #include "HeterogeneousCore/CUDAUtilities/interface/eigenSOA.h"
 
 template<int S>
-struct SiPixelDigisSOA {
+struct SiPixelDigisSaA {
 
   static constexpr int32_t stride() { return S; }
 
@@ -17,5 +17,4 @@ struct SiPixelDigisSOA {
 };
 
 
-
-endif
+#endif

@@ -1,5 +1,5 @@
-#ifndef HeterogeneousCore_CUDAUtilities_ASOA_H
-#define HeterogeneousCore_CUDAUtilities_ASOA_H
+#ifndef HeterogeneousCore_CUDAUtilities_ASoA_H
+#define HeterogeneousCore_CUDAUtilities_ASoA_H
 
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCompat.h"
 #include<cstdint>
@@ -14,17 +14,17 @@ constexpr bool isPowerOf2(uint32_t v) {
 }
 
 
-template<typename SOA, int32_t S=SOA::stride()>
-class ASOA {
+template<typename SoA, int32_t S=SoA::stride()>
+class ASoA {
 public:
 
-  using data_type = SOA;
+  using data_type = SoA;
 
   static constexpr int32_t stride() { return S; }
   static_assert(isPowerOf2(S),"stride not a power of 2");
 
   // given a capacity return the required size of the data array
-  // given the size will return the number of filled SOAs.
+  // given the size will return the number of filled SoAs.
   static constexpr int32_t dataSize(int32_t icapacity) {
      return (icapacity+stride()-1)/stride();
   }
@@ -36,7 +36,7 @@ public:
 
   struct Indices{int32_t j,k;};
 
-  // return the index of the SOA and the index of the element in it
+  // return the index of the SoA and the index of the element in it
   // in c++17:  auto [j,k] = asoa.indeces(i); auto & soa = asoa[j];  soa.x[k];
   //static constexpr
   //auto indices(int32_t i) { return std::make_tuple(i/stride(), i%stride());}
@@ -45,7 +45,7 @@ public:
   auto indices(int32_t i) { return Indices{i/stride(), i%stride()};}
 
   __device__ __host__
-  void construct(int32_t icapacity, SOA * idata) {
+  void construct(int32_t icapacity, SoA * idata) {
     m_size = 0;
     m_capacity = icapacity;
     m_data = idata;
@@ -58,11 +58,11 @@ public:
   inline constexpr auto size() const { return m_size; }
   inline constexpr auto capacity() const { return m_capacity; }
 
-  // these manage the SOA themselves
-  inline constexpr SOA & operator[](int32_t i) { return m_data[i]; }
-  inline constexpr const SOA& operator[](int32_t i) const { return m_data[i]; }
-  inline constexpr SOA * & data() { return m_data; }
-  inline constexpr SOA const * data() const { return m_data; }
+  // these manage the SoA themselves
+  inline constexpr SoA & operator[](int32_t i) { return m_data[i]; }
+  inline constexpr const SoA& operator[](int32_t i) const { return m_data[i]; }
+  inline constexpr SoA * & data() { return m_data; }
+  inline constexpr SoA const * data() const { return m_data; }
 
 
   __device__
@@ -80,7 +80,7 @@ private:
   int32_t m_size=0;
   int32_t m_capacity;
 
-  SOA * m_data;
+  SoA * m_data;
 };
 
 

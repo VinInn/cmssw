@@ -76,12 +76,12 @@
 </bin>
 
 
-<bin file="eigenSOA_t.cpp" name="cpuEigenSOA_t">
+<bin file="eigenSoA_t.cpp" name="cpuEigenSoA_t">
   <use name="eigen"/>
   <flags CXXFLAGS="-g -DGPU_DEBUG"/>
 </bin>
 
-<bin file="eigenSOA_t.cu" name="gpuEigenSOA_t">
+<bin file="eigenSoA_t.cu" name="gpuEigenSoA_t">
   <use name="eigen"/>
   <flags CUDA_FLAGS="-g -DGPU_DEBUG"/>
   <flags CXXFLAGS="-g -DGPU_DEBUG"/>
