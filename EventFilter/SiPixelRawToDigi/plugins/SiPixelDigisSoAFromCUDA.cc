@@ -1,6 +1,6 @@
 #include "CUDADataFormats/Common/interface/CUDAProduct.h"
 #include "CUDADataFormats/SiPixelDigi/interface/SiPixelDigisCUDA.h"
-#include "DataFormats/SiPixelDigi/interface/SiPixelDigisSoA.h"
+#include "DataFormats/SiPixelDigi/interface/SiPixelDigisLegacySoA.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -12,10 +12,10 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/host_unique_ptr.h"
 
 
-class SiPixelDigisSoAFromCUDA: public edm::stream::EDProducer<edm::ExternalWork> {
+class SiPixelDigisLegacySoAFromCUDA: public edm::stream::EDProducer<edm::ExternalWork> {
 public:
-  explicit SiPixelDigisSoAFromCUDA(const edm::ParameterSet& iConfig);
-  ~SiPixelDigisSoAFromCUDA() override = default;
+  explicit SiPixelDigisLegacySoAFromCUDA(const edm::ParameterSet& iConfig);
+  ~SiPixelDigisLegacySoAFromCUDA() override = default;
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -24,7 +24,7 @@ private:
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
 
   edm::EDGetTokenT<CUDAProduct<SiPixelDigisCUDA>> digiGetToken_;
-  edm::EDPutTokenT<SiPixelDigisSoA> digiPutToken_;
+  edm::EDPutTokenT<SiPixelDigisLegacySoA> digiPutToken_;
 
   cudautils::host::unique_ptr<uint32_t[]> pdigi_;
   cudautils::host::unique_ptr<uint32_t[]> rawIdArr_;
@@ -34,18 +34,18 @@ private:
   int nDigis_;
 };
 
-SiPixelDigisSoAFromCUDA::SiPixelDigisSoAFromCUDA(const edm::ParameterSet& iConfig):
+SiPixelDigisLegacySoAFromCUDA::SiPixelDigisLegacySoAFromCUDA(const edm::ParameterSet& iConfig):
   digiGetToken_(consumes<CUDAProduct<SiPixelDigisCUDA>>(iConfig.getParameter<edm::InputTag>("src"))),
-  digiPutToken_(produces<SiPixelDigisSoA>())
+  digiPutToken_(produces<SiPixelDigisLegacySoA>())
 {}
 
-void SiPixelDigisSoAFromCUDA::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+void SiPixelDigisLegacySoAFromCUDA::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("src", edm::InputTag("siPixelClustersCUDA"));
   descriptions.addWithDefaultLabel(desc);
 }
 
-void SiPixelDigisSoAFromCUDA::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
+void SiPixelDigisLegacySoAFromCUDA::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
   // Do the transfer in a CUDA stream parallel to the computation CUDA stream
   CUDAScopedContext ctx{iEvent.streamID(), std::move(waitingTaskHolder)};
 
@@ -58,7 +58,7 @@ void SiPixelDigisSoAFromCUDA::acquire(const edm::Event& iEvent, const edm::Event
   clus_ = gpuDigis.clusToHostAsync(ctx.stream());
 }
 
-void SiPixelDigisSoAFromCUDA::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+void SiPixelDigisLegacySoAFromCUDA::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   // The following line copies the data from the pinned host memory to
   // regular host memory. In principle that feels unnecessary (why not
   // just use the pinned host memory?). There are a few arguments for
@@ -78,4 +78,4 @@ void SiPixelDigisSoAFromCUDA::produce(edm::Event& iEvent, const edm::EventSetup&
 }
 
 // define as framework plugin
-DEFINE_FWK_MODULE(SiPixelDigisSoAFromCUDA);
+DEFINE_FWK_MODULE(SiPixelDigisLegacySoAFromCUDA);

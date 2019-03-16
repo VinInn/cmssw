@@ -1,14 +1,14 @@
-#ifndef DataFormats_SiPixelDigi_interface_SiPixelDigisSoA_h
-#define DataFormats_SiPixelDigi_interface_SiPixelDigisSoA_h
+#ifndef DataFormats_SiPixelDigi_interface_SiPixelDigisLegacySoA_h
+#define DataFormats_SiPixelDigi_interface_SiPixelDigisLegacySoA_h
 
 #include <cstdint>
 #include <vector>
 
-class SiPixelDigisSoA {
+class SiPixelDigisLegacySoA {
 public:
-  SiPixelDigisSoA() = default;
-  explicit SiPixelDigisSoA(size_t nDigis, const uint32_t *pdigi, const uint32_t *rawIdArr, const uint16_t *adc, const int32_t *clus);
-  ~SiPixelDigisSoA() = default;
+  SiPixelDigisLegacySoA() = default;
+  explicit SiPixelDigisLegacySoA(size_t nDigis, const uint32_t *pdigi, const uint32_t *rawIdArr, const uint16_t *adc, const int32_t *clus);
+  ~SiPixelDigisLegacySoA() = default;
 
   auto size() const { return pdigi_.size(); }
 

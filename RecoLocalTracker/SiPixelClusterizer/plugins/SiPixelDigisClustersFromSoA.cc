@@ -3,7 +3,7 @@
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/SiPixelCluster/interface/SiPixelCluster.h"
 #include "DataFormats/SiPixelDigi/interface/PixelDigi.h"
-#include "DataFormats/SiPixelDigi/interface/SiPixelDigisSoA.h"
+#include "DataFormats/SiPixelDigi/interface/SiPixelDigisLegacySoA.h"
 #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -58,7 +58,7 @@ public:
 private:
   void produce(edm::StreamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const override;
 
-  edm::EDGetTokenT<SiPixelDigisSoA> digiGetToken_;
+  edm::EDGetTokenT<SiPixelDigisLegacySoA> digiGetToken_;
 
   edm::EDPutTokenT<edm::DetSetVector<PixelDigi>> digiPutToken_;
   edm::EDPutTokenT<SiPixelClusterCollectionNew> clusterPutToken_;
@@ -66,7 +66,7 @@ private:
 };
 
 SiPixelDigisClustersFromSoA::SiPixelDigisClustersFromSoA(const edm::ParameterSet& iConfig):
-  digiGetToken_(consumes<SiPixelDigisSoA>(iConfig.getParameter<edm::InputTag>("src"))),
+  digiGetToken_(consumes<SiPixelDigisLegacySoA>(iConfig.getParameter<edm::InputTag>("src"))),
   digiPutToken_(produces<edm::DetSetVector<PixelDigi>>()),
   clusterPutToken_(produces<SiPixelClusterCollectionNew>())
 {}
