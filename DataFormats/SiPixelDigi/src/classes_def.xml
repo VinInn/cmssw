@@ -50,6 +50,10 @@
    <class name="edmNew::DetSetVector<SiPixelCalibDigiError>"/>
    <class name="edm::Wrapper<edmNew::DetSetVector<SiPixelCalibDigiError> >"/>
 
+   <class name="SiPixelDigisSoA<1024>" persistent="false"/>
+   <class name="std::vector<SiPixelDigisSoA<1024>>" persistent="false"/>
+   <class name="edm::Wrapper<std::vector<SiPixelDigisSoA<1024>>>" persistent="false"/>
+
    <class name="SiPixelDigisLegacySoA" persistent="false"/>
    <class name="edm::Wrapper<SiPixelDigisLegacySoA>" persistent="false"/>
 

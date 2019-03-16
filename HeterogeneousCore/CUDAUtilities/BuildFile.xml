@@ -1,5 +1,6 @@
 <use name="cub"/>
 <use name="cuda"/>
+<use name="eigen"/>
 
 <export>
     <lib name="1"/>

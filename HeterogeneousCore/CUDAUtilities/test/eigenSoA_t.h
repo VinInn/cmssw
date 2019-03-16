@@ -15,7 +15,8 @@ struct MySoA {
 };
 
 using V = MySoA<128>;
-using AV = GPU::ASoA<V>;
+using AVE = GPU::ASoA<V>;
+using AVS = GPU::ASoA<V,V::stride(),GPU::CPUStorage>;
 
 
 __global__
@@ -59,6 +60,7 @@ void testBasicSoA(float * p) {
 
 }
 
+template<typename AV>
 __global__
 void copyInA(float const * p, AV * pasoa, int n) {
   auto & asoa = *pasoa;
@@ -74,10 +76,9 @@ void copyInA(float const * p, AV * pasoa, int n) {
     soa.a[jk.k] = p[ind]; // make it deterministic....
     soa.b[jk.k] = 0;
   }
-
-  
 }
 
+template<typename AV>
 __global__
 void sum(AV * pasoa) {
   auto & asoa = *pasoa;
@@ -144,46 +145,44 @@ int main() {
 
   const int N = 1000;
 
-  auto v_data = std::make_unique<AV::data_type[]>(AV::dataSize(N));
-  AV av; av.construct(N,v_data.get());
+  // auto v_data = std::make_unique<AV::data_type[]>(AV::dataSize(N));
+  AVS av; av.construct(N,nullptr);
   assert(N == av.capacity());
   assert(av.empty());
-  assert(av.data()==v_data.get());
+  // assert(av.data()==v_data.get());
 
-  std::cout << "number of buckets " << AV::dataSize(N) << " " << " capacity " << av.capacity() << " stride " << AV::stride() << std::endl;
-  std::cout << "size of data array " << AV::dataBytes(N) << std::endl;
-  assert(av.capacity()<=AV::dataSize(N)*AV::stride());
+  std::cout << "number of buckets " << AVS::dataSize(N) << " " << " capacity " << av.capacity() << " stride " << AVS::stride() << std::endl;
+  std::cout << "size of data array " << AVS::dataBytes(N) << std::endl;
+  assert(av.capacity()<=AVS::dataSize(N)*AVS::stride());
 
 #ifdef __CUDACC__
-  AV::data_type * v_d;
-  cudaCheck(cudaMalloc(&v_d,AV::dataBytes(N)));
-  AV av_h; av_h.construct(N,v_d);  // hold device data pointer...
-  AV * av_d;
-  cudaCheck(cudaMalloc(&av_d,sizeof(AV)));
-  cudaCheck(cudaMemcpy(av_d,&av_h,sizeof(AV),cudaMemcpyDefault));
-  copyInA<<<AV::dataSize(N),V::stride()>>>(p_d,av_d,N);
+  AVE::data_type * v_d;
+  cudaCheck(cudaMalloc(&v_d,AVE::dataBytes(N)));
+  AVE av_h; av_h.construct(N,v_d);  // hold device data pointer...
+  AVE * av_d;
+  cudaCheck(cudaMalloc(&av_d,sizeof(AVE)));
+  cudaCheck(cudaMemcpy(av_d,&av_h,sizeof(AVE),cudaMemcpyDefault));
+  copyInA<<<AVE::dataSize(N),AVE::stride()>>>(p_d,av_d,N);
   cudaCheck(cudaGetLastError());
   sum<<<64,128>>>(av_d); // why not...
   cudaCheck(cudaGetLastError());
   cudaCheck(cudaMemcpy(&av,av_d,sizeof(int32_t),cudaMemcpyDefault));  // this can be async...
-  cudaCheck(cudaMemcpy(v_data.get(),av_h.data(),AV::dataBytes(N),cudaMemcpyDefault));
-//  av.data() = v_data.get();
-  assert(av.data() == v_data.get());
+  cudaCheck(cudaMemcpy(av.data(),av_h.data(),AVE::dataBytes(N),cudaMemcpyDefault));
 #else
   copyInA(p,&av,N);
   sum(&av);
 #endif
 
   assert(N == av.capacity());
-  assert(av.data()==v_data.get());
+  //  assert(av.data()==v_data.get());
   assert(av.size()==N);
 
   std::cout << av[0].a[0] << std::endl;
   std::cout << av[0].b[0] << std::endl;
 
   for (int i=0, n=N; i<n; ++i) {
-    auto j = i/AV::stride();
-    auto k = i%AV::stride();
+    auto j = i/AVS::stride();
+    auto k = i%AVS::stride();
     assert(p[i]==av[j].a[k]);
     assert(p[i]==av[j].b[k]);
   }

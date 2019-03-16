@@ -4,7 +4,7 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCompat.h"
 #include<cstdint>
 #include<algorithm>
-
+#include <cstdlib>
 
 namespace GPU {  
 
@@ -13,10 +13,36 @@ constexpr bool isPowerOf2(uint32_t v) {
     return v && !(v & (v - 1));
 }
 
+struct ExternalStorage {
+   template<typename T>
+   __host__ __device__
+   void alloc(T **, int){}
+   __host__ __device__
+   void dealloc(void *) {}
+};
 
-template<typename SoA, int32_t S=SoA::stride()>
-class ASoA {
+struct CPUStorage {
+   template<typename T>
+   void alloc(T ** p, int n){
+       (*p) = (T*)malloc(n);
+   }
+   void dealloc(void *p ) { free(p); }
+};
+
+
+// storage is now in the type...
+// will cause trouble even if being stride template argument all client will have to template...
+template<typename SoA, int32_t S=SoA::stride(), typename Storage=ExternalStorage>
+class ASoA : private Storage {
 public:
+
+  ASoA() = default;
+  ASoA(ASoA const &) = delete;
+  ASoA(ASoA &&) = delete;
+  ASoA operator=(ASoA const &) = delete;
+  ASoA operator=(ASoA &&) = delete;
+
+  ~ASoA() { this->Storage::dealloc(m_data);}
 
   using data_type = SoA;
 
@@ -44,11 +70,13 @@ public:
   static constexpr
   auto indices(int32_t i) { return Indices{i/stride(), i%stride()};}
 
-  __device__ __host__
+  // __device__ __host__
   void construct(int32_t icapacity, SoA * idata) {
     m_size = 0;
     m_capacity = icapacity;
     m_data = idata;
+    if (nullptr == m_data) this->Storage::alloc(&m_data,dataBytes(m_capacity));
+    assert(m_data);  // ok throw bad_alloc...
   }
 
 
