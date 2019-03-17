@@ -27,19 +27,19 @@ template<typename ASOA>
 class SiPixelDigisSoAView {
 public:
 
-  auto & xx(int32_t i) { auto jk = ASOA::indices(i); return asoa()[jk.j].xx[jk.k];} 
-  auto xx(int32_t i) const { auto jk = ASOA::indices(i); return asoa()[jk.j].xx[jk.k];}
-  auto & yy(int32_t i) { auto jk = ASOA::indices(i); return asoa()[jk.j].yy[jk.k];}
-  auto yy(int32_t i) const { auto jk = ASOA::indices(i); return asoa()[jk.j].yy[jk.k];}
-  auto & adc(int32_t i) { auto jk = ASOA::indices(i); return asoa()[jk.j].adc[jk.k];}
-  auto adc(int32_t i) const { auto jk = ASOA::indices(i); return asoa()[jk.j].adc[jk.k];}
-  auto & moduleInd(int32_t i) { auto jk = ASOA::indices(i); return asoa()[jk.j].moduleInd[jk.k];}
-  auto moduleInd(int32_t i) const { auto jk = ASOA::indices(i); return asoa()[jk.j].moduleInd[jk.k];}
-  auto & clus(int32_t i) { auto jk = ASOA::indices(i); return asoa()[jk.j].clus[jk.k];}
-  auto clus(int32_t i) const { auto jk = ASOA::indices(i); return asoa()[jk.j].clus[jk.k];}
+  constexpr auto & xx(int32_t i) { constexpr auto jk = ASOA::indices(i); return asoa()[jk.j].xx[jk.k];} 
+  constexpr auto xx(int32_t i) const { constexpr auto jk = ASOA::indices(i); return asoa()[jk.j].xx[jk.k];}
+  constexpr auto & yy(int32_t i) { constexpr auto jk = ASOA::indices(i); return asoa()[jk.j].yy[jk.k];}
+  constexpr auto yy(int32_t i) const { constexpr auto jk = ASOA::indices(i); return asoa()[jk.j].yy[jk.k];}
+  constexpr auto & adc(int32_t i) { constexpr auto jk = ASOA::indices(i); return asoa()[jk.j].adc[jk.k];}
+  constexpr auto adc(int32_t i) const { constexpr auto jk = ASOA::indices(i); return asoa()[jk.j].adc[jk.k];}
+  constexpr auto & moduleInd(int32_t i) { constexpr auto jk = ASOA::indices(i); return asoa()[jk.j].moduleInd[jk.k];}
+  constexpr auto moduleInd(int32_t i) const { constexpr auto jk = ASOA::indices(i); return asoa()[jk.j].moduleInd[jk.k];}
+  constexpr auto & clus(int32_t i) { constexpr auto jk = ASOA::indices(i); return asoa()[jk.j].clus[jk.k];}
+  constexpr auto clus(int32_t i) const { constexpr auto jk = ASOA::indices(i); return asoa()[jk.j].clus[jk.k];}
 
-  auto & asoa() { return asoa_;}
-  auto const & asoa() const { return asoa_;}
+  constexpr auto & asoa() { return asoa_;}
+  constexpr auto const & asoa() const { return asoa_;}
 
 private:
   ASOA asoa_;

@@ -92,6 +92,10 @@ public:
   inline constexpr SoA * & data() { return m_data; }
   inline constexpr SoA const * data() const { return m_data; }
 
+  __device__ __host__
+  int32_t resize(int32_t ns) {
+   return m_size = std::min(ns,m_capacity);
+  }
 
   __device__
   int32_t addOne() {
