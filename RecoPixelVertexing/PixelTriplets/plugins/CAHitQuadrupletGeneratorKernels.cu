@@ -497,7 +497,7 @@ void CAHitQuadrupletGeneratorKernels::launchKernels( // here goes algoparms....
     cudaCheck(cudaGetLastError());
   }
 
-/*
+
 #ifndef NO_CHECK_OVERFLOWS
   numberOfBlocks = (std::max(nhits, maxNumberOfDoublets_) + blockSize - 1)/blockSize;
   kernel_checkOverflows<<<numberOfBlocks, blockSize, 0, cudaStream>>>(
@@ -508,7 +508,7 @@ void CAHitQuadrupletGeneratorKernels::launchKernels( // here goes algoparms....
                        );
   cudaCheck(cudaGetLastError());
 #endif
-*/
+
 
   // kernel_print_found_ntuplets<<<1, 1, 0, cudaStream>>>(gpu_.tuples_d, 10);
   }
@@ -535,7 +535,6 @@ void CAHitQuadrupletGeneratorKernels::classifyTuples(HitsOnCPU const & hh, Tuple
        first_=false;
        bool head=true;
 
-       std::vector<cudaGraphNode_t> nodeDependencies;
        cudaGraphNode_t kernelNode;
        cudaGraphNode_t kernelNodesPrev;
 
@@ -552,11 +551,12 @@ void CAHitQuadrupletGeneratorKernels::classifyTuples(HitsOnCPU const & hh, Tuple
         kernelNodeParams.kernelParams = args;
         kernelNodeParams.extra = NULL;
 
-        cudaGraphAddKernelNode(&kernelNode, graph_,
+        cudaCheck(cudaGraphAddKernelNode(&kernelNode, graph_,
                                 head? nullptr : &kernelNodesPrev,
-                                head? 0 : 1, &kernelNodeParams);
+                                head? 0 : 1, &kernelNodeParams));
 
          kernelNodesPrev=kernelNode;
+         head=false;
        };
       
        {
@@ -564,7 +564,6 @@ void CAHitQuadrupletGeneratorKernels::classifyTuples(HitsOnCPU const & hh, Tuple
          numberOfBlocks = (CAConstants::maxNumberOfQuadruplets() + blockSize - 1)/blockSize;
          void * kernelArgs[] = {(void *)&tuples.tuples_d, (void *)&tuples.helix_fit_results_d, (void *)&tuples.quality_d};
          addKernel((void *)kernel_VerifyFit,kernelArgs);
-         head = false;
        }
        { 
          // apply fishbone cleaning to good tracks
@@ -585,26 +584,30 @@ void CAHitQuadrupletGeneratorKernels::classifyTuples(HitsOnCPU const & hh, Tuple
         void * kernelArgs[] = {(void *)&tuples.tuples_d,(void *)&tuples.quality_d,(void *)&device_hitToTuple_};
         addKernel((void *)kernel_countHitInTracks,kernelArgs);
        }
-       cudaGraphInstantiate(&graphExec_, graph_, NULL, NULL, 0);
-
-
+       cudaCheck(cudaGraphInstantiate(&graphExec_, graph_, NULL, NULL, 0));
+       cudaCheck(cudaGetLastError());
     }  // end first
-    cudaGraphLaunch(graphExec_,cudaStream);
+    cudaCheck(cudaGraphLaunch(graphExec_,cudaStream));
+    cudaCheck(cudaGetLastError());
 
     cudautils::launchFinalize(device_hitToTuple_,device_tmws_,cudaStream);
+    numberOfBlocks = (CAConstants::maxNumberOfQuadruplets() + blockSize - 1)/blockSize;
     kernel_fillHitInTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(tuples.tuples_d,tuples.quality_d,device_hitToTuple_);
 
     // remove duplicates (tracks that share a hit)
     numberOfBlocks = (HitToTuple::capacity() + blockSize - 1)/blockSize;
     kernel_tripletCleaner<<<numberOfBlocks, blockSize, 0, cudaStream>>>(hh.gpu_d,tuples.tuples_d,tuples.helix_fit_results_d,tuples.quality_d,device_hitToTuple_);
 
-    /*
+#ifndef NO_CHECK_OVERFLOWS
     // counters (add flag???)
     numberOfBlocks = (HitToTuple::capacity() + blockSize - 1)/blockSize;
     kernel_verifyHitInTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(device_hitToTuple_, counters_);
     numberOfBlocks = (CAConstants::maxNumberOfQuadruplets() + blockSize - 1)/blockSize;
     kernel_countTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(tuples.tuples_d,tuples.quality_d,counters_);
-    */
+#endif
+
+    cudaCheck(cudaGetLastError());
+
 }
 
 
