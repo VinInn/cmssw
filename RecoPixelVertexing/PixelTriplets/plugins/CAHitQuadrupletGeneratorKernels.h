@@ -9,7 +9,7 @@
 #include "GPUCACell.h"
 
 
-
+#include <cooperative_groups.h>
 
 class CAHitQuadrupletGeneratorKernels {
 public:
@@ -74,6 +74,10 @@ private:
     const bool earlyFishbone_;
     const bool lateFishbone_;
     const bool idealConditions_;
+
+    cudaGraph_t graph_;
+    cudaGraphExec_t graphExec_;
+    bool first_ = true;
 };
 
 #endif // RecoPixelVertexing_PixelTriplets_plugins_CAHitQuadrupletGeneratorKernels_h

@@ -497,6 +497,7 @@ void CAHitQuadrupletGeneratorKernels::launchKernels( // here goes algoparms....
     cudaCheck(cudaGetLastError());
   }
 
+/*
 #ifndef NO_CHECK_OVERFLOWS
   numberOfBlocks = (std::max(nhits, maxNumberOfDoublets_) + blockSize - 1)/blockSize;
   kernel_checkOverflows<<<numberOfBlocks, blockSize, 0, cudaStream>>>(
@@ -507,7 +508,7 @@ void CAHitQuadrupletGeneratorKernels::launchKernels( // here goes algoparms....
                        );
   cudaCheck(cudaGetLastError());
 #endif
-
+*/
 
   // kernel_print_found_ntuplets<<<1, 1, 0, cudaStream>>>(gpu_.tuples_d, 10);
   }
@@ -528,22 +529,68 @@ void CAHitQuadrupletGeneratorKernels::buildDoublets(HitsOnCPU const & hh, cudaSt
 
 void CAHitQuadrupletGeneratorKernels::classifyTuples(HitsOnCPU const & hh, TuplesOnGPU & tuples, cudaStream_t cudaStream) {
     auto blockSize = 64;
+    auto numberOfBlocks = 0;
 
-    // classify tracks based on kinematics
-    auto numberOfBlocks = (CAConstants::maxNumberOfQuadruplets() + blockSize - 1)/blockSize;
-    kernel_VerifyFit<<<numberOfBlocks, blockSize, 0, cudaStream>>>(tuples.tuples_d, tuples.helix_fit_results_d, tuples.quality_d);
+    if (first_) {
+       first_=false;
+       bool head=true;
 
-    // apply fishbone cleaning to good tracks
-    numberOfBlocks = (CAConstants::maxNumberOfDoublets() + blockSize - 1)/blockSize;
-    kernel_fishboneCleaner<<<numberOfBlocks, blockSize, 0, cudaStream>>>(device_theCells_, device_nCells_,tuples.quality_d);
+       std::vector<cudaGraphNode_t> nodeDependencies;
+       cudaGraphNode_t kernelNode;
+       cudaGraphNode_t kernelNodesPrev;
 
-    // remove duplicates (tracks that share a doublet) 
-    numberOfBlocks = (CAConstants::maxNumberOfDoublets() + blockSize - 1)/blockSize;
-    kernel_fastDuplicateRemover<<<numberOfBlocks, blockSize, 0, cudaStream>>>(device_theCells_, device_nCells_,tuples.tuples_d,tuples.helix_fit_results_d, tuples.quality_d);
+       cudaKernelNodeParams kernelNodeParams = {0};
+       cudaGraphCreate(&graph_, 0);
 
-    // fill hit->track "map"
-    numberOfBlocks = (CAConstants::maxNumberOfQuadruplets() + blockSize - 1)/blockSize;
-    kernel_countHitInTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(tuples.tuples_d,tuples.quality_d,device_hitToTuple_);
+       // classify tracks based on kinematics
+       auto addKernel = [&](void* f, void** args) {
+
+        kernelNodeParams.func = f;
+        kernelNodeParams.blockDim = dim3(blockSize, 1, 1);
+        kernelNodeParams.gridDim = dim3(numberOfBlocks, 1, 1);
+        kernelNodeParams.sharedMemBytes = 0;
+        kernelNodeParams.kernelParams = args;
+        kernelNodeParams.extra = NULL;
+
+        cudaGraphAddKernelNode(&kernelNode, graph_,
+                                head? nullptr : &kernelNodesPrev,
+                                head? 0 : 1, &kernelNodeParams);
+
+         kernelNodesPrev=kernelNode;
+       };
+      
+       {
+         // classify tracks based on kinematics
+         numberOfBlocks = (CAConstants::maxNumberOfQuadruplets() + blockSize - 1)/blockSize;
+         void * kernelArgs[] = {(void *)&tuples.tuples_d, (void *)&tuples.helix_fit_results_d, (void *)&tuples.quality_d};
+         addKernel((void *)kernel_VerifyFit,kernelArgs);
+         head = false;
+       }
+       { 
+         // apply fishbone cleaning to good tracks
+         numberOfBlocks = (CAConstants::maxNumberOfDoublets() + blockSize - 1)/blockSize;
+         void * kernelArgs[] = {(void *)&device_theCells_, (void *)&device_nCells_,(void *)&tuples.quality_d};
+         addKernel((void *)kernel_fishboneCleaner,kernelArgs);
+       }
+
+      {
+        // remove duplicates (tracks that share a doublet) 
+        numberOfBlocks = (CAConstants::maxNumberOfDoublets() + blockSize - 1)/blockSize;
+        void * kernelArgs[] = {(void *)&device_theCells_, (void *)&device_nCells_,(void *)&tuples.tuples_d,(void *)&tuples.helix_fit_results_d, (void *)&tuples.quality_d};
+        addKernel((void *)kernel_fastDuplicateRemover,kernelArgs);
+      }
+      {
+        // fill hit->track "map"
+        numberOfBlocks = (CAConstants::maxNumberOfQuadruplets() + blockSize - 1)/blockSize;
+        void * kernelArgs[] = {(void *)&tuples.tuples_d,(void *)&tuples.quality_d,(void *)&device_hitToTuple_};
+        addKernel((void *)kernel_countHitInTracks,kernelArgs);
+       }
+       cudaGraphInstantiate(&graphExec_, graph_, NULL, NULL, 0);
+
+
+    }  // end first
+    cudaGraphLaunch(graphExec_,cudaStream);
+
     cudautils::launchFinalize(device_hitToTuple_,device_tmws_,cudaStream);
     kernel_fillHitInTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(tuples.tuples_d,tuples.quality_d,device_hitToTuple_);
 
@@ -551,12 +598,13 @@ void CAHitQuadrupletGeneratorKernels::classifyTuples(HitsOnCPU const & hh, Tuple
     numberOfBlocks = (HitToTuple::capacity() + blockSize - 1)/blockSize;
     kernel_tripletCleaner<<<numberOfBlocks, blockSize, 0, cudaStream>>>(hh.gpu_d,tuples.tuples_d,tuples.helix_fit_results_d,tuples.quality_d,device_hitToTuple_);
 
+    /*
     // counters (add flag???)
     numberOfBlocks = (HitToTuple::capacity() + blockSize - 1)/blockSize;
     kernel_verifyHitInTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(device_hitToTuple_, counters_);
     numberOfBlocks = (CAConstants::maxNumberOfQuadruplets() + blockSize - 1)/blockSize;
     kernel_countTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(tuples.tuples_d,tuples.quality_d,counters_);
-
+    */
 }
 
 
