@@ -19,7 +19,7 @@
 void setCudaLimit(cudaLimit limit, const char* name, size_t request) {
   // read the current device
   int device;
-  cudaCheck(cudaGetDevice(&device));
+  cudaGetDevice(&device);
   // try to set the requested limit
   auto result = cudaDeviceSetLimit(limit, request);
   if (cudaErrorUnsupportedLimit == result) {
@@ -28,7 +28,7 @@ void setCudaLimit(cudaLimit limit, const char* name, size_t request) {
   }
   // read back the limit value
   size_t value;
-  cudaCheck(cudaDeviceGetLimit(&value, limit));
+  cudaDeviceGetLimit(&value, limit);
   if (cudaSuccess != result) {
     edm::LogWarning("CUDAService") << "CUDA device " << device << ": failed to set limit \"" << name << "\" to " << request << ", current value is " << value ;
   } else if (value != request) {
@@ -96,14 +96,14 @@ namespace {
 
   void devicePreallocate(CUDAService& cs, int numberOfDevices, const std::vector<unsigned int>& bufferSizes) {
     int device;
-    cudaCheck(cudaGetDevice(&device));
+    cudaGetDevice(&device);
     for(int i=0; i<numberOfDevices; ++i) {
-      cudaCheck(cudaSetDevice(i));
+      cudaSetDevice(i);
       preallocate<cudautils::device::unique_ptr>([&](size_t size, cuda::stream_t<>& stream) {
           return cs.make_device_unique<char[]>(size, stream);
         }, bufferSizes);
     }
-    cudaCheck(cudaSetDevice(device));
+    cudaSetDevice(device);
   }
 
   void hostPreallocate(CUDAService& cs, const std::vector<unsigned int>& bufferSizes) {
@@ -141,7 +141,7 @@ CUDAService::CUDAService(edm::ParameterSet const& config, edm::ActivityRegistry&
     // read information about the compute device.
     // see the documentation of cudaGetDeviceProperties() for more information.
     cudaDeviceProp properties;
-    cudaCheck(cudaGetDeviceProperties(&properties, i));
+    cudaGetDeviceProperties(&properties, i);
     log << "CUDA device " << i << ": " << properties.name << '\n';
 
     // compute capabilities
@@ -162,13 +162,13 @@ CUDAService::CUDAService(edm::ParameterSet const& config, edm::ActivityRegistry&
     log << "  compute mode:" << std::right << std::setw(27) << computeModeDescription[std::min(properties.computeMode, (int) std::size(computeModeDescription) - 1)] << '\n';
     
     // TODO if a device is in exclusive use, skip it and remove it from the list, instead of failing with abort()
-    cudaCheck(cudaSetDevice(i));
-    cudaCheck(cudaSetDeviceFlags(cudaDeviceScheduleAuto | cudaDeviceMapHost));
+    cudaSetDevice(i);
+    cudaSetDeviceFlags(cudaDeviceScheduleAuto | cudaDeviceMapHost);
 
     // read the free and total amount of memory available for allocation by the device, in bytes.
     // see the documentation of cudaMemGetInfo() for more information.
     size_t freeMemory, totalMemory;
-    cudaCheck(cudaMemGetInfo(&freeMemory, &totalMemory));
+    cudaMemGetInfo(&freeMemory, &totalMemory);
     log << "  memory: " << std::setw(6) << freeMemory / (1 << 20) << " MB free / " << std::setw(6) << totalMemory / (1 << 20) << " MB total\n";
     log << "  constant memory:               " << std::setw(6) << properties.totalConstMem / (1 << 10) << " kB\n";
     log << "  L2 cache size:                 " << std::setw(6) << properties.l2CacheSize / (1 << 10) << " kB\n";
@@ -201,7 +201,7 @@ CUDAService::CUDAService(edm::ParameterSet const& config, edm::ActivityRegistry&
     // see the documentation of cudaSetDeviceFlags and cudaGetDeviceFlags for  more information.
     log << "CUDA flags\n";
     unsigned int flags;
-    cudaCheck(cudaGetDeviceFlags(&flags));
+    cudaGetDeviceFlags(&flags);
     switch (flags & cudaDeviceScheduleMask) {
       case cudaDeviceScheduleAuto:
         log << "  thread policy:                   default\n";
@@ -290,14 +290,14 @@ CUDAService::CUDAService(edm::ParameterSet const& config, edm::ActivityRegistry&
 
     size_t minCachedBytes = std::numeric_limits<size_t>::max();
     int currentDevice;
-    cudaCheck(cudaGetDevice(&currentDevice));
+    cudaGetDevice(&currentDevice);
     for (int i = 0; i < numberOfDevices_; ++i) {
       size_t freeMemory, totalMemory;
-      cudaCheck(cudaSetDevice(i));
-      cudaCheck(cudaMemGetInfo(&freeMemory, &totalMemory));
+      cudaSetDevice(i);
+      cudaMemGetInfo(&freeMemory, &totalMemory);
       minCachedBytes = std::min(minCachedBytes, static_cast<size_t>(maxCachedFraction * freeMemory));
     }
-    cudaCheck(cudaSetDevice(currentDevice));
+    cudaSetDevice(currentDevice);
     if (maxCachedBytes > 0) {
       minCachedBytes = std::min(minCachedBytes, maxCachedBytes);
     }
@@ -354,8 +354,8 @@ CUDAService::~CUDAService() {
     cudaStreamCache_.reset();
 
     for (int i = 0; i < numberOfDevices_; ++i) {
-      cudaCheck(cudaSetDevice(i));
-      cudaCheck(cudaDeviceSynchronize());
+      cudaSetDevice(i);
+      cudaDeviceSynchronize();
       // Explicitly destroys and cleans up all resources associated with the current device in the
       // current process. Any subsequent API call to this device will reinitialize the device.
       // Useful to check for memory leaks with `cuda-memcheck --tool memcheck --leak-check full`.
@@ -394,7 +394,7 @@ void CUDAService::fillDescriptions(edm::ConfigurationDescriptions & descriptions
 int CUDAService::deviceWithMostFreeMemory() const {
   // save the current device
   int currentDevice;
-  cudaCheck(cudaGetDevice(&currentDevice));
+  cudaGetDevice(&currentDevice);
 
   size_t maxFreeMemory = 0;
   int device = -1;
@@ -414,7 +414,7 @@ int CUDAService::deviceWithMostFreeMemory() const {
     }
   }
   // restore the current device
-  cudaCheck(cudaSetDevice(currentDevice));
+  cudaSetDevice(currentDevice);
   return device;
 }
 

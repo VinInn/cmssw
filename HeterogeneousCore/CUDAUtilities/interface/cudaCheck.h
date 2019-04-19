@@ -9,9 +9,9 @@ inline
 bool cudaCheck_(const char* file, int line, const char* cmd, CUresult result)
 {
     //std::cerr << file << ", line " << line << ": " << cmd << std::endl;
-    if (result == CUDA_SUCCESS)
-        return true;
-
+    if (result == CUDA_SUCCESS) {
+      return true;
+    }
     const char* error;
     const char* message;
     cuGetErrorName(result, &error);
@@ -25,8 +25,11 @@ inline
 bool cudaCheck_(const char* file, int line, const char* cmd, cudaError_t result)
 {
     //std::cerr << file << ", line " << line << ": " << cmd << std::endl;
-    if (result == cudaSuccess)
-        return true;
+    if (result == cudaSuccess) {
+       cudaDeviceSynchronize();
+        result = cudaPeekAtLastError();
+        if (result == cudaSuccess) return true;
+    }
 
     const char* error = cudaGetErrorName(result);
     const char* message = cudaGetErrorString(result);
