@@ -176,9 +176,11 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsOnCPU const & hh, uint32_t hitsI
 
    //  Fit internals
    edm::Service<CUDAService> cs;
+   cudaCheck(cudaGetLastError());
    auto hitsGPU_ = cs->make_device_unique<double[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix3xNd<4>)/sizeof(double),stream);
    auto hits_geGPU_ = cs->make_device_unique<float[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix6x4f)/sizeof(float),stream);
    auto fast_fit_resultsGPU_ = cs->make_device_unique<double[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::Vector4d)/sizeof(double),stream);
+   cudaCheck(cudaGetLastError());
 
    for (uint32_t offset=0; offset<maxNumberOfTuples; offset+=maxNumberOfConcurrentFits_) {
 
