@@ -86,9 +86,10 @@ template <class T>
 inline void ThreeThresholdAlgorithm::endCandidate(State& state, T& out) const {
   if (candidateAccepted(state)) {
     applyGains(state);
-    appendBadNeighbors(state);
-    if (siStripClusterTools::chargePerCM(state.det().detId, state.ADCs.begin(), state.ADCs.end()) > minGoodCharge)
-      out.push_back(SiStripCluster(firstStrip(state), state.ADCs.begin(), state.ADCs.end()));
+    if UNLIKELY(MaxAdjacentBad>0) 
+      appendBadNeighbors(state);
+    if LIKELY(0==minGoodCharge || siStripClusterTools::chargePerCM(state.det().detId, state.ADCs.begin(), state.ADCs.end()) > minGoodCharge)
+      out.emplace_back(firstStrip(state), state.ADCs.begin(), state.ADCs.end());
   }
   clearCandidate(state);
 }
@@ -112,7 +113,7 @@ inline void ThreeThresholdAlgorithm::applyGains(State& state) const {
   }
 }
 
-inline void ThreeThresholdAlgorithm::appendBadNeighbors(State& state) const {
+void ThreeThresholdAlgorithm::appendBadNeighbors(State& state) const {
   uint8_t max = MaxAdjacentBad;
   while (0 < max--) {
     if (state.det().bad(firstStrip(state) - 1)) {

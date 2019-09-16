@@ -318,6 +318,14 @@ namespace edmNew {
         m_item.size++;
       }
 
+      template< class... Args >
+      void emplace_back( Args&&... args ) {
+        checkCapacityExausted();
+        m_v.m_data.emplace_back(std::forward<Args>(args)...);
+        ++m_v.m_dataSize;
+        m_item.size++;
+      }
+
       data_type& back() { return m_v.m_data.back(); }
 
     private:
@@ -395,6 +403,10 @@ namespace edmNew {
 
       void push_back(data_type const& d) { m_lv.push_back(d); }
       void push_back(data_type&& d) { m_lv.push_back(std::move(d)); }
+      template< class... Args >
+      void emplace_back( Args&&... args ) {
+         m_lv.emplace_back(std::forward<Args>(args)...);
+      }
 
       data_type& back() { return m_lv.back(); }
 
