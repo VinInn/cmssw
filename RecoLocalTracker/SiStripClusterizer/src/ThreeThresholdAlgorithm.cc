@@ -86,9 +86,9 @@ template <class T>
 inline void ThreeThresholdAlgorithm::endCandidate(State& state, T& out) const {
   if (candidateAccepted(state)) {
     applyGains(state);
-    if UNLIKELY(MaxAdjacentBad>0) 
+    if (MaxAdjacentBad>0) 
       appendBadNeighbors(state);
-    if LIKELY(0==minGoodCharge || siStripClusterTools::chargePerCM(state.det().detId, state.ADCs.begin(), state.ADCs.end()) > minGoodCharge)
+    if (0==minGoodCharge || siStripClusterTools::chargePerCM(state.det().detId, state.ADCs.begin(), state.ADCs.end()) > minGoodCharge)
       out.emplace_back(firstStrip(state), state.ADCs.begin(), state.ADCs.end());
   }
   clearCandidate(state);
@@ -101,16 +101,26 @@ inline bool ThreeThresholdAlgorithm::candidateAccepted(State const& state) const
 }
 
 inline void ThreeThresholdAlgorithm::applyGains(State& state) const {
-  uint16_t strip = firstStrip(state);
+  uint32_t strip = firstStrip(state);
+  // gains are by apv....
+  uint32_t apv = strip/128;
+  auto weight = 1.f/state.det().gain(strip);
   for (auto& adc : state.ADCs) {
+      uint32_t lapv = strip/128;
+      if (apv!=lapv) {
+        apv = lapv;
+        weight = 1.f/state.det().gain(strip);
+      }
 #ifdef EDM_ML_DEBUG
     // if(adc > 255) throw InvalidChargeException( SiStripDigi(strip,adc) );
 #endif
     // if(adc > 253) continue; //saturated, do not scale
-    auto charge = int(float(adc) / state.det().gain(strip++) + 0.5f);  //adding 0.5 turns truncation into rounding
+    auto charge = int(float(adc)*weight + 0.5f);  //adding 0.5 turns truncation into rounding
     if (adc < 254)
       adc = (charge > 1022 ? 255 : (charge > 253 ? 254 : charge));
+    ++strip;
   }
+  // assert(int(strip)==state.lastStrip+1);
 }
 
 void ThreeThresholdAlgorithm::appendBadNeighbors(State& state) const {
