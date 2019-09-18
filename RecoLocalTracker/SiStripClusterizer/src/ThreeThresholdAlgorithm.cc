@@ -88,7 +88,7 @@ inline void ThreeThresholdAlgorithm::endCandidate(State& state, T& out) const {
     applyGains(state);
     if (MaxAdjacentBad>0) 
       appendBadNeighbors(state);
-    if (0==minGoodCharge || siStripClusterTools::chargePerCM(state.det().detId, state.ADCs.begin(), state.ADCs.end()) > minGoodCharge)
+    if (minGoodCharge<=0 || siStripClusterTools::chargePerCM(state.det().detId, state.ADCs.begin(), state.ADCs.end()) > minGoodCharge)
       out.emplace_back(firstStrip(state), state.ADCs.begin(), state.ADCs.end());
   }
   clearCandidate(state);
