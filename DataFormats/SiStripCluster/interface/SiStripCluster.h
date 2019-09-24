@@ -5,9 +5,18 @@
 #include <vector>
 #include <numeric>
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+#if !defined(__ROOTCLING__)
+#include "DataFormats/Common/interface/SmartVector.h"
+#endif
 
 class SiStripCluster {
 public:
+#if !defined(__ROOTCLING__)
+  using Container=SmartVector<uint8_t>;
+#else
+  using Container=std::vector<uint8_t>;
+#endif
+
   typedef std::vector<SiStripDigi>::const_iterator SiStripDigiIter;
   typedef std::pair<SiStripDigiIter, SiStripDigiIter> SiStripDigiRange;
 
@@ -24,7 +33,7 @@ public:
   explicit SiStripCluster(const SiStripDigiRange& range);
 
 
-  SiStripCluster(uint16_t firstStrip, std::vector<uint8_t> && data) : amplitudes_(std::move(data)), firstStrip_(firstStrip) {}
+  // SiStripCluster(uint16_t firstStrip, std::vector<uint8_t> && data) : amplitudes_(std::move(data)), firstStrip_(firstStrip) {}
 
   template <typename Iter>
   SiStripCluster(const uint16_t& firstStrip, Iter begin, Iter end) : amplitudes_(begin, end), firstStrip_(firstStrip) {}
@@ -36,9 +45,11 @@ public:
       firstStrip_ |= mergedValueMask;  // if this is a candidate merged cluster
   }
 
+#if !defined(__ROOTCLING__)
   // extend the cluster 
   template <typename Iter>
-  void extend(Iter begin, Iter end) { amplitudes_.insert(amplitudes_.end(),begin,end); }
+  void extend(Iter begin, Iter end) { amplitudes_.extend(begin,end); }
+#endif
 
   /** The number of the first strip in the cluster.
    *  The high bit of firstStrip_ indicates whether the cluster is a candidate for being merged.
@@ -58,7 +69,7 @@ public:
    *  You can find the special meanings of values { 0, 254, 255} in section 3.4.1 of
    *  http://www.te.rl.ac.uk/esdg/cms-fed/firmware/Documents/FE_FPGA_Technical_Description.pdf
    */
-  const std::vector<uint8_t>& amplitudes() const { return amplitudes_; }
+  Container const & amplitudes() const { return amplitudes_; }
 
   /** The barycenter of the cluster, not corrected for Lorentz shift;
    *  should not be used as position estimate for tracking.
@@ -80,8 +91,7 @@ public:
   void setSplitClusterError(float errx) { error_x = errx; }
 
 private:
-  std::vector<uint8_t> amplitudes_;
-
+  Container amplitudes_;
   uint16_t firstStrip_ = 0;
 
   // ggiurgiu@fnal.gov, 01/05/12
