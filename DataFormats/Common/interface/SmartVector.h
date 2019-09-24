@@ -2,7 +2,6 @@
 #define DataFormatsCommonSmartVector_H
 
 #include<vector>
-#include<variant>
 #include<array>
 #include<cstdint>
 
@@ -15,9 +14,69 @@ public :
   using Vector = std::vector<T>;
   static constexpr uint32_t maxSize = sizeof(Vector)/sizeof(T)-1;
   using Array = std::array<T,sizeof(Vector)/sizeof(T)>;
-  using Variant = std::variant<Vector,Array>;
+  union Variant {
+    // all nop
+    Variant(){}
+    ~Variant(){}
+    Variant(const Variant &){}
+    Variant & operator=(const Variant &){ return *this;}
+    Variant(Variant&&){}
+    Variant & operator=(Variant &&){ return *this;}
 
-  SmartVector(){}
+    Array a;
+    Vector v;
+  };
+
+  SmartVector(){
+    m_container.a.back()=0;
+  }
+
+  ~SmartVector(){
+   if(!m_isArray)
+     m_container.v.~Vector();
+  }
+
+  SmartVector(const SmartVector& sm) : m_isArray(sm.m_isArray) {
+   if(m_isArray) {
+    m_container.a=sm.m_container.a;
+   } else {
+    std::fill(m_container.a.begin(), m_container.a.end(),0);
+    m_container.v=sm.m_container.v;
+   }
+  }
+  SmartVector& operator=(const SmartVector& sm) {
+   if(!m_isArray) m_container.v.~Vector();
+   if(sm.m_isArray) {
+    m_container.a=sm.m_container.a;
+   } else {
+    std::fill(m_container.a.begin(), m_container.a.end(),0);
+    m_container.v=sm.m_container.v;
+   }
+   m_isArray = sm.m_isArray;
+   return *this;
+  }
+
+  SmartVector(SmartVector&& sm) : m_isArray(sm.m_isArray) {
+   if(m_isArray) {
+    m_container.a=std::move(sm.m_container.a);
+   } else {
+    std::fill(m_container.a.begin(), m_container.a.end(),0);
+    m_container.v=std::move(sm.m_container.v);
+   }
+  }
+
+  SmartVector& operator=(SmartVector&& sm) {
+   if(!m_isArray) m_container.v.~Vector();
+   if(sm.m_isArray) {
+    m_container.a=std::move(sm.m_container.a);
+   } else {
+    if(m_isArray) std::fill(m_container.a.begin(), m_container.a.end(),0);
+    m_container.v=std::move(sm.m_container.v);
+   }
+   m_isArray = sm.m_isArray;
+   return *this;
+  }
+
 
   template<typename Iter>
   SmartVector(Iter b, Iter e) {
@@ -27,49 +86,52 @@ public :
   template<typename Iter>
   void initialize(Iter b, Iter e) {
      if (e-b<=maxSize) {
-       m_container = Array();
-       auto & a = std::get<Array>(m_container);
+       m_isArray=true;
+       auto & a = m_container.a;
        std::copy(b,e,a.begin());
        a.back()=e-b;
-     } else
-       m_container. template emplace<Vector>(b,e);
+     } else {
+       m_isArray=false;
+       std::fill(m_container.a.begin(), m_container.a.end(),0);
+       m_container.v.insert(m_container.v.end(),b,e);
+    }
   }
 
   template<typename Iter>
   void extend(Iter b, Iter e) {
-    if(auto pval = std::get_if<Array>(&m_container)) {
-      auto cs = pval->back();         
+    if(m_isArray) {
+      auto & a = m_container.a;
+      auto cs = a.back();
       uint32_t ns = (e-b)+cs;
       if (ns<=maxSize) {
-        std::copy(b,e,&(*pval)[cs]);
-        pval->back()=ns;
+        std::copy(b,e,&a[cs]);
+        a.back()=ns;
       } else {
         Vector v; v.reserve(ns);
-        v.insert(v.end(),pval->begin(),pval->begin()+cs);
+        v.insert(v.end(),m_container.a.begin(),m_container.a.begin()+cs);
         v.insert(v.end(),b,e);
-        m_container = std::move(v);
+        std::fill(m_container.a.begin(), m_container.a.end(),0);
+        m_container.v = std::move(v);
+        m_isArray=false;
       }
-    }else if(auto pval = std::get_if<Vector>(&m_container)) {
-      pval->insert(pval->end(),b,e);
-    }
-    else {
-     initialize(b,e);
+    }else {
+     m_container.v.insert(m_container.v.end(),b,e);
     }
   }
 
 
-  T const * begin() const { 
-    if(auto pval = std::get_if<Array>(&m_container))
-       return pval->data();
+  T const * begin() const {
+    if(m_isArray)
+       return m_container.a.data();
     else
-       return std::get<Vector>(m_container).data();
+       return m_container.v.data();
   }
 
   T const * end() const {
-    if(auto pval = std::get_if<Array>(&m_container))
-       return pval->data()+pval->back();
+    if(m_isArray)
+      return m_container.a.data() + m_container.a.back();
     else
-       return std::get<Vector>(m_container).data()+std::get<Vector>(m_container).size();
+      return  m_container.v.data() + m_container.v.size();
   }
 
   T const & operator[](uint32_t i) const {
@@ -77,16 +139,17 @@ public :
   }
 
   uint32_t size() const {
-    if(auto pval = std::get_if<Array>(&m_container))
-       return pval->back();
+    if(m_isArray)
+       return m_container.a.back();
     else
-       return std::get<Vector>(m_container).size();
+       return m_container.v.size();
   }
 
 
-  Variant const & container() const { return m_container;}
+  bool isArray() const { return m_isArray;}
 private:
   Variant m_container;
+  bool m_isArray = true;
 };
 
 #endif
