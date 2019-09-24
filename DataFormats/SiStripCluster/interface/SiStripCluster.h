@@ -35,6 +35,8 @@ public:
 
   // SiStripCluster(uint16_t firstStrip, std::vector<uint8_t> && data) : amplitudes_(std::move(data)), firstStrip_(firstStrip) {}
 
+  explicit SiStripCluster(uint16_t firstStrip) : firstStrip_(firstStrip) {}
+
   template <typename Iter>
   SiStripCluster(const uint16_t& firstStrip, Iter begin, Iter end) : amplitudes_(begin, end), firstStrip_(firstStrip) {}
 
@@ -70,6 +72,9 @@ public:
    *  http://www.te.rl.ac.uk/esdg/cms-fed/firmware/Documents/FE_FPGA_Technical_Description.pdf
    */
   Container const & amplitudes() const { return amplitudes_; }
+
+  Container & amplitudes() { return amplitudes_; }
+
 
   /** The barycenter of the cluster, not corrected for Lorentz shift;
    *  should not be used as position estimate for tracking.

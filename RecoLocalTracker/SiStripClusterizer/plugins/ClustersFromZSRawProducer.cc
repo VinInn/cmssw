@@ -260,6 +260,9 @@ namespace {
   template<typename OUT>
   void clustersFromZS(uint8_t const * data, int offset, int lenght, uint16_t stripOffset, 
                       StripClusterizerAlgorithm::Det const & det, OUT & out) {
+
+    std::vector<uint8_t> localAdc;
+
     auto sti = siStripClusterTools::sensorThicknessInverse(det.detId);
     int is=0;
     uint16_t endStrip = 6*128+1;
@@ -276,8 +279,16 @@ namespace {
 #ifdef DO_NOISE_CUT
          int noise2=0;
 #endif
-      // std::vector<uint8_t> adc(clusSize);
-       uint8_t adc[clusSize];
+       // std::vector<uint8_t> adc(clusSize);
+       uint8_t * adc;
+       if (!extend) {
+         out.push_back(std::move(SiStripCluster(firstStrip)));
+         out.back().amplitudes().initialize(clusSize);
+         adc = out.back().amplitudes().data();
+       } else {
+         localAdc.resize(clusSize);
+         adc = localAdc.data();
+       }
        for (int ic=0; ic<clusSize; ++ic) {
          adc[ic]=data[(offset++) ^ 7];
          sum += adc[ic]; // no way it can overflow
@@ -295,9 +306,9 @@ namespace {
        // do not cut if extendable   
        if (!extend && endStrip%128!=0  && 4*sum*sum < noise2) continue;
 #endif
-       if (extend) out.back().extend(adc,adc+clusSize); //adc.begin(),adc.end());
-       else if (endStrip%128==0 || sum*weight*sti > 1200.0f)
-         out.push_back(std::move(SiStripCluster(firstStrip,adc,adc+clusSize))); //  std::move(adc))));
+       if(extend) out.back().extend(adc,adc+clusSize); //adc.begin(),adc.end());
+       else if (endStrip%128!=0 && sum*weight*sti < 1200.0f)
+         out.pop_back();
     }
   }
 

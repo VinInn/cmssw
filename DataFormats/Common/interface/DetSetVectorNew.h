@@ -318,6 +318,13 @@ namespace edmNew {
         m_item.size++;
       }
 
+      void pop_back() {
+        if (empty()) return;
+        m_v.m_data.pop_back();
+        --m_v.m_dataSize;
+        m_item.size--;
+      }
+
       data_type& back() { return m_v.m_data.back(); }
 
     private:

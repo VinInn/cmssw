@@ -83,14 +83,28 @@ public :
      initialize(b,e);
   }
 
+
+  void initialize(uint32_t size) {
+    if(!m_isArray) m_container.v.~Vector();
+    if (size<=maxSize) {
+      m_isArray=true;
+      m_container.a.back()=size;
+    } else {
+       m_isArray=false;
+       std::fill(m_container.a.begin(), m_container.a.end(),0);
+       m_container.v.resize(size);
+    }
+  }
+
   template<typename Iter>
   void initialize(Iter b, Iter e) {
-     if (e-b<=maxSize) {
+    if(!m_isArray) m_container.v.~Vector();
+    if (e-b<=maxSize) {
        m_isArray=true;
        auto & a = m_container.a;
        std::copy(b,e,a.begin());
        a.back()=e-b;
-     } else {
+    } else {
        m_isArray=false;
        std::fill(m_container.a.begin(), m_container.a.end(),0);
        m_container.v.insert(m_container.v.end(),b,e);
@@ -120,11 +134,22 @@ public :
   }
 
 
-  T const * begin() const {
+  T const * data() const {
     if(m_isArray)
        return m_container.a.data();
     else
        return m_container.v.data();
+  }
+
+  T * data()  {
+    if(m_isArray)
+       return m_container.a.data();
+    else
+       return m_container.v.data();
+  }
+
+  T const * begin() const {
+    return data();
   }
 
   T const * end() const {
@@ -151,5 +176,4 @@ private:
   Variant m_container;
   bool m_isArray = true;
 };
-
 #endif

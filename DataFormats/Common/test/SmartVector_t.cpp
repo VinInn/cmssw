@@ -34,6 +34,25 @@ int go() {
  assert(vc.isArray());
  i=0; for (auto c : vc) assert(c==i++);
 
+{
+ Variant vd;
+ vd.initialize(5);
+ for (int i=0; i<5; ++i)
+   vd.data()[i] = i;
+ assert(5==vd.size());
+ assert(5==vd.end()-vd.begin());
+ assert(vd.isArray());
+ i=0; for (auto c : vd) assert(c==i++);
+
+ vd.initialize(24);
+ for (int i=0; i<24; ++i)
+   vd.data()[i] = i;
+ assert(24==vd.size());
+ assert(24==vd.end()-vd.begin());
+ assert(!vd.isArray());
+ i=0; for (auto c : vd) assert(c==i++);
+
+}
 
 {
  Variant vb; vb.initialize(data,data+24);

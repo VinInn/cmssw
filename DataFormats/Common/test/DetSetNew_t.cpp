@@ -190,6 +190,23 @@ void TestDetSet::filling() {
     CPPUNIT_ASSERT(detsets.m_data.back().v == 3.14f);
     CPPUNIT_ASSERT(ff.m_item.offset == int(detsets.dataSize()) - 1);
     CPPUNIT_ASSERT(ff.m_item.size == 1);
+
+    ff.pop_back();
+    CPPUNIT_ASSERT(detsets.size() == n);
+    CPPUNIT_ASSERT(detsets.dataSize() == ntot-1);
+    CPPUNIT_ASSERT(detsets.detsetSize(n - 1) == 0);
+    CPPUNIT_ASSERT(ff.m_item.offset == int(detsets.dataSize()));
+    CPPUNIT_ASSERT(ff.m_item.size == 0);
+
+
+    ff.push_back(3.14);
+    CPPUNIT_ASSERT(detsets.dataSize() == ntot);
+    CPPUNIT_ASSERT(detsets.detsetSize(n - 1) == 1);
+    CPPUNIT_ASSERT(detsets.m_data.back().v == 3.14f);
+    CPPUNIT_ASSERT(ff.m_item.offset == int(detsets.dataSize()) - 1);
+    CPPUNIT_ASSERT(ff.m_item.size == 1);
+
+
     ntot += n - 1;
     ff.resize(n);
     CPPUNIT_ASSERT(detsets.dataSize() == ntot);
