@@ -20,7 +20,7 @@ SiStripCluster::SiStripCluster(const SiStripDigiRange& range) : firstStrip_(rang
 
     v.push_back(i->adc());
   }
-  amplitudes_ = v;
+  init(v.begin(),v.end());
 }
 
 

@@ -3,11 +3,15 @@
 
 #include "DataFormats/SiStripDigi/interface/SiStripDigi.h"
 #include <vector>
+#include <array>
 #include <numeric>
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 class SiStripCluster {
 public:
+  static constexpr int MAXSIZE=15;
+  using Container=std::array<uint8_t,MAXSIZE+1>;
+
   typedef std::vector<SiStripDigi>::const_iterator SiStripDigiIter;
   typedef std::pair<SiStripDigiIter, SiStripDigiIter> SiStripDigiRange;
 
@@ -24,21 +28,33 @@ public:
   explicit SiStripCluster(const SiStripDigiRange& range);
 
 
-  SiStripCluster(uint16_t firstStrip, std::vector<uint8_t> && data) : amplitudes_(std::move(data)), firstStrip_(firstStrip) {}
-
   template <typename Iter>
-  SiStripCluster(const uint16_t& firstStrip, Iter begin, Iter end) : amplitudes_(begin, end), firstStrip_(firstStrip) {}
+  SiStripCluster(const uint16_t& firstStrip, Iter begin, Iter end) : firstStrip_(firstStrip) { init(begin,end);}
 
   template <typename Iter>
   SiStripCluster(const uint16_t& firstStrip, Iter begin, Iter end, bool merged)
-      : amplitudes_(begin, end), firstStrip_(firstStrip) {
+      : firstStrip_(firstStrip) {
+    init(begin,end);
     if (merged)
       firstStrip_ |= mergedValueMask;  // if this is a candidate merged cluster
   }
 
+  template <typename Iter>
+  void init(Iter begin, Iter end) { 
+   int isize = std::min(MAXSIZE,int(end-begin));
+   for(int i=0; i<isize;++i)
+    amplitudes_[i]= *(begin++);
+   amplitudes_[MAXSIZE]=isize;
+  }
+
   // extend the cluster 
   template <typename Iter>
-  void extend(Iter begin, Iter end) { amplitudes_.insert(amplitudes_.end(),begin,end); }
+  void extend(Iter begin, Iter end) { 
+   int isize = std::min(MAXSIZE,size()+int(end-begin));
+   for(int i=size(); i<isize;++i)
+    amplitudes_[i]= *(begin++);
+   amplitudes_[MAXSIZE]=isize;
+  }
 
   /** The number of the first strip in the cluster.
    *  The high bit of firstStrip_ indicates whether the cluster is a candidate for being merged.
@@ -60,10 +76,10 @@ public:
    */
    uint8_t const * begin() const { return amplitudes_.data();}
    uint8_t const * end() const { return begin()+size();}
-   uint8_t size() const { return amplitudes_.size();}
+   uint8_t size() const { return amplitudes_[MAXSIZE];}
    uint8_t  operator[](int i) const { return *(begin()+i);}
    bool empty() const { return 0==size();}
-   bool full() const { return false;}
+   bool full() const { return int(size())==MAXSIZE;}
 
    SiStripCluster const & amplitudes() const { return *this; }
 
@@ -88,7 +104,7 @@ public:
   void setSplitClusterError(float errx) { error_x = errx; }
 
 private:
-  std::vector<uint8_t> amplitudes_;
+  Container amplitudes_;
 
   uint16_t firstStrip_ = 0;
 
