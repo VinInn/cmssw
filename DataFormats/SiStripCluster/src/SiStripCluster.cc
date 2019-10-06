@@ -2,7 +2,7 @@
 #include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
 
 
-SiStripCluster::SiStripCluster(const SiStripDigiRange& range) : firstStrip_(range.first->strip()), error_x(-99999.9) {
+SiStripCluster::SiStripCluster(const SiStripDigiRange& range) : firstStrip_(range.first->strip()) {
   std::vector<uint8_t> v;
   v.reserve(range.second - range.first);
 
