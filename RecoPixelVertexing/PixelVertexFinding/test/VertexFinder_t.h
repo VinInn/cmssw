@@ -160,7 +160,7 @@ int main() {
       cudaCheck(cudaGetLastError());
       cudaDeviceSynchronize();
 
-      cudautils::launch(fitVertices, {1, 1024 - 256}, onGPU_d.get(), ws_d.get(), 50.f);
+      cudautils::launch(fitVerticesKernel, {1, 1024 - 256}, onGPU_d.get(), ws_d.get(), 50.f);
       cudaCheck(cudaGetLastError());
       cuda::memory::copy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t));
 
@@ -222,7 +222,7 @@ int main() {
       }
 
 #ifdef __CUDACC__
-      cudautils::launch(fitVertices, {1, 1024 - 256}, onGPU_d.get(), ws_d.get(), 50.f);
+      cudautils::launch(fitVerticesKernel, {1, 1024 - 256}, onGPU_d.get(), ws_d.get(), 50.f);
       cuda::memory::copy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t));
       cuda::memory::copy(nn, LOC_ONGPU(ndof), nv * sizeof(int32_t));
       cuda::memory::copy(chi2, LOC_ONGPU(chi2), nv * sizeof(float));
@@ -242,7 +242,7 @@ int main() {
 
 #ifdef __CUDACC__
       // one vertex per block!!!
-      cudautils::launch(splitVertices, {1024, 64}, onGPU_d.get(), ws_d.get(), 9.f);
+      cudautils::launch(splitVerticesKernel, {1024, 64}, onGPU_d.get(), ws_d.get(), 9.f);
       cuda::memory::copy(&nv, LOC_WS(nvIntermediate), sizeof(uint32_t));
 #else
       gridDim.x = 1024;  // nv ????
@@ -255,10 +255,10 @@ int main() {
       std::cout << "after split " << nv << std::endl;
 
 #ifdef __CUDACC__
-      cudautils::launch(fitVertices, {1, 1024 - 256}, onGPU_d.get(), ws_d.get(), 5000.f);
+      cudautils::launch(fitVerticesKernel, {1, 1024 - 256}, onGPU_d.get(), ws_d.get(), 5000.f);
       cudaCheck(cudaGetLastError());
 
-      cudautils::launch(sortByPt2, {1, 256}, onGPU_d.get(), ws_d.get());
+      cudautils::launch(sortByPt2Kernel, {1, 256}, onGPU_d.get(), ws_d.get());
       cudaCheck(cudaGetLastError());
       cuda::memory::copy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t));
 #else

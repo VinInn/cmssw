@@ -85,7 +85,7 @@ namespace gpuVertexFinder {
       clusterTracksIterative<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), minT, eps, errmax, chi2max);
     }
     cudaCheck(cudaGetLastError());
-    fitVertices<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), 50.);
+    fitVerticesKernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), 50.);
     cudaCheck(cudaGetLastError());
 #else
     if (useDensity_) {
@@ -101,12 +101,12 @@ namespace gpuVertexFinder {
 
 #ifdef __CUDACC__
     // one block per vertex...
-    splitVertices<<<1024, 128, 0, stream>>>(soa, ws_d.get(), 9.f);
+    splitVerticesKernel<<<1024, 128, 0, stream>>>(soa, ws_d.get(), 9.f);
     cudaCheck(cudaGetLastError());
-    fitVertices<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), 5000.);
+    fitVerticesKernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), 5000.);
     cudaCheck(cudaGetLastError());
 
-    sortByPt2<<<1, 256, 0, stream>>>(soa, ws_d.get());
+    sortByPt2Kernel<<<1, 256, 0, stream>>>(soa, ws_d.get());
     cudaCheck(cudaGetLastError());
 #else
     for (blockIdx.x = 0; blockIdx.x < 1024; ++blockIdx.x) {
