@@ -22,6 +22,38 @@
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuSortByPt2.h"
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuSplitVertices.h"
 
+#ifdef ONE_KERNEL
+#ifdef __CUDACC__
+  __global__ void vertexFinderOneKernel(gpuVertexFinder::ZVertices* pdata,
+                                           gpuVertexFinder::WorkSpace* pws,
+                                           int minT,    // min number of neighbours to be "seed"
+                                           float eps,     // max absolute distance to cluster
+                                        float errmax,  // max error to be "seed"
+                                           float chi2max  // max normalized distance to cluster,
+  ) {
+    clusterTracksByDensity(pdata,pws,minT,eps,errmax,chi2max);
+    __syncthreads();
+    fitVertices(pdata,pws, 50.);
+    __syncthreads();
+
+    
+    // one block per vertex...
+    if (0==threadIdx.x) {
+      cudaStream_t stream = 0;
+      cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
+      splitVerticesKernel<<<1024, 128, 0, stream>>>(pdata,pws, 9.f);
+      cudaStreamDestroy(stream);
+      cudaDeviceSynchronize();
+    }
+    
+    __syncthreads();
+    fitVertices(pdata,pws, 5000.);
+    __syncthreads();
+    sortByPt2(pdata,pws);
+  }
+#endif
+#endif
+
 using namespace gpuVertexFinder;
 
 struct Event {
@@ -154,7 +186,11 @@ int main() {
       cudaCheck(cudaGetLastError());
       cudaDeviceSynchronize();
 
+#ifdef ONE_KERNEL
+      cudautils::launch(vertexFinderOneKernel, {1, 512 + 256}, onGPU_d.get(), ws_d.get(), kk, par[0], par[1], par[2]);
+#else
       cudautils::launch(CLUSTERIZE, {1, 512 + 256}, onGPU_d.get(), ws_d.get(), kk, par[0], par[1], par[2]);
+#endif
       print<<<1, 1, 0, 0>>>(onGPU_d.get(), ws_d.get());
 
       cudaCheck(cudaGetLastError());

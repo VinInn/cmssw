@@ -46,6 +46,36 @@ namespace gpuVertexFinder {
   }
 
 #ifdef __CUDACC__
+  __global__ void vertexFinderOneKernel(gpuVertexFinder::ZVertices* pdata,
+                                        gpuVertexFinder::WorkSpace* pws,
+                                        int minT,    // min number of neighbours to be "seed"
+                                        float eps,     // max absolute distance to cluster
+                                        float errmax,  // max error to be "seed"
+                                        float chi2max  // max normalized distance to cluster,
+  ) {
+    clusterTracksByDensity(pdata,pws,minT,eps,errmax,chi2max);
+    __syncthreads();
+    fitVertices(pdata,pws, 50.);
+    __syncthreads();
+
+    
+    // one block per vertex...
+    if (0==threadIdx.x) {
+      cudaStream_t stream = 0;
+      cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
+      splitVerticesKernel<<<1024, 128, 0, stream>>>(pdata,pws, 9.f);
+      cudaStreamDestroy(stream);
+      cudaDeviceSynchronize();
+    }
+  
+    __syncthreads();
+    fitVertices(pdata,pws, 5000.);
+    __syncthreads();
+    sortByPt2(pdata,pws);
+  }
+#endif
+
+#ifdef __CUDACC__
   ZVertexHeterogeneous Producer::makeAsync(cudaStream_t stream, TkSoA const* tksoa, float ptMin) const {
     // std::cout << "producing Vertices on GPU" << std::endl;
     ZVertexHeterogeneous vertices(cudautils::make_device_unique<ZVertexSoA>(stream));
@@ -77,32 +107,31 @@ namespace gpuVertexFinder {
 #endif
 
 #ifdef __CUDACC__
+#define OneKernel
+#ifdef OneKernel
+    vertexFinderOneKernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), minT, eps, errmax, chi2max);
+#else
     clusterTracksByDensityKernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), minT, eps, errmax, chi2max);
     cudaCheck(cudaGetLastError());
     fitVerticesKernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), 50.);
     cudaCheck(cudaGetLastError());
-#else
-      clusterTracksByDensity(soa, ws_d.get(), minT, eps, errmax, chi2max);
-    // std::cout << "found " << (*ws_d).nvIntermediate << " vertices " << std::endl;
-    fitVertices(soa, ws_d.get(), 50.);
-#endif
-
-#ifdef __CUDACC__
     // one block per vertex...
     splitVerticesKernel<<<1024, 128, 0, stream>>>(soa, ws_d.get(), 9.f);
     cudaCheck(cudaGetLastError());
     fitVerticesKernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), 5000.);
     cudaCheck(cudaGetLastError());
-
-    sortByPt2Kernel<<<1, 256, 0, stream>>>(soa, ws_d.get());
+    sortByPt2Kernel<<<1, 1024-256, 0, stream>>>(soa, ws_d.get());
+#endif
     cudaCheck(cudaGetLastError());
 #else
+    clusterTracksByDensity(soa, ws_d.get(), minT, eps, errmax, chi2max);
+    // std::cout << "found " << (*ws_d).nvIntermediate << " vertices " << std::endl;
+    fitVertices(soa, ws_d.get(), 50.);
     for (blockIdx.x = 0; blockIdx.x < 1024; ++blockIdx.x) {
       splitVertices(soa, ws_d.get(), 9.f);
     }
     blockIdx.x = 0;
     fitVertices(soa, ws_d.get(), 5000.);
-
     sortByPt2(soa, ws_d.get());
 #endif
 
