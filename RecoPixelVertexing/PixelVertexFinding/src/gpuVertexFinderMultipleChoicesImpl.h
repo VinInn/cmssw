@@ -8,7 +8,7 @@
 
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 
-namespace gpuVertexFinder {
+namespace gpuVertexFinderMultipleChoices {
 
   __global__ void loadTracks(TkSoA const* ptracks, ZVertexSoA* soa, WorkSpace* pws, float ptMin) {
     assert(ptracks);
@@ -77,12 +77,24 @@ namespace gpuVertexFinder {
 #endif
 
 #ifdef __CUDACC__
-    clusterTracksByDensityKernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), minT, eps, errmax, chi2max);
+    if (useDensity_) {
+      clusterTracksByDensity<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), minT, eps, errmax, chi2max);
+    } else if (useDBSCAN_) {
+      clusterTracksDBSCAN<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), minT, eps, errmax, chi2max);
+    } else if (useIterative_) {
+      clusterTracksIterative<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), minT, eps, errmax, chi2max);
+    }
     cudaCheck(cudaGetLastError());
     fitVerticesKernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), 50.);
     cudaCheck(cudaGetLastError());
 #else
+    if (useDensity_) {
       clusterTracksByDensity(soa, ws_d.get(), minT, eps, errmax, chi2max);
+    } else if (useDBSCAN_) {
+      clusterTracksDBSCAN(soa, ws_d.get(), minT, eps, errmax, chi2max);
+    } else if (useIterative_) {
+      clusterTracksIterative(soa, ws_d.get(), minT, eps, errmax, chi2max);
+    }
     // std::cout << "found " << (*ws_d).nvIntermediate << " vertices " << std::endl;
     fitVertices(soa, ws_d.get(), 50.);
 #endif
@@ -109,6 +121,6 @@ namespace gpuVertexFinder {
     return vertices;
   }
 
-}  // namespace gpuVertexFinder
+}  // namespace gpuVertexFinderMultipleChoices
 
 #undef FROM

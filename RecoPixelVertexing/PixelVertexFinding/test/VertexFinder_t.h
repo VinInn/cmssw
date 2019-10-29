@@ -16,7 +16,7 @@
 #define CLUSTERIZE clusterTracksIterative
 #else
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuClusterTracksByDensity.h"
-#define CLUSTERIZE clusterTracksByDensity
+#define CLUSTERIZE clusterTracksByDensityKernel
 #endif
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuFitVertices.h"
 #include "RecoPixelVertexing/PixelVertexFinding/src/gpuSortByPt2.h"
