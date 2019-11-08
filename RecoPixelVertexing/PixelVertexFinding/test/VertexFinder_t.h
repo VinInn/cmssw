@@ -158,10 +158,10 @@ int main() {
       std::cout << "v,t size " << ev.zvert.size() << ' ' << ev.ztrack.size() << std::endl;
       auto nt = ev.ztrack.size();
 #ifdef __CUDACC__
-      cuda::memory::copy(LOC_WS(ntrks), &nt, sizeof(uint32_t));
-      cuda::memory::copy(LOC_WS(zt), ev.ztrack.data(), sizeof(float) * ev.ztrack.size());
-      cuda::memory::copy(LOC_WS(ezt2), ev.eztrack.data(), sizeof(float) * ev.eztrack.size());
-      cuda::memory::copy(LOC_WS(ptt2), ev.pttrack.data(), sizeof(float) * ev.eztrack.size());
+      cudaCheck(cudaMemcpy(LOC_WS(ntrks), &nt, sizeof(uint32_t), cudaMemcpyHostToDevice));
+      cudaCheck(cudaMemcpy(LOC_WS(zt), ev.ztrack.data(), sizeof(float) * ev.ztrack.size(), cudaMemcpyHostToDevice));
+      cudaCheck(cudaMemcpy(LOC_WS(ezt2), ev.eztrack.data(), sizeof(float) * ev.eztrack.size(), cudaMemcpyHostToDevice));
+      cudaCheck(cudaMemcpy(LOC_WS(ptt2), ev.pttrack.data(), sizeof(float) * ev.eztrack.size(), cudaMemcpyHostToDevice));
 #else
       ::memcpy(LOC_WS(ntrks), &nt, sizeof(uint32_t));
       ::memcpy(LOC_WS(zt), ev.ztrack.data(), sizeof(float) * ev.ztrack.size());
@@ -198,7 +198,7 @@ int main() {
 
       cudautils::launch(fitVerticesKernel, {1, 1024 - 256}, onGPU_d.get(), ws_d.get(), 50.f);
       cudaCheck(cudaGetLastError());
-      cuda::memory::copy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t));
+      cudaCheck(cudaMemcpy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t), cudaMemcpyDeviceToHost));
 
 #else
       print(onGPU_d.get(), ws_d.get());
@@ -243,8 +243,8 @@ int main() {
 #endif
 
 #ifdef __CUDACC__
-      cuda::memory::copy(nn, LOC_ONGPU(ndof), nv * sizeof(int32_t));
-      cuda::memory::copy(chi2, LOC_ONGPU(chi2), nv * sizeof(float));
+      cudaCheck(cudaMemcpy(nn, LOC_ONGPU(ndof), nv * sizeof(int32_t), cudaMemcpyDeviceToHost));
+      cudaCheck(cudaMemcpy(chi2, LOC_ONGPU(chi2), nv * sizeof(float), cudaMemcpyDeviceToHost));
 #else
       memcpy(chi2, LOC_ONGPU(chi2), nv * sizeof(float));
 #endif
@@ -259,9 +259,9 @@ int main() {
 
 #ifdef __CUDACC__
       cudautils::launch(fitVerticesKernel, {1, 1024 - 256}, onGPU_d.get(), ws_d.get(), 50.f);
-      cuda::memory::copy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t));
-      cuda::memory::copy(nn, LOC_ONGPU(ndof), nv * sizeof(int32_t));
-      cuda::memory::copy(chi2, LOC_ONGPU(chi2), nv * sizeof(float));
+      cudaCheck(cudaMemcpy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t), cudaMemcpyDeviceToHost));
+      cudaCheck(cudaMemcpy(nn, LOC_ONGPU(ndof), nv * sizeof(int32_t), cudaMemcpyDeviceToHost));
+      cudaCheck(cudaMemcpy(chi2, LOC_ONGPU(chi2), nv * sizeof(float), cudaMemcpyDeviceToHost));
 #else
       fitVertices(onGPU_d.get(), ws_d.get(), 50.f);
       nv = onGPU_d->nvFinal;
@@ -279,7 +279,7 @@ int main() {
 #ifdef __CUDACC__
       // one vertex per block!!!
       cudautils::launch(splitVerticesKernel, {1024, 64}, onGPU_d.get(), ws_d.get(), 9.f);
-      cuda::memory::copy(&nv, LOC_WS(nvIntermediate), sizeof(uint32_t));
+      cudaCheck(cudaMemcpy(&nv, LOC_WS(nvIntermediate), sizeof(uint32_t), cudaMemcpyDeviceToHost));
 #else
       gridDim.x = 1024;  // nv ????
       assert(blockIdx.x == 0);
@@ -296,7 +296,7 @@ int main() {
 
       cudautils::launch(sortByPt2Kernel, {1, 256}, onGPU_d.get(), ws_d.get());
       cudaCheck(cudaGetLastError());
-      cuda::memory::copy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t));
+      cudaCheck(cudaMemcpy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t), cudaMemcpyDeviceToHost));
 #else
       fitVertices(onGPU_d.get(), ws_d.get(), 5000.f);
       sortByPt2(onGPU_d.get(), ws_d.get());
@@ -310,12 +310,12 @@ int main() {
       }
 
 #ifdef __CUDACC__
-      cuda::memory::copy(zv, LOC_ONGPU(zv), nv * sizeof(float));
-      cuda::memory::copy(wv, LOC_ONGPU(wv), nv * sizeof(float));
-      cuda::memory::copy(chi2, LOC_ONGPU(chi2), nv * sizeof(float));
-      cuda::memory::copy(ptv2, LOC_ONGPU(ptv2), nv * sizeof(float));
-      cuda::memory::copy(nn, LOC_ONGPU(ndof), nv * sizeof(int32_t));
-      cuda::memory::copy(ind, LOC_ONGPU(sortInd), nv * sizeof(uint16_t));
+      cudaCheck(cudaMemcpy(zv, LOC_ONGPU(zv), nv * sizeof(float), cudaMemcpyDeviceToHost));
+      cudaCheck(cudaMemcpy(wv, LOC_ONGPU(wv), nv * sizeof(float), cudaMemcpyDeviceToHost));
+      cudaCheck(cudaMemcpy(chi2, LOC_ONGPU(chi2), nv * sizeof(float), cudaMemcpyDeviceToHost));
+      cudaCheck(cudaMemcpy(ptv2, LOC_ONGPU(ptv2), nv * sizeof(float), cudaMemcpyDeviceToHost));
+      cudaCheck(cudaMemcpy(nn, LOC_ONGPU(ndof), nv * sizeof(int32_t), cudaMemcpyDeviceToHost));
+      cudaCheck(cudaMemcpy(ind, LOC_ONGPU(sortInd), nv * sizeof(uint16_t), cudaMemcpyDeviceToHost));
 #endif
       for (auto j = 0U; j < nv; ++j)
         if (nn[j] > 0)
