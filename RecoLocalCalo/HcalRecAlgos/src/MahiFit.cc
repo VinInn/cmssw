@@ -148,9 +148,6 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
   nnlsWork_.pulseMat.resize(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
   nnlsWork_.pulseDerivMat.resize(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
 
-  double pulseShapeArray[nnlsWork_.tsSize];
-  double pulseDerivArray[nnlsWork_.tsSize];
-
   int offset = 0;
   for (unsigned int iBX = 0; iBX < nnlsWork_.nPulseTot; ++iBX) {
     offset = nnlsWork_.bxs.coeff(iBX);
@@ -162,11 +159,9 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
       nnlsWork_.pulseCovArray[iBX].resize(nnlsWork_.tsSize, nnlsWork_.tsSize);
 
       updatePulseShape(
-          nnlsWork_.amplitudes.coeff(nnlsWork_.tsOffset + offset), pulseShapeArray, pulseDerivArray, nnlsWork_.pulseCovArray[iBX]);
-      for (uint32_t k=0;  k<nnlsWork_.tsSize; ++k) {
-        nnlsWork_.pulseMat.col(iBX)(k) = pulseShapeArray[k];
-        nnlsWork_.pulseDerivMat.col(iBX)(k) = pulseDerivArray[k];
-      }
+          nnlsWork_.amplitudes.coeff(nnlsWork_.tsOffset + offset), 
+          nnlsWork_.pulseMat.col(iBX), nnlsWork_.pulseDerivMat.col(iBX), nnlsWork_.pulseCovArray[iBX]
+      );
     }  // else
   }
   double chiSq = minimize();
@@ -230,10 +225,16 @@ double MahiFit::minimize() const {
   return chiSq;
 }
 
+template<typename V, typename M>
 void MahiFit::updatePulseShape(double itQ,
-                               double * pulseShape,
-                               double * pulseDeriv,
-                               SamplePulseMatrix & pulseCov) const {
+                               Eigen::MatrixBase<V> const &  cpulseShape,
+                               Eigen::MatrixBase<V> const &  cpulseDeriv,
+                               M & pulseCov) const {
+
+  // from doc in eigen
+  auto & pulseShape = const_cast<Eigen::MatrixBase<V>&>(cpulseShape);
+  auto & pulseDeriv = const_cast<Eigen::MatrixBase<V>&>(cpulseDeriv);
+
   float t0 = meanTime_;
 
   if (applyTimeSlew_) {
@@ -267,17 +268,17 @@ void MahiFit::updatePulseShape(double itQ,
   auto invDt = 0.5 / nnlsWork_.dt;
 
   for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
-    pulseShape[iTS] = pulseN[iTS + delta];
-    pulseDeriv[iTS] = (pulseM[iTS + delta] - pulseP[iTS + delta]) * invDt;
+    pulseShape(iTS) = pulseN[iTS + delta];
+    pulseDeriv(iTS) = (pulseM[iTS + delta] - pulseP[iTS + delta]) * invDt;
 
     pulseM[iTS + delta] -= pulseN[iTS + delta];
     pulseP[iTS + delta] -= pulseN[iTS + delta];
   }
 
+  
   for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
-    for (unsigned int jTS = 0; jTS < iTS + 1; ++jTS) {
-      double tmp = 0.5*(pulseP[iTS + delta] * pulseP[jTS + delta] + pulseM[iTS + delta] * pulseM[jTS + delta]);
-      pulseCov(jTS,iTS) = pulseCov(iTS,iTS) = tmp;
+    for (unsigned int jTS = 0; jTS <= iTS; ++jTS) {
+      pulseCov(iTS,jTS) = 0.5*(pulseP[iTS + delta] * pulseP[jTS + delta] + pulseM[iTS + delta] * pulseM[jTS + delta]);
     }
   }
 }
@@ -299,7 +300,7 @@ void MahiFit::updateCov() const {
     if (offset == pedestalBX_)
       continue;
     else {
-      invCovMat += ampsq * nnlsWork_.pulseCovArray[offset + nnlsWork_.bxOffset];
+      invCovMat += ampsq * nnlsWork_.pulseCovArray[offset + nnlsWork_.bxOffset].selfadjointView<Eigen::Lower>();
     }
   }
 

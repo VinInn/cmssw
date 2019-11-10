@@ -134,10 +134,11 @@ private:
   double minimize() const;
   void onePulseMinimize() const;
   void updateCov() const;
+  template<typename V, typename M>
   void updatePulseShape(double itQ,
-                        double * pulseShape,
-                        double * pulseDeriv,
-                        SamplePulseMatrix &  pulseCov) const;
+                        Eigen::MatrixBase<V> const &  pulseShape,
+                        Eigen::MatrixBase<V> const &  pulseDeriv,
+                        M &  pulseCov) const;
 
   float calculateArrivalTime() const;
   double calculateChiSq() const;
