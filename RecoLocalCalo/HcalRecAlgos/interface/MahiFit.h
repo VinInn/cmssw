@@ -135,7 +135,7 @@ private:
   void onePulseMinimize() const;
   void updateCov() const;
   template<typename V, typename M>
-  void updatePulseShape(double itQ,
+  void updatePulseShape(double itQ,int offset,
                         Eigen::MatrixBase<V> const &  pulseShape,
                         Eigen::MatrixBase<V> const &  pulseDeriv,
                         M &  pulseCov) const;

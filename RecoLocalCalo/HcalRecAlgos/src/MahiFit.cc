@@ -159,7 +159,7 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
       nnlsWork_.pulseCovArray[iBX].resize(nnlsWork_.tsSize, nnlsWork_.tsSize);
 
       updatePulseShape(
-          nnlsWork_.amplitudes.coeff(nnlsWork_.tsOffset + offset), 
+          nnlsWork_.amplitudes.coeff(nnlsWork_.tsOffset + offset),offset, 
           nnlsWork_.pulseMat.col(iBX), nnlsWork_.pulseDerivMat.col(iBX), nnlsWork_.pulseCovArray[iBX]
       );
     }  // else
@@ -226,7 +226,7 @@ double MahiFit::minimize() const {
 }
 
 template<typename V, typename M>
-void MahiFit::updatePulseShape(double itQ,
+void MahiFit::updatePulseShape(double itQ,int offset,
                                Eigen::MatrixBase<V> const &  cpulseShape,
                                Eigen::MatrixBase<V> const &  cpulseDeriv,
                                M & pulseCov) const {
@@ -268,17 +268,26 @@ void MahiFit::updatePulseShape(double itQ,
   auto invDt = 0.5 / nnlsWork_.dt;
 
   for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
-    pulseShape(iTS) = pulseN[iTS + delta];
-    pulseDeriv(iTS) = (pulseM[iTS + delta] - pulseP[iTS + delta]) * invDt;
-
+    if(iTS+offset <nnlsWork_.tsSize) {
+      pulseShape(iTS+offset) = pulseN[iTS + delta];
+      pulseDeriv(iTS+offset) = (pulseM[iTS + delta] - pulseP[iTS + delta]) * invDt;
+    }
     pulseM[iTS + delta] -= pulseN[iTS + delta];
     pulseP[iTS + delta] -= pulseN[iTS + delta];
   }
-
+  for (int iTS = 0; iTS < offset; ++iTS) {
+    pulseShape(iTS) = 0;
+    pulseDeriv(iTS) = 0;
+  }
   
-  for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
+  for (int iTS = 0; iTS < offset; ++iTS) {
+    for (int jTS = 0; jTS <= iTS; ++jTS) {
+      pulseCov(iTS,jTS) = 0;
+    }
+  }
+  for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize - offset; ++iTS) {
     for (unsigned int jTS = 0; jTS <= iTS; ++jTS) {
-      pulseCov(iTS,jTS) = 0.5*(pulseP[iTS + delta] * pulseP[jTS + delta] + pulseM[iTS + delta] * pulseM[jTS + delta]);
+      pulseCov(iTS+offset,jTS+offset) = 0.5*(pulseP[iTS + delta] * pulseP[jTS + delta] + pulseM[iTS + delta] * pulseM[jTS + delta]);
     }
   }
 }
