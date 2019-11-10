@@ -1,3 +1,5 @@
+
+#define EIGEN_NO_DEBUG // kill throws in eigen code
 #include "RecoLocalCalo/HcalRecAlgos/interface/MahiFit.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
@@ -146,9 +148,9 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
   nnlsWork_.pulseMat.setZero(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
   nnlsWork_.pulseDerivMat.setZero(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
 
-  FullSampleVector pulseShapeArray;
-  FullSampleVector pulseDerivArray;
-  FullSampleMatrix pulseCov;
+  double pulseShapeArray[nnlsWork_.tsSize];
+  double pulseDerivArray[nnlsWork_.tsSize];
+  double pulseCov[nnlsWork_.tsSize*nnlsWork_.tsSize];
 
   int offset = 0;
   for (unsigned int iBX = 0; iBX < nnlsWork_.nPulseTot; ++iBX) {
@@ -158,22 +160,22 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
       nnlsWork_.pulseMat.col(iBX) = SampleVector::Ones(nnlsWork_.tsSize);
       nnlsWork_.pulseDerivMat.col(iBX) = SampleVector::Zero(nnlsWork_.tsSize);
     } else {
-      pulseShapeArray.setZero(nnlsWork_.tsSize + nnlsWork_.maxoffset + nnlsWork_.bxOffset);
-      pulseDerivArray.setZero(nnlsWork_.tsSize + nnlsWork_.maxoffset + nnlsWork_.bxOffset);
-      pulseCov.setZero(nnlsWork_.tsSize + nnlsWork_.maxoffset + nnlsWork_.bxOffset,
-                       nnlsWork_.tsSize + nnlsWork_.maxoffset + nnlsWork_.bxOffset);
       nnlsWork_.pulseCovArray[iBX].setZero(nnlsWork_.tsSize, nnlsWork_.tsSize);
 
       updatePulseShape(
           nnlsWork_.amplitudes.coeff(nnlsWork_.tsOffset + offset), pulseShapeArray, pulseDerivArray, pulseCov);
-
-      nnlsWork_.pulseMat.col(iBX) = pulseShapeArray.segment(nnlsWork_.maxoffset - offset, nnlsWork_.tsSize);
-      nnlsWork_.pulseDerivMat.col(iBX) = pulseDerivArray.segment(nnlsWork_.maxoffset - offset, nnlsWork_.tsSize);
-      nnlsWork_.pulseCovArray[iBX] = pulseCov.block(
-          nnlsWork_.maxoffset - offset, nnlsWork_.maxoffset - offset, nnlsWork_.tsSize, nnlsWork_.tsSize);
-    }
+      for (uint32_t k=0;  k<nnlsWork_.tsSize; ++k) {
+        nnlsWork_.pulseMat.col(iBX)(k) = pulseShapeArray[k];
+        nnlsWork_.pulseDerivMat.col(iBX)(k) = pulseDerivArray[k];
+        auto off = k*nnlsWork_.tsSize;
+        // MUST BE IN SYNC WITH LOOP IN updatePulseShape
+        for (uint32_t j=0;  j<k; ++j) {
+          nnlsWork_.pulseCovArray[iBX](j,k) = nnlsWork_.pulseCovArray[iBX](k,j) = pulseCov[off+j];
+        }
+        nnlsWork_.pulseCovArray[iBX](k,k) = pulseCov[off+k];
+      }
+    }  // else
   }
-
   double chiSq = minimize();
 
   bool foundintime = false;
@@ -236,9 +238,9 @@ double MahiFit::minimize() const {
 }
 
 void MahiFit::updatePulseShape(double itQ,
-                               FullSampleVector& pulseShape,
-                               FullSampleVector& pulseDeriv,
-                               FullSampleMatrix& pulseCov) const {
+                               double * pulseShape,
+                               double * pulseDeriv,
+                               double * pulseCov) const {
   float t0 = meanTime_;
 
   if (applyTimeSlew_) {
@@ -272,21 +274,20 @@ void MahiFit::updatePulseShape(double itQ,
   auto invDt = 0.5 / nnlsWork_.dt;
 
   for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
-    pulseShape.coeffRef(iTS + nnlsWork_.maxoffset) = pulseN[iTS + delta];
-    pulseDeriv.coeffRef(iTS + nnlsWork_.maxoffset) = (pulseM[iTS + delta] - pulseP[iTS + delta]) * invDt;
+    pulseShape[iTS] = pulseN[iTS + delta];
+    pulseDeriv[iTS] = (pulseM[iTS + delta] - pulseP[iTS + delta]) * invDt;
 
     pulseM[iTS + delta] -= pulseN[iTS + delta];
     pulseP[iTS + delta] -= pulseN[iTS + delta];
   }
 
   for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
+    auto off = iTS*nnlsWork_.tsSize;
     for (unsigned int jTS = 0; jTS < iTS + 1; ++jTS) {
-      double tmp = 0.5 * (pulseP[iTS + delta] * pulseP[jTS + delta] + pulseM[iTS + delta] * pulseM[jTS + delta]);
-
-      pulseCov(jTS + nnlsWork_.maxoffset, iTS + nnlsWork_.maxoffset) += tmp;
-      if (iTS != jTS)
-        pulseCov(iTS + nnlsWork_.maxoffset, jTS + nnlsWork_.maxoffset) += tmp;
+      double tmp = pulseP[iTS + delta] * pulseP[jTS + delta] + pulseM[iTS + delta] * pulseM[jTS + delta];
+      pulseCov[off+jTS] = tmp;
     }
+    pulseCov[off+iTS] *= 0.5;
   }
 }
 
@@ -307,7 +308,7 @@ void MahiFit::updateCov() const {
     if (offset == pedestalBX_)
       continue;
     else {
-      invCovMat += ampsq * nnlsWork_.pulseCovArray.at(offset + nnlsWork_.bxOffset);
+      invCovMat += ampsq * nnlsWork_.pulseCovArray[offset + nnlsWork_.bxOffset];
     }
   }
 
@@ -566,43 +567,43 @@ void MahiFit::solveSubmatrix(PulseMatrix& mat, PulseVector& invec, PulseVector& 
   switch (nP) {  // pulse matrix is always square.
     case 10: {
       Matrix<double, 10, 10> temp = mat;
-      outvec.head<10>() = temp.ldlt().solve(invec.head<10>());
+      outvec.head<10>() = temp.llt().solve(invec.head<10>());
     } break;
     case 9: {
       Matrix<double, 9, 9> temp = mat.topLeftCorner<9, 9>();
-      outvec.head<9>() = temp.ldlt().solve(invec.head<9>());
+      outvec.head<9>() = temp.llt().solve(invec.head<9>());
     } break;
     case 8: {
       Matrix<double, 8, 8> temp = mat.topLeftCorner<8, 8>();
-      outvec.head<8>() = temp.ldlt().solve(invec.head<8>());
+      outvec.head<8>() = temp.llt().solve(invec.head<8>());
     } break;
     case 7: {
       Matrix<double, 7, 7> temp = mat.topLeftCorner<7, 7>();
-      outvec.head<7>() = temp.ldlt().solve(invec.head<7>());
+      outvec.head<7>() = temp.llt().solve(invec.head<7>());
     } break;
     case 6: {
       Matrix<double, 6, 6> temp = mat.topLeftCorner<6, 6>();
-      outvec.head<6>() = temp.ldlt().solve(invec.head<6>());
+      outvec.head<6>() = temp.llt().solve(invec.head<6>());
     } break;
     case 5: {
       Matrix<double, 5, 5> temp = mat.topLeftCorner<5, 5>();
-      outvec.head<5>() = temp.ldlt().solve(invec.head<5>());
+      outvec.head<5>() = temp.llt().solve(invec.head<5>());
     } break;
     case 4: {
       Matrix<double, 4, 4> temp = mat.topLeftCorner<4, 4>();
-      outvec.head<4>() = temp.ldlt().solve(invec.head<4>());
+      outvec.head<4>() = temp.llt().solve(invec.head<4>());
     } break;
     case 3: {
       Matrix<double, 3, 3> temp = mat.topLeftCorner<3, 3>();
-      outvec.head<3>() = temp.ldlt().solve(invec.head<3>());
+      outvec.head<3>() = temp.llt().solve(invec.head<3>());
     } break;
     case 2: {
       Matrix<double, 2, 2> temp = mat.topLeftCorner<2, 2>();
-      outvec.head<2>() = temp.ldlt().solve(invec.head<2>());
+      outvec.head<2>() = temp.llt().solve(invec.head<2>());
     } break;
     case 1: {
       Matrix<double, 1, 1> temp = mat.topLeftCorner<1, 1>();
-      outvec.head<1>() = temp.ldlt().solve(invec.head<1>());
+      outvec.head<1>() = temp.llt().solve(invec.head<1>());
     } break;
     default:
       throw cms::Exception("HcalMahiWeirdState")

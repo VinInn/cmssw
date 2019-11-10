@@ -135,9 +135,9 @@ private:
   void onePulseMinimize() const;
   void updateCov() const;
   void updatePulseShape(double itQ,
-                        FullSampleVector& pulseShape,
-                        FullSampleVector& pulseDeriv,
-                        FullSampleMatrix& pulseCov) const;
+                        double * pulseShape,
+                        double * pulseDeriv,
+                        double *  pulseCov) const;
 
   float calculateArrivalTime() const;
   double calculateChiSq() const;
