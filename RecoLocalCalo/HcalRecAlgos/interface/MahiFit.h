@@ -137,7 +137,7 @@ private:
   void updatePulseShape(double itQ,
                         double * pulseShape,
                         double * pulseDeriv,
-                        double *  pulseCov) const;
+                        SamplePulseMatrix &  pulseCov) const;
 
   float calculateArrivalTime() const;
   double calculateChiSq() const;

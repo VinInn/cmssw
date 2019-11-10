@@ -145,12 +145,11 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
   if (dynamicPed_)
     nnlsWork_.bxs[nnlsWork_.nPulseTot - 1] = pedestalBX_;
 
-  nnlsWork_.pulseMat.setZero(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
-  nnlsWork_.pulseDerivMat.setZero(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
+  nnlsWork_.pulseMat.resize(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
+  nnlsWork_.pulseDerivMat.resize(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
 
   double pulseShapeArray[nnlsWork_.tsSize];
   double pulseDerivArray[nnlsWork_.tsSize];
-  double pulseCov[nnlsWork_.tsSize*nnlsWork_.tsSize];
 
   int offset = 0;
   for (unsigned int iBX = 0; iBX < nnlsWork_.nPulseTot; ++iBX) {
@@ -160,19 +159,13 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
       nnlsWork_.pulseMat.col(iBX) = SampleVector::Ones(nnlsWork_.tsSize);
       nnlsWork_.pulseDerivMat.col(iBX) = SampleVector::Zero(nnlsWork_.tsSize);
     } else {
-      nnlsWork_.pulseCovArray[iBX].setZero(nnlsWork_.tsSize, nnlsWork_.tsSize);
+      nnlsWork_.pulseCovArray[iBX].resize(nnlsWork_.tsSize, nnlsWork_.tsSize);
 
       updatePulseShape(
-          nnlsWork_.amplitudes.coeff(nnlsWork_.tsOffset + offset), pulseShapeArray, pulseDerivArray, pulseCov);
+          nnlsWork_.amplitudes.coeff(nnlsWork_.tsOffset + offset), pulseShapeArray, pulseDerivArray, nnlsWork_.pulseCovArray[iBX]);
       for (uint32_t k=0;  k<nnlsWork_.tsSize; ++k) {
         nnlsWork_.pulseMat.col(iBX)(k) = pulseShapeArray[k];
         nnlsWork_.pulseDerivMat.col(iBX)(k) = pulseDerivArray[k];
-        auto off = k*nnlsWork_.tsSize;
-        // MUST BE IN SYNC WITH LOOP IN updatePulseShape
-        for (uint32_t j=0;  j<k; ++j) {
-          nnlsWork_.pulseCovArray[iBX](j,k) = nnlsWork_.pulseCovArray[iBX](k,j) = pulseCov[off+j];
-        }
-        nnlsWork_.pulseCovArray[iBX](k,k) = pulseCov[off+k];
       }
     }  // else
   }
@@ -240,7 +233,7 @@ double MahiFit::minimize() const {
 void MahiFit::updatePulseShape(double itQ,
                                double * pulseShape,
                                double * pulseDeriv,
-                               double * pulseCov) const {
+                               SamplePulseMatrix & pulseCov) const {
   float t0 = meanTime_;
 
   if (applyTimeSlew_) {
@@ -282,12 +275,10 @@ void MahiFit::updatePulseShape(double itQ,
   }
 
   for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
-    auto off = iTS*nnlsWork_.tsSize;
     for (unsigned int jTS = 0; jTS < iTS + 1; ++jTS) {
-      double tmp = pulseP[iTS + delta] * pulseP[jTS + delta] + pulseM[iTS + delta] * pulseM[jTS + delta];
-      pulseCov[off+jTS] = tmp;
+      double tmp = 0.5*(pulseP[iTS + delta] * pulseP[jTS + delta] + pulseM[iTS + delta] * pulseM[jTS + delta]);
+      pulseCov(jTS,iTS) = pulseCov(iTS,iTS) = tmp;
     }
-    pulseCov[off+iTS] *= 0.5;
   }
 }
 
