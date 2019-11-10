@@ -267,6 +267,8 @@ void MahiFit::updatePulseShape(double itQ,int offset,
 
   auto invDt = 0.5 / nnlsWork_.dt;
 
+  assert(offset < int(nnlsWork_.tsSize));
+
   for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
     if(iTS+offset <nnlsWork_.tsSize) {
       pulseShape(iTS+offset) = pulseN[iTS + delta];
@@ -285,9 +287,14 @@ void MahiFit::updatePulseShape(double itQ,int offset,
       pulseCov(iTS,jTS) = 0;
     }
   }
-  for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize - offset; ++iTS) {
-    for (unsigned int jTS = 0; jTS <= iTS; ++jTS) {
-      pulseCov(iTS+offset,jTS+offset) = 0.5*(pulseP[iTS + delta] * pulseP[jTS + delta] + pulseM[iTS + delta] * pulseM[jTS + delta]);
+  for (uint32_t iTS = offset; iTS < nnlsWork_.tsSize; ++iTS) {
+    for (int jTS = 0; jTS < offset; ++jTS) {
+      pulseCov(iTS,jTS) = 0;
+    }
+  }
+  for (unsigned int iTS = offset; iTS < nnlsWork_.tsSize; ++iTS) {
+    for (unsigned int jTS = offset; jTS <= iTS; ++jTS) {
+      pulseCov(iTS,jTS) = 0.5*(pulseP[iTS-offset + delta] * pulseP[jTS-offset + delta] + pulseM[iTS-offset + delta] * pulseM[jTS-offset + delta]);
     }
   }
 }
