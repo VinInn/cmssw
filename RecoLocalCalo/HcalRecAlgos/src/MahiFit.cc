@@ -156,8 +156,7 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
       nnlsWork_.pulseMat.col(iBX) = SampleVector::Ones(nnlsWork_.tsSize);
       nnlsWork_.pulseDerivMat.col(iBX) = SampleVector::Zero(nnlsWork_.tsSize);
     } else {
-      nnlsWork_.pulseCovArray[iBX].resize(nnlsWork_.tsSize, nnlsWork_.tsSize);
-
+      nnlsWork_.pulseCovArray[iBX].setZero(nnlsWork_.tsSize, nnlsWork_.tsSize);
       updatePulseShape(
           nnlsWork_.amplitudes.coeff(nnlsWork_.tsOffset + offset),offset, 
           nnlsWork_.pulseMat.col(iBX), nnlsWork_.pulseDerivMat.col(iBX), nnlsWork_.pulseCovArray[iBX]
@@ -268,33 +267,40 @@ void MahiFit::updatePulseShape(double itQ,int offset,
   auto invDt = 0.5 / nnlsWork_.dt;
 
   assert(offset < int(nnlsWork_.tsSize));
+  // assert(offset>=0);
 
-  for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
-    if(iTS+offset <nnlsWork_.tsSize) {
-      pulseShape(iTS+offset) = pulseN[iTS + delta];
-      pulseDeriv(iTS+offset) = (pulseM[iTS + delta] - pulseP[iTS + delta]) * invDt;
-    }
-    pulseM[iTS + delta] -= pulseN[iTS + delta];
-    pulseP[iTS + delta] -= pulseN[iTS + delta];
+  int bTS = std::max(0,offset);
+  int eTS = std::min(nnlsWork_.tsSize,nnlsWork_.tsSize+offset);
+
+  for (int iTS = bTS; iTS < eTS; ++iTS) {
+    int kTS = iTS-offset;
+    assert(kTS>=0);
+    assert(kTS<int(nnlsWork_.tsSize));
+    pulseShape(iTS) = pulseN[kTS + delta];
+    pulseDeriv(iTS) = (pulseM[kTS + delta] - pulseP[kTS + delta]) * invDt;
   }
-  for (int iTS = 0; iTS < offset; ++iTS) {
+
+  for (int iTS = 0; iTS < bTS; ++iTS) {
     pulseShape(iTS) = 0;
     pulseDeriv(iTS) = 0;
   }
+  for (int iTS = eTS; iTS < int(nnlsWork_.tsSize); ++iTS) {
+    pulseShape(iTS) = 0;
+    pulseDeriv(iTS) = 0;
+  }
+
+
+  for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
+    pulseM[iTS + delta] -= pulseN[iTS + delta];
+    pulseP[iTS + delta] -= pulseN[iTS + delta];
+  }
   
-  for (int iTS = 0; iTS < offset; ++iTS) {
-    for (int jTS = 0; jTS <= iTS; ++jTS) {
-      pulseCov(iTS,jTS) = 0;
-    }
-  }
-  for (uint32_t iTS = offset; iTS < nnlsWork_.tsSize; ++iTS) {
-    for (int jTS = 0; jTS < offset; ++jTS) {
-      pulseCov(iTS,jTS) = 0;
-    }
-  }
-  for (unsigned int iTS = offset; iTS < nnlsWork_.tsSize; ++iTS) {
-    for (unsigned int jTS = offset; jTS <= iTS; ++jTS) {
-      pulseCov(iTS,jTS) = 0.5*(pulseP[iTS-offset + delta] * pulseP[jTS-offset + delta] + pulseM[iTS-offset + delta] * pulseM[jTS-offset + delta]);
+  // assume  pulseCov has been zeroed....
+  for (int iTS = bTS; iTS < eTS; ++iTS) {
+    int iiTS = iTS-offset;
+    for (int jTS = bTS; jTS <= iTS; ++jTS) {
+      int jjTS = jTS-offset;
+      pulseCov(iTS,jTS) = 0.5*(pulseP[iiTS + delta] * pulseP[jjTS + delta] + pulseM[iiTS + delta] * pulseM[jjTS + delta]);
     }
   }
 }
