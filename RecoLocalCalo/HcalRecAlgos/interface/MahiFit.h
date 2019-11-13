@@ -142,6 +142,7 @@ private:
 
   void nnlsUnconstrainParameter(Index idxp) const;
   void nnlsConstrainParameter(Index minratioidx) const;
+  void nnlsSwap(int j, int k) const; 
 
   void solveSubmatrix(PulseMatrix& mat, PulseVector& outvec, unsigned nP) const;
 

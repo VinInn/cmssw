@@ -314,7 +314,7 @@ void MahiFit::updateCov(const SampleMatrix& samplecov) const {
       continue;
     else {
       auto const ampsq = amp * amp;
-      invCovMat += ampsq * nnlsWork_.pulseCovArray.at(offset + nnlsWork_.bxOffset);
+      invCovMat.noalias() += ampsq * nnlsWork_.pulseCovArray[offset + nnlsWork_.bxOffset];
     }
   }
 
@@ -475,27 +475,29 @@ void MahiFit::resetPulseShapeTemplate(const HcalPulseShapes::Shape& ps, bool has
   nnlsWork_.tsSize = nSamples;
 }
 
+
+void MahiFit::nnlsSwap(int j, int k) const {
+  assert(k>j);
+  nnlsWork_.aTaMat.col(j).swap(nnlsWork_.aTaMat.col(k));
+  nnlsWork_.aTaMat.row(j).swap(nnlsWork_.aTaMat.row(k));
+
+  nnlsWork_.pulseMat.col(j).swap(nnlsWork_.pulseMat.col(k));
+  Eigen::numext::swap(nnlsWork_.aTbVec.coeffRef(j), nnlsWork_.aTbVec.coeffRef(k));
+  Eigen::numext::swap(nnlsWork_.ampVec.coeffRef(j), nnlsWork_.ampVec.coeffRef(k));
+  Eigen::numext::swap(nnlsWork_.bxs.coeffRef(j), nnlsWork_.bxs.coeffRef(k));
+
+}
+
+
 void MahiFit::nnlsUnconstrainParameter(Index idxp) const {
-  if (idxp>nnlsWork_.nP) {
-    nnlsWork_.aTaMat.col(nnlsWork_.nP).swap(nnlsWork_.aTaMat.col(idxp));
-    nnlsWork_.aTaMat.row(nnlsWork_.nP).swap(nnlsWork_.aTaMat.row(idxp));
-    nnlsWork_.pulseMat.col(nnlsWork_.nP).swap(nnlsWork_.pulseMat.col(idxp));
-    Eigen::numext::swap(nnlsWork_.aTbVec.coeffRef(nnlsWork_.nP), nnlsWork_.aTbVec.coeffRef(idxp));
-    Eigen::numext::swap(nnlsWork_.ampVec.coeffRef(nnlsWork_.nP), nnlsWork_.ampVec.coeffRef(idxp));
-    Eigen::numext::swap(nnlsWork_.bxs.coeffRef(nnlsWork_.nP), nnlsWork_.bxs.coeffRef(idxp));
-  }
+  if (idxp!=nnlsWork_.nP)
+    nnlsSwap(nnlsWork_.nP,idxp);
   ++nnlsWork_.nP;
 }
 
 void MahiFit::nnlsConstrainParameter(Index minratioidx) const {
-  if (minratioidx != (nnlsWork_.nP - 1)) {
-    nnlsWork_.aTaMat.col(nnlsWork_.nP - 1).swap(nnlsWork_.aTaMat.col(minratioidx));
-    nnlsWork_.aTaMat.row(nnlsWork_.nP - 1).swap(nnlsWork_.aTaMat.row(minratioidx));
-    nnlsWork_.pulseMat.col(nnlsWork_.nP - 1).swap(nnlsWork_.pulseMat.col(minratioidx));
-    Eigen::numext::swap(nnlsWork_.aTbVec.coeffRef(nnlsWork_.nP - 1), nnlsWork_.aTbVec.coeffRef(minratioidx));
-    Eigen::numext::swap(nnlsWork_.ampVec.coeffRef(nnlsWork_.nP - 1), nnlsWork_.ampVec.coeffRef(minratioidx));
-    Eigen::numext::swap(nnlsWork_.bxs.coeffRef(nnlsWork_.nP - 1), nnlsWork_.bxs.coeffRef(minratioidx));
-  }
+  if (minratioidx != (nnlsWork_.nP - 1))
+     nnlsSwap(minratioidx,nnlsWork_.nP-1);
   --nnlsWork_.nP;
 }
 
