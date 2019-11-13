@@ -58,7 +58,7 @@ void MahiFit::phase1Apply(const HBHEChannelInfo& channelData,
 
   double tsTOT = 0, tstrig = 0;  // in GeV
   for (unsigned int iTS = 0; iTS < nnlsWork_.tsSize; ++iTS) {
-    auto const amplitude = channelData.tsRawCharge(iTS) - channelData.tsPedestal(iTS);
+    auto const amplitude = std::max(0., channelData.tsRawCharge(iTS) - channelData.tsPedestal(iTS));
 
     nnlsWork_.amplitudes.coeffRef(iTS) = amplitude;
 
@@ -205,7 +205,7 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
     correctedOutput.at(2) = chiSq;  //chi2
   }
   static long long kkk=0;
-  std::cout << "sol " << kkk++ << ' ' << correctedOutput[0] << ' ' << correctedOutput[1] << ' ' << correctedOutput[2]  << std::endl;
+  // if (nbx == 0) std::cout << "sol " << kkk++ << ' ' << correctedOutput[0] << ' ' << correctedOutput[1] << ' ' << correctedOutput[2]  << std::endl;
 }
 
 const float MahiFit::minimize() const {
@@ -345,7 +345,12 @@ void MahiFit::nnls() const {
   const unsigned int npulse = nnlsWork_.nPulseTot;
   const unsigned int nsamples = nnlsWork_.tsSize;
 
+  /*
   PulseVector updateWork;
+  // scrable amplitude
+    for (unsigned int iBX = 0; iBX < nnlsWork_.nPulseTot; ++iBX)
+      updateWork(iBX) = nnlsWork_.amplitudes(nnlsWork_.bxs.coeff(iBX) + nnlsWork_.bxOffset);
+  */
 
   nnlsWork_.invcovp = nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.pulseMat);
   nnlsWork_.aTaMat = nnlsWork_.invcovp.transpose() * nnlsWork_.invcovp;
@@ -366,7 +371,7 @@ void MahiFit::nnls() const {
       if (nActive == 0)
         break;
 
-      updateWork = nnlsWork_.aTbVec - nnlsWork_.aTaMat * nnlsWork_.ampVec;
+      auto updateWork = nnlsWork_.aTbVec - nnlsWork_.aTaMat * nnlsWork_.ampVec;
 
       Index idxwmaxprev = idxwmax;
       float wmaxprev = wmax;
@@ -488,16 +493,68 @@ void MahiFit::nnlsSwap(int j, int k) const {
 
 }
 
+#define SHIFT
 
 void MahiFit::nnlsUnconstrainParameter(Index idxp) const {
-  if (idxp!=nnlsWork_.nP)
+  // move idxp up in location np
+  if (idxp!=nnlsWork_.nP) {
+#ifndef SHIFT
     nnlsSwap(nnlsWork_.nP,idxp);
+#else    
+    auto j = idxp;
+    auto k = nnlsWork_.nP;
+    assert(j>k);
+    auto k0 =  nnlsWork_.pulseMat.col(j).eval();
+    auto k1 = nnlsWork_.aTbVec(j);
+    auto k2 = nnlsWork_.ampVec(j);
+    auto k3 = nnlsWork_.bxs(j);
+    for (auto i=j; i>k; --i) {
+      nnlsWork_.aTaMat.col(i).swap(nnlsWork_.aTaMat.col(i-1));
+      nnlsWork_.aTaMat.row(i).swap(nnlsWork_.aTaMat.row(i-1));
+
+     nnlsWork_.pulseMat.col(i) = nnlsWork_.pulseMat.col(i-1);
+     nnlsWork_.aTbVec(i) = nnlsWork_.aTbVec(i-1);
+     nnlsWork_.ampVec(i) = nnlsWork_.ampVec(i-1);
+     nnlsWork_.bxs(i) = nnlsWork_.bxs(i-1);
+    }
+    nnlsWork_.pulseMat.col(k) = k0;
+    nnlsWork_.aTbVec(k) = k1;
+    nnlsWork_.ampVec(k) = k2;
+    nnlsWork_.bxs(k) = k3;
+#endif
+  }
+
   ++nnlsWork_.nP;
 }
 
 void MahiFit::nnlsConstrainParameter(Index minratioidx) const {
-  if (minratioidx != (nnlsWork_.nP - 1))
+  // move minratioidx down in location nP - 1
+  if (minratioidx != (nnlsWork_.nP - 1)) {
+#ifndef    SHIFT
      nnlsSwap(minratioidx,nnlsWork_.nP-1);
+#else
+    auto j = minratioidx;
+    auto k = nnlsWork_.nP-1;
+    assert(j<k);
+    auto k0 =  nnlsWork_.pulseMat.col(j).eval();
+    auto k1 = nnlsWork_.aTbVec(j);
+    auto k2 = nnlsWork_.ampVec(j);
+    auto k3 = nnlsWork_.bxs(j);
+    for    (auto i=j; i<k; ++i) {
+      nnlsWork_.aTaMat.col(i).swap(nnlsWork_.aTaMat.col(i+1));
+      nnlsWork_.aTaMat.row(i).swap(nnlsWork_.aTaMat.row(i+1));
+
+     nnlsWork_.pulseMat.col(i) = nnlsWork_.pulseMat.col(i+1);
+     nnlsWork_.aTbVec(i) = nnlsWork_.aTbVec(i+1);
+     nnlsWork_.ampVec(i) = nnlsWork_.ampVec(i+1);
+     nnlsWork_.bxs(i) = nnlsWork_.bxs(i+1);
+    }
+    nnlsWork_.pulseMat.col(k) = k0;
+    nnlsWork_.aTbVec(k) = k1;
+    nnlsWork_.ampVec(k) = k2;
+    nnlsWork_.bxs(k) = k3;
+#endif
+  }
   --nnlsWork_.nP;
 }
 
