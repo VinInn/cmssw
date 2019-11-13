@@ -143,7 +143,7 @@ private:
   void nnlsUnconstrainParameter(Index idxp) const;
   void nnlsConstrainParameter(Index minratioidx) const;
 
-  void solveSubmatrix(PulseMatrix& mat, PulseVector& invec, PulseVector& outvec, unsigned nP) const;
+  void solveSubmatrix(PulseMatrix& mat, PulseVector& outvec, unsigned nP) const;
 
   mutable MahiNnlsWorkspace nnlsWork_;
 

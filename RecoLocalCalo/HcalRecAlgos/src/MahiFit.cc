@@ -126,7 +126,7 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
 
   if (dynamicPed_)
     nnlsWork_.nPulseTot++;
-  nnlsWork_.bxs.setZero(nnlsWork_.nPulseTot);
+  nnlsWork_.bxs.setZero();
 
   if (nbx == 1) {
     nnlsWork_.bxs.coeffRef(0) = 0;
@@ -142,12 +142,16 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
   if (dynamicPed_)
     nnlsWork_.bxs[nnlsWork_.nPulseTot - 1] = pedestalBX_;
 
-  nnlsWork_.pulseMat.setZero(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
-  nnlsWork_.pulseDerivMat.setZero(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
+  nnlsWork_.pulseMat.setZero();
+  nnlsWork_.pulseDerivMat.setZero();
 
   FullSampleVector pulseShapeArray;
   FullSampleVector pulseDerivArray;
   FullSampleMatrix pulseCov;
+
+  assert(8>=nnlsWork_.nPulseTot);
+  assert(8==nnlsWork_.tsSize);
+
 
   int offset = 0;
   for (unsigned int iBX = 0; iBX < nnlsWork_.nPulseTot; ++iBX) {
@@ -162,8 +166,7 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
         pulseDerivArray.setZero(nnlsWork_.tsSize + nnlsWork_.maxoffset + nnlsWork_.bxOffset);
       pulseCov.setZero(nnlsWork_.tsSize + nnlsWork_.maxoffset + nnlsWork_.bxOffset,
                        nnlsWork_.tsSize + nnlsWork_.maxoffset + nnlsWork_.bxOffset);
-      nnlsWork_.pulseCovArray[iBX].setZero(nnlsWork_.tsSize, nnlsWork_.tsSize);
-
+      nnlsWork_.pulseCovArray[iBX].setZero();
       updatePulseShape(
           nnlsWork_.amplitudes.coeff(nnlsWork_.tsOffset + offset), pulseShapeArray, pulseDerivArray, pulseCov);
 
@@ -201,6 +204,8 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
 
     correctedOutput.at(2) = chiSq;  //chi2
   }
+  static long long kkk=0;
+  std::cout << "sol " << kkk++ << ' ' << correctedOutput[0] << ' ' << correctedOutput[1] << ' ' << correctedOutput[2]  << std::endl;
 }
 
 const float MahiFit::minimize() const {
@@ -384,9 +389,9 @@ void MahiFit::nnls() const {
       if (nnlsWork_.nP == 0)
         break;
 
-      PulseVector ampvecpermtest = nnlsWork_.ampVec.head(nnlsWork_.nP);
+      PulseVector ampvecpermtest = nnlsWork_.aTbVec.head(nnlsWork_.nP);
 
-      solveSubmatrix(nnlsWork_.aTaMat, nnlsWork_.aTbVec, ampvecpermtest, nnlsWork_.nP);
+      solveSubmatrix(nnlsWork_.aTaMat, ampvecpermtest, nnlsWork_.nP);
 
       //check solution
       if (ampvecpermtest.head(nnlsWork_.nP).minCoeff() > 0.f) {
@@ -431,9 +436,9 @@ void MahiFit::nnls() const {
 void MahiFit::onePulseMinimize() const {
   nnlsWork_.invcovp = nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.pulseMat);
 
-  float aTaCoeff = (nnlsWork_.invcovp.transpose() * nnlsWork_.invcovp).coeff(0);
-  float aTbCoeff =
-      (nnlsWork_.invcovp.transpose() * (nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.amplitudes))).coeff(0);
+  auto invcovpT = nnlsWork_.invcovp.transpose();
+  float aTaCoeff = invcovpT.lazyProduct(nnlsWork_.invcovp).coeff(0);
+  float aTbCoeff = invcovpT.lazyProduct(nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.amplitudes)).coeff(0);
 
   nnlsWork_.ampVec.coeffRef(0) = std::max(0.f, aTbCoeff / aTaCoeff);
 }
@@ -468,27 +473,29 @@ void MahiFit::resetPulseShapeTemplate(const HcalPulseShapes::Shape& ps, bool has
   nnlsWork_.dt = hasTimeInfo ? timeSigmaSiPM_ : timeSigmaHPD_;
 
   nnlsWork_.tsSize = nSamples;
-  nnlsWork_.amplitudes.resize(nnlsWork_.tsSize);
-  nnlsWork_.noiseTerms.resize(nnlsWork_.tsSize);
 }
 
 void MahiFit::nnlsUnconstrainParameter(Index idxp) const {
-  nnlsWork_.aTaMat.col(nnlsWork_.nP).swap(nnlsWork_.aTaMat.col(idxp));
-  nnlsWork_.aTaMat.row(nnlsWork_.nP).swap(nnlsWork_.aTaMat.row(idxp));
-  nnlsWork_.pulseMat.col(nnlsWork_.nP).swap(nnlsWork_.pulseMat.col(idxp));
-  Eigen::numext::swap(nnlsWork_.aTbVec.coeffRef(nnlsWork_.nP), nnlsWork_.aTbVec.coeffRef(idxp));
-  Eigen::numext::swap(nnlsWork_.ampVec.coeffRef(nnlsWork_.nP), nnlsWork_.ampVec.coeffRef(idxp));
-  Eigen::numext::swap(nnlsWork_.bxs.coeffRef(nnlsWork_.nP), nnlsWork_.bxs.coeffRef(idxp));
+  if (idxp>nnlsWork_.nP) {
+    nnlsWork_.aTaMat.col(nnlsWork_.nP).swap(nnlsWork_.aTaMat.col(idxp));
+    nnlsWork_.aTaMat.row(nnlsWork_.nP).swap(nnlsWork_.aTaMat.row(idxp));
+    nnlsWork_.pulseMat.col(nnlsWork_.nP).swap(nnlsWork_.pulseMat.col(idxp));
+    Eigen::numext::swap(nnlsWork_.aTbVec.coeffRef(nnlsWork_.nP), nnlsWork_.aTbVec.coeffRef(idxp));
+    Eigen::numext::swap(nnlsWork_.ampVec.coeffRef(nnlsWork_.nP), nnlsWork_.ampVec.coeffRef(idxp));
+    Eigen::numext::swap(nnlsWork_.bxs.coeffRef(nnlsWork_.nP), nnlsWork_.bxs.coeffRef(idxp));
+  }
   ++nnlsWork_.nP;
 }
 
 void MahiFit::nnlsConstrainParameter(Index minratioidx) const {
-  nnlsWork_.aTaMat.col(nnlsWork_.nP - 1).swap(nnlsWork_.aTaMat.col(minratioidx));
-  nnlsWork_.aTaMat.row(nnlsWork_.nP - 1).swap(nnlsWork_.aTaMat.row(minratioidx));
-  nnlsWork_.pulseMat.col(nnlsWork_.nP - 1).swap(nnlsWork_.pulseMat.col(minratioidx));
-  Eigen::numext::swap(nnlsWork_.aTbVec.coeffRef(nnlsWork_.nP - 1), nnlsWork_.aTbVec.coeffRef(minratioidx));
-  Eigen::numext::swap(nnlsWork_.ampVec.coeffRef(nnlsWork_.nP - 1), nnlsWork_.ampVec.coeffRef(minratioidx));
-  Eigen::numext::swap(nnlsWork_.bxs.coeffRef(nnlsWork_.nP - 1), nnlsWork_.bxs.coeffRef(minratioidx));
+  if (minratioidx != (nnlsWork_.nP - 1)) {
+    nnlsWork_.aTaMat.col(nnlsWork_.nP - 1).swap(nnlsWork_.aTaMat.col(minratioidx));
+    nnlsWork_.aTaMat.row(nnlsWork_.nP - 1).swap(nnlsWork_.aTaMat.row(minratioidx));
+    nnlsWork_.pulseMat.col(nnlsWork_.nP - 1).swap(nnlsWork_.pulseMat.col(minratioidx));
+    Eigen::numext::swap(nnlsWork_.aTbVec.coeffRef(nnlsWork_.nP - 1), nnlsWork_.aTbVec.coeffRef(minratioidx));
+    Eigen::numext::swap(nnlsWork_.ampVec.coeffRef(nnlsWork_.nP - 1), nnlsWork_.ampVec.coeffRef(minratioidx));
+    Eigen::numext::swap(nnlsWork_.bxs.coeffRef(nnlsWork_.nP - 1), nnlsWork_.bxs.coeffRef(minratioidx));
+  }
   --nnlsWork_.nP;
 }
 
@@ -558,48 +565,40 @@ void MahiFit::phase1Debug(const HBHEChannelInfo& channelData, MahiDebugInfo& mdi
   }
 }
 
-void MahiFit::solveSubmatrix(PulseMatrix& mat, PulseVector& invec, PulseVector& outvec, unsigned nP) const {
+void MahiFit::solveSubmatrix(PulseMatrix& mat, PulseVector& outvec, unsigned nP) const {
   using namespace Eigen;
   switch (nP) {  // pulse matrix is always square.
-    case 10: {
-      Matrix<float, 10, 10> temp = mat;
-      outvec.head<10>() = temp.ldlt().solve(invec.head<10>());
-    } break;
-    case 9: {
-      Matrix<float, 9, 9> temp = mat.topLeftCorner<9, 9>();
-      outvec.head<9>() = temp.ldlt().solve(invec.head<9>());
-    } break;
     case 8: {
       Matrix<float, 8, 8> temp = mat.topLeftCorner<8, 8>();
-      outvec.head<8>() = temp.ldlt().solve(invec.head<8>());
+      temp.llt().solveInPlace(outvec.head<8>());
     } break;
     case 7: {
       Matrix<float, 7, 7> temp = mat.topLeftCorner<7, 7>();
-      outvec.head<7>() = temp.ldlt().solve(invec.head<7>());
+      temp.llt().solveInPlace(outvec.head<7>());
     } break;
     case 6: {
       Matrix<float, 6, 6> temp = mat.topLeftCorner<6, 6>();
-      outvec.head<6>() = temp.ldlt().solve(invec.head<6>());
+      temp.llt().solveInPlace(outvec.head<6>());
     } break;
     case 5: {
       Matrix<float, 5, 5> temp = mat.topLeftCorner<5, 5>();
-      outvec.head<5>() = temp.ldlt().solve(invec.head<5>());
+      temp.llt().solveInPlace(outvec.head<5>());
     } break;
     case 4: {
       Matrix<float, 4, 4> temp = mat.topLeftCorner<4, 4>();
-      outvec.head<4>() = temp.ldlt().solve(invec.head<4>());
+      temp.llt().solveInPlace(outvec.head<4>());
     } break;
     case 3: {
       Matrix<float, 3, 3> temp = mat.topLeftCorner<3, 3>();
-      outvec.head<3>() = temp.ldlt().solve(invec.head<3>());
+      temp.llt().solveInPlace(outvec.head<3>());
     } break;
     case 2: {
       Matrix<float, 2, 2> temp = mat.topLeftCorner<2, 2>();
-      outvec.head<2>() = temp.ldlt().solve(invec.head<2>());
+      temp.llt().solveInPlace(outvec.head<2>());
     } break;
     case 1: {
       Matrix<float, 1, 1> temp = mat.topLeftCorner<1, 1>();
-      outvec.head<1>() = temp.ldlt().solve(invec.head<1>());
+      temp.llt().solveInPlace(outvec.head<1>());
     } break;
     default:
       throw cms::Exception("HcalMahiWeirdState")
