@@ -97,6 +97,7 @@ void MahiFit::phase1Apply(const HBHEChannelInfo& channelData,
                                 channelData.tsPedestalWidth(3) * channelData.tsPedestalWidth(3));
 
     // only do pre-fit with 1 pulse if chiSq threshold is positive
+    /*
     if (chiSqSwitch_ > 0) {
       doFit(reconstructedVals, 1);
       if (reconstructedVals[2] > chiSqSwitch_) {
@@ -104,9 +105,10 @@ void MahiFit::phase1Apply(const HBHEChannelInfo& channelData,
         useTriple = true;
       }
     } else {
+    */
       doFit(reconstructedVals, 0);
       useTriple = true;
-    }
+    // }
   } else {
     reconstructedVals.at(0) = 0.f;      //energy
     reconstructedVals.at(1) = -9999.f;  //time
@@ -155,7 +157,7 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
   FullSampleVector pulseDerivArray;
   FullSampleMatrix pulseCov;
 
-  assert(8>=nnlsWork_.nPulseTot);
+  assert(8==nnlsWork_.nPulseTot);
   assert(8==nnlsWork_.tsSize);
 
 
@@ -215,7 +217,7 @@ void MahiFit::doFit(std::array<float, 3>& correctedOutput, int nbx) const {
 }
 
 const float MahiFit::minimize() const {
-  nnlsWork_.invcovp.setZero(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
+//  nnlsWork_.invcovp.setZero(nnlsWork_.tsSize, nnlsWork_.nPulseTot);
   nnlsWork_.ampVec.setZero(nnlsWork_.nPulseTot);
 
   SampleMatrix invCovMat;
@@ -358,9 +360,9 @@ void MahiFit::nnls() const {
       updateWork(iBX) = nnlsWork_.amplitudes(nnlsWork_.bxs.coeff(iBX) + nnlsWork_.bxOffset);
   */
 
-  nnlsWork_.invcovp = nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.pulseMat);
-  nnlsWork_.aTaMat = nnlsWork_.invcovp.transpose() * nnlsWork_.invcovp;
-  nnlsWork_.aTbVec = nnlsWork_.invcovp.transpose() * (nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.amplitudes));
+  auto invcovp = nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.pulseMat).eval();
+  nnlsWork_.aTaMat = invcovp.transpose() * invcovp;
+  nnlsWork_.aTbVec = invcovp.transpose() * (nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.amplitudes));
 
 #ifdef CHOLESKY_SHIFT
   auto lu = nnlsWork_.aTaMat.llt();
@@ -463,11 +465,12 @@ void MahiFit::nnls() const {
 }
 
 void MahiFit::onePulseMinimize() const {
-  nnlsWork_.invcovp = nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.pulseMat);
+  assert(1==nnlsWork_.nPulseTot);
+  auto invcovp = nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.pulseMat.col(0)).eval();
 
-  auto invcovpT = nnlsWork_.invcovp.transpose();
-  float aTaCoeff = invcovpT.lazyProduct(nnlsWork_.invcovp).coeff(0);
-  float aTbCoeff = invcovpT.lazyProduct(nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.amplitudes)).coeff(0);
+  auto invcovpT = invcovp.transpose();
+  float aTaCoeff = invcovpT.lazyProduct(invcovp).coeff(0);
+  float aTbCoeff = invcovpT.lazyProduct(nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.amplitudes.head(1))).coeff(0);
 
   nnlsWork_.ampVec.coeffRef(0) = std::max(0.f, aTbCoeff / aTaCoeff);
 }
