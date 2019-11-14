@@ -2,6 +2,12 @@
 #include "RecoLocalCalo/HcalRecAlgos/interface/MahiFit.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
+#define    CHOLESKY_SHIFT
+#ifdef CHOLESKY_SHIFT
+#include "choleskyShift.h"
+#define SHIFT
+#endif
+
 MahiFit::MahiFit() {}
 
 void MahiFit::setParameters(bool iDynamicPed,
@@ -356,6 +362,11 @@ void MahiFit::nnls() const {
   nnlsWork_.aTaMat = nnlsWork_.invcovp.transpose() * nnlsWork_.invcovp;
   nnlsWork_.aTbVec = nnlsWork_.invcovp.transpose() * (nnlsWork_.covDecomp.matrixL().solve(nnlsWork_.amplitudes));
 
+#ifdef CHOLESKY_SHIFT
+  auto lu = nnlsWork_.aTaMat.llt();
+  auto & llu = const_cast<PulseMatrix&>(lu.matrixLLT());
+#endif
+
   int iter = 0;
   Index idxwmax = 0;
   float wmax = 0.0f;
@@ -387,6 +398,10 @@ void MahiFit::nnls() const {
 
       //unconstrain parameter
       idxwmax += nnlsWork_.nP;
+#ifdef CHOLESKY_SHIFT
+      if (nnlsWork_.nP!=idxwmax)
+        choleskyShiftDown(llu,nnlsWork_.nP,idxwmax);
+#endif
       nnlsUnconstrainParameter(idxwmax);
     }
 
@@ -394,9 +409,15 @@ void MahiFit::nnls() const {
       if (nnlsWork_.nP == 0)
         break;
 
-      PulseVector ampvecpermtest = nnlsWork_.aTbVec.head(nnlsWork_.nP);
+      PulseVector ampvecpermtest = nnlsWork_.aTbVec;
 
+#ifndef CHOLESKY_SHIFT
       solveSubmatrix(nnlsWork_.aTaMat, ampvecpermtest, nnlsWork_.nP);
+#else
+      auto const & r = llu.topLeftCorner(nnlsWork_.nP,nnlsWork_.nP);
+      r.triangularView<Eigen::Lower>().solveInPlace(ampvecpermtest.head(nnlsWork_.nP));
+      r.transpose().triangularView<Eigen::Upper>().solveInPlace(ampvecpermtest.head(nnlsWork_.nP));
+#endif
 
       //check solution
       if (ampvecpermtest.head(nnlsWork_.nP).minCoeff() > 0.f) {
@@ -424,7 +445,10 @@ void MahiFit::nnls() const {
 
       //avoid numerical problems with later ==0. check
       nnlsWork_.ampVec.coeffRef(minratioidx) = 0.f;
-
+#ifdef CHOLESKY_SHIFT
+      if (minratioidx != (nnlsWork_.nP-1))
+        choleskyShiftUp(llu,minratioidx,nnlsWork_.nP-1);
+#endif
       nnlsConstrainParameter(minratioidx);
     }
 
