@@ -24,7 +24,7 @@
 #include "CUDADataFormats/TrackingRecHit/interface/TrackingRecHit2DCUDA.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/launch.h"
 
-void analyzeClusterTP(SiPixelDigisCUDA::DeviceConstView const* dd, uint32_t ndigis, TrackingRecHit2DSOAView const* hhp, uint32_t nhits, trackerHitAssociationHeterogeneous::ClusterSLView);
+void analyzeClusterTP(SiPixelDigisCUDA::DeviceConstView const* dd, uint32_t ndigis, TrackingRecHit2DSOAView const* hhp, uint32_t nhits, trackerHitAssociationHeterogeneous::ClusterSLView, double *);
 
 class ClusterTPCUDAdump : public edm::global::EDAnalyzer<> {
 public:
@@ -77,9 +77,12 @@ void ClusterTPCUDAdump::analyze(edm::StreamID streamID, edm::Event const& iEvent
 
     if (0 == nhits) return;
 
+    auto ws_d = cudautils::make_device_unique<double[]>(10,ctx.stream());
+    cudaCheck(cudaMemsetAsync(ws_d.get(), 0, 10*sizeof(double), ctx.stream()));
+
     int threadsPerBlock = 256;
     int blocks = (nhits + threadsPerBlock - 1) / threadsPerBlock;
-    cudautils::launch(analyzeClusterTP,{threadsPerBlock,blocks,0,ctx.stream()} ,gDigis.view(), ndigis, gHits.view(), nhits, tpsoa);
+    cudautils::launch(analyzeClusterTP,{threadsPerBlock,blocks,0,ctx.stream()} ,gDigis.view(), ndigis, gHits.view(), nhits, tpsoa, ws_d.get());
 
   } else {
   }
