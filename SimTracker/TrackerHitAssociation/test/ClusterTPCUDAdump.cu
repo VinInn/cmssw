@@ -13,7 +13,7 @@ void analyzeClusterTP(SiPixelDigisCUDA::DeviceConstView const* dd, uint32_t ndig
   auto const& hh = *hhp;
   auto first = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if (0 == first && 0==ws[0])
+  if (0 == first && 0==nev)
     printf("in analyzeClusterTP\n");
 
   __shared__ int nh;
