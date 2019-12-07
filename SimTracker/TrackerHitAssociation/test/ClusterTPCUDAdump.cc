@@ -78,7 +78,7 @@ void ClusterTPCUDAdump::analyze(edm::StreamID streamID, edm::Event const& iEvent
     if (0 == nhits) return;
 
     int threadsPerBlock = 256;
-    int blocks = (ndigis + threadsPerBlock - 1) / threadsPerBlock;
+    int blocks = (nhits + threadsPerBlock - 1) / threadsPerBlock;
     cudautils::launch(analyzeClusterTP,{threadsPerBlock,blocks,0,ctx.stream()} ,gDigis.view(), ndigis, gHits.view(), nhits, tpsoa);
 
   } else {
