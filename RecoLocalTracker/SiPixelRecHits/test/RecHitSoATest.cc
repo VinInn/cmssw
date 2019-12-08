@@ -36,7 +36,7 @@ private:
   void analyze(edm::StreamID streamID, edm::Event const& iEvent, const edm::EventSetup& iSetup) const override;
   const bool m_onGPU;
   edm::EDGetTokenT<CUDAProduct<TrackingRecHit2DCUDA>> tGpuHits;
-  edm::EDGetTokenT<TrackingRecHit2DCUDA> tCpuHits;
+  edm::EDGetTokenT<TrackingRecHit2DCPU> tCpuHits;
 };
 
 RecHitSoATest::RecHitSoATest(const edm::ParameterSet& iConfig) : m_onGPU(iConfig.getParameter<bool>("onGPU")) {
@@ -45,7 +45,7 @@ RecHitSoATest::RecHitSoATest(const edm::ParameterSet& iConfig) : m_onGPU(iConfig
           consumes<CUDAProduct<TrackingRecHit2DCUDA>>(iConfig.getParameter<edm::InputTag>("heterogeneousPixelRecHitSrc"));
   } else {
       tCpuHits =
-          consumes<TrackingRecHit2DCUDA>(iConfig.getParameter<edm::InputTag>("heterogeneousPixelRecHitSrc"));
+          consumes<TrackingRecHit2DCPU>(iConfig.getParameter<edm::InputTag>("heterogeneousPixelRecHitSrc"));
   }
 }
 
@@ -86,7 +86,7 @@ void RecHitSoATest::fillDescriptions(edm::ConfigurationDescriptions& description
   edm::ParameterSetDescription desc;
   desc.add<bool>("onGPU", true);
   desc.add<edm::InputTag>("heterogeneousPixelRecHitSrc", edm::InputTag("siPixelRecHitsCUDAPreSplitting"));
-  descriptions.add("clusterTPCUDAdump", desc);
+  descriptions.add("RecHitSoATest", desc);
 }
 
 DEFINE_FWK_MODULE(RecHitSoATest);
