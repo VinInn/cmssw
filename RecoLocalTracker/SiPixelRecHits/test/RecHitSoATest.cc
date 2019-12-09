@@ -21,8 +21,7 @@
 
 #include "CUDADataFormats/TrackingRecHit/interface/TrackingRecHit2DHeterogeneous.h"
 
-template<typename Traits>
-void analyzeImpl(TrackingRecHit2DHeterogeneous<Traits> const & ghits, cudaStream_t stream);
+#include "RecHitSoATest.h"
 
 /*
 TrackingRecHit2DCUDA and TrackingRecHit2DCPU are NOT the same type (for tracks and vertices are the same type)
