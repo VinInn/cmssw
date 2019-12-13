@@ -19,11 +19,12 @@ public:
   CUDAThing() = default;
   CUDAThing(cudautils::device::unique_ptr<float[]> ptr) : ptr_(std::move(ptr)) {}
   explicit CUDAThing(int iNHits, cudaStream_t stream) {
-    ptr_ = cudautils::make_device_unique<float[]>(3*iNHits, stream);
+    int stride = ((iNHits-1)/32 + 1)*32;  // allign to warp boundary
+    ptr_ = cudautils::make_device_unique<float[]>(3*stride, stream);
     m_view.nHits=iNHits;
     m_view.eta = ptr_.get();
-    m_view.phi = ptr_.get()+iNHits;
-    m_view.r = ptr_.get()+2*iNHits;
+    m_view.phi = ptr_.get()+stride;
+    m_view.r = ptr_.get()+2*stride;
   }
 
   const float *get() const { return ptr_.get(); }
