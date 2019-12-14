@@ -8,8 +8,14 @@
 #include "CUDADataFormats/Common/interface/CUDAProduct.h"
 #include "HeterogeneousCore/CUDACore/interface/CUDAScopedContext.h"
 #include "HeterogeneousCore/CUDATest/interface/CUDAThing.h"
+#include "CUDADataFormats/TrackingRecHit/interface/TrackingRecHit2DHeterogeneous.h"
 
-#include "TestCUDAProducerGPUKernel.h"
+namespace testConvertRecHits{
+  
+  void convert(TrackingRecHit2DSOAView const * viewOnDevice, CUDAThing::View & myView, cudaStream_t stream);
+
+}
+
 
 class TestCUDAProducerGPU : public edm::global::EDProducer<> {
 public:
@@ -22,19 +28,19 @@ public:
 
 private:
   std::string label_;
-  edm::EDGetTokenT<CUDAProduct<CUDAThing>> srcToken_;
+    edm::EDGetTokenT<CUDAProduct<TrackingRecHit2DCUDA>>  srcToken_;
   edm::EDPutTokenT<CUDAProduct<CUDAThing>> dstToken_;
-  TestCUDAProducerGPUKernel gpuAlgo_;
+
 };
 
 TestCUDAProducerGPU::TestCUDAProducerGPU(const edm::ParameterSet& iConfig)
     : label_(iConfig.getParameter<std::string>("@module_label")),
-      srcToken_(consumes<CUDAProduct<CUDAThing>>(iConfig.getParameter<edm::InputTag>("src"))),
+      srcToken_(consumes<CUDAProduct<TrackingRecHit2DCUDA>>(iConfig.getParameter<edm::InputTag>("src"))),
       dstToken_(produces<CUDAProduct<CUDAThing>>()) {}
 
 void TestCUDAProducerGPU::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
-  desc.add<edm::InputTag>("src", edm::InputTag())->setComment("Source of CUDAProduct<CUDAThing>.");
+  desc.add<edm::InputTag>("src", edm::InputTag("siPixelRecHitsCUDAPreSplitting"))->setComment("Source of Pixel RecHits");
   descriptions.addWithDefaultLabel(desc);
   descriptions.setComment(
       "This EDProducer is part of the TestCUDAProducer* family. It models a GPU algorithm this is not the first "
@@ -47,9 +53,17 @@ void TestCUDAProducerGPU::produce(edm::StreamID streamID, edm::Event& iEvent, co
 
   const auto& in = iEvent.get(srcToken_);
   CUDAScopedContextProduce ctx{in};
-  const CUDAThing& input = ctx.get(in);
+  auto & input = ctx.get(in);
 
-  ctx.emplace(iEvent, dstToken_, CUDAThing{gpuAlgo_.runAlgo(label_, input.get(), ctx.stream())});
+  auto const * hitView = input.view();
+
+  CUDAThing theThingWithASoa(input.nHits(),ctx.stream());  
+
+  auto & myView = theThingWithASoa.view();
+
+  testConvertRecHits::convert(hitView,myView,ctx.stream());
+
+  ctx.emplace(iEvent, dstToken_, std::move(theThingWithASoa));
 
   edm::LogVerbatim("TestCUDAProducerGPU")
       << label_ << " TestCUDAProducerGPU::produce end event " << iEvent.id().event() << " stream " << iEvent.streamID();
