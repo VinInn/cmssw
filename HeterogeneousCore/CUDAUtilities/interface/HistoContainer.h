@@ -76,11 +76,13 @@ namespace cms {
     ) {
 #ifdef __CUDACC__
       uint32_t *poff = (uint32_t *)((char *)(h) + offsetof(Histo, off));
-      int32_t *ppsws = (int32_t *)((char *)(h) + offsetof(Histo, psws));
+      CUDATask *ptasks = (CUDATask *)((char *)(h) + offsetof(Histo, tasks));
+      uint32_t *ppsws = (uint32_t *)((char *)(h) + offsetof(Histo, psws));
+
       auto nthreads = 1024;
       auto nblocks = (Histo::totbins() + nthreads - 1) / nthreads;
-      multiBlockPrefixScan<<<nblocks, nthreads, sizeof(int32_t) * nblocks, stream>>>(
-          poff, poff, Histo::totbins(), ppsws);
+      multiTaskPrefixScanKernel<<<nblocks, nthreads, 0, stream>>>(
+          poff, poff, Histo::totbins(), ptasks,ppsws);
       cudaCheck(cudaGetLastError());
 #else
       h->finalize();
@@ -177,6 +179,10 @@ namespace cms {
       static constexpr uint32_t totbins() { return NHISTS * NBINS + 1; }
       static constexpr uint32_t nbits() { return ilog2(NBINS - 1) + 1; }
       static constexpr uint32_t capacity() { return SIZE; }
+
+
+      static constexpr int32_t nthreads() { return 1024; }
+      static constexpr int32_t nblocks()  { return ( totbins() + nthreads() - 1) / nthreads(); }
 
       static constexpr auto histOff(uint32_t nh) { return NBINS * nh; }
 
@@ -307,8 +313,9 @@ namespace cms {
       constexpr index_type const *end(uint32_t b) const { return bins + off[b + 1]; }
 
       Counter off[totbins()];
-      int32_t psws;  // prefix-scan working space
+      CUDATask tasks[3];  // to run count-prefixscan-fill
       index_type bins[capacity()];
+      uint32_t psws[nblocks()];
     };
 
     template <typename I,        // type stored in the container (usually an index in a vector of the input values)
