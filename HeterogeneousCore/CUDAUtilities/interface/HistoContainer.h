@@ -79,8 +79,8 @@ namespace cms {
       CUDATask *ptasks = (CUDATask *)((char *)(h) + offsetof(Histo, tasks));
       uint32_t *ppsws = (uint32_t *)((char *)(h) + offsetof(Histo, psws));
 
-      auto nthreads = 1024;
-      auto nblocks = (Histo::totbins() + nthreads - 1) / nthreads;
+      auto nthreads = Histo::nthreads();
+      auto nblocks = Histo::nblocks();
       multiTaskPrefixScanKernel<<<nblocks, nthreads, 0, stream>>>(
           poff, poff, Histo::totbins(), ptasks,ppsws);
       cudaCheck(cudaGetLastError());
@@ -123,7 +123,9 @@ namespace cms {
 
       auto voidTail = [](){};
       h.tasks[0].doit(count,voidTail);
-      multiTaskPrefixScan(h.off,h.off,Histo::totbins(), &h.tasks[1],h.psws);
+      volatile auto voff = h.off;
+      volatile auto vpsws = h.psws;
+      multiTaskPrefixScan(voff,voff,Histo::totbins(), &h.tasks[1],vpsws);
       h.tasks[2].doit(fill,voidTail);
     }
 
@@ -152,7 +154,9 @@ namespace cms {
       fillFromVector<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
 #else
-      auto nblocks = std::max((totSize + nthreads - 1) / nthreads, (Histo::totbins() + nthreads - 1) / nthreads);
+      // auto nblocks = std::max((totSize + nthreads - 1) / nthreads, (Histo::totbins() + nthreads - 1) / nthreads);
+      auto nblocks = Histo::nblocks();
+      nthreads = Histo::nthreads();
       fillManyFromVectorKernel<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);     
       cudaCheck(cudaGetLastError());
 #endif
@@ -313,15 +317,17 @@ namespace cms {
       }
 
       __host__ __device__ __forceinline__ void count(T t) {
+        volatile auto voff = off;
         uint32_t b = bin(t);
         assert(b < nbins());
-        atomicIncrement(off[b]);
+        atomicIncrement(voff[b]);
       }
 
       __host__ __device__ __forceinline__ void fill(T t, index_type j) {
+        volatile auto voff = off;
         uint32_t b = bin(t);
         assert(b < nbins());
-        auto w = atomicDecrement(off[b]);
+        auto w = atomicDecrement(voff[b]);
         assert(w > 0);
         bins[w - 1] = j;
       }
