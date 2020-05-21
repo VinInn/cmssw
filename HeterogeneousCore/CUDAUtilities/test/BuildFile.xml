@@ -89,6 +89,10 @@
     <flags CUDA_FLAGS="-g"/>
   </bin>
 
+  <bin file="CUDATask_t.cpp" name="cpuCUDATask_t">
+    <flags CXXFLAGS="-g"/>
+  </bin>
+
 
   <bin file="testCatch2Main.cpp,device_unique_ptr_t.cpp,host_unique_ptr_t.cpp,host_noncached_unique_ptr_t.cpp,copyAsync_t.cpp,memsetAsync_t.cpp" name="cudaMemUtils_t">
     <use name="catch2"/>
