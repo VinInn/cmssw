@@ -89,6 +89,46 @@ namespace cms {
 #endif
     }
 
+
+    template <typename Histo, typename T>
+    __global__ void fillManyFromVectorKernel(Histo * __restrict__ ph,
+                                                                  uint32_t nh,
+                                                                  T const *__restrict__ v,
+                                                                  uint32_t const *__restrict__ offsets) {
+
+     auto & h = *ph;
+     auto count = [&](int32_t iWork) {
+        int first = blockDim.x * iWork + threadIdx.x;
+        for (int i = first, nt = offsets[nh]; i < nt; i += gridDim.x * blockDim.x) {
+          auto off = cuda_std::upper_bound(offsets, offsets + nh + 1, i);
+          assert((*off) > 0);
+          int32_t ih = off - offsets - 1;
+          assert(ih >= 0);
+          assert(ih < int(nh));
+          h.count(v[i], ih);
+        }
+      };
+
+      auto fill = [&](int32_t iWork) {
+        int first = blockDim.x * iWork + threadIdx.x;
+        for (int i = first, nt = offsets[nh]; i < nt; i += gridDim.x * blockDim.x) {
+          auto off = cuda_std::upper_bound(offsets, offsets + nh + 1, i);
+          assert((*off) > 0);
+          int32_t ih = off - offsets - 1;
+          assert(ih >= 0);
+          assert(ih < int(nh));
+          h.fill(v[i], i, ih);
+        }
+      };
+
+      auto voidTail = [](){};
+      h.tasks[0].doit(count,voidTail);
+      multiTaskPrefixScan(h.off,h.off,Histo::totbins(), &h.tasks[1],h.psws);
+      h.tasks[2].doit(fill,voidTail);
+    }
+
+    
+
     template <typename Histo, typename T>
     inline __attribute__((always_inline)) void fillManyFromVector(Histo *__restrict__ h,
                                                                   uint32_t nh,
@@ -103,12 +143,19 @@ namespace cms {
     ) {
       launchZero(h, stream);
 #ifdef __CUDACC__
+
+#ifdef NO_CUDATASK
       auto nblocks = (totSize + nthreads - 1) / nthreads;
       countFromVector<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
       launchFinalize(h, stream);
       fillFromVector<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
+#else
+      auto nblocks = std::max((totSize + nthreads - 1) / nthreads, (Histo::totbins() + nthreads - 1) / nthreads);
+      fillManyFromVectorKernel<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);     
+      cudaCheck(cudaGetLastError());
+#endif
 #else
       countFromVector(h, nh, v, offsets);
       h->finalize();

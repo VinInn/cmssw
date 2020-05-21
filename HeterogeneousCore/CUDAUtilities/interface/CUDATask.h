@@ -47,6 +47,7 @@ public:
 
         if (!done) {
           body(iWork);
+          __threadfence();
 
           // count blocks that finished
           if (0 == threadIdx.x) {
@@ -82,7 +83,7 @@ public:
 
   int32_t nWork;
   int32_t nDone;
-  int32_t allDone;  // can be bool
+  volatile int32_t allDone;  // can be bool
 };
 
 }}
