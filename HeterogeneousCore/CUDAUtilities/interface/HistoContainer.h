@@ -145,9 +145,8 @@ namespace cms {
       fillFromVector<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
 #else
-      // auto nblocks = std::max((totSize + nthreads - 1) / nthreads, (Histo::totbins() + nthreads - 1) / nthreads);
-      auto nblocks = Histo::nblocks();
       nthreads = Histo::nthreads();
+      auto nblocks = std::max(int(totSize + nthreads - 1) / nthreads, Histo::nblocks());
       fillManyFromVectorKernel<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
 #endif
@@ -223,7 +222,7 @@ namespace cms {
       static constexpr uint32_t capacity() { return SIZE; }
 
       static constexpr int32_t nthreads() { return 256; }
-      static constexpr int32_t nblocks() { return (totbins() + nthreads() - 1) / nthreads(); }
+      static constexpr int32_t nblocks() { return totbins() / nthreads(); }
 
       static_assert(nblocks() <= 1024, "too many blocks to perform prefix scan");
 
