@@ -67,7 +67,7 @@ namespace gpuPixelRecHits {
     if (0 == nclus)
       return;
 
-/*
+    /*
 #ifdef GPU_DEBUG
     if (threadIdx.x == 0) {
       auto k = first;

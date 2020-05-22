@@ -182,11 +182,9 @@ namespace cms {
       }
     }
 
-
     // in principle not limited....
     template <typename T>
-    __device__ void __forceinline__ multiTaskPrefixScan(T const* ci, T* co, int32_t size, CUDATask & task, T * psum) {
-
+    __device__ void __forceinline__ multiTaskPrefixScan(T const* ci, T* co, int32_t size, CUDATask& task, T* psum) {
       __shared__ T ws[32];
 
       auto body = [&](int32_t iWork) {
@@ -198,34 +196,32 @@ namespace cms {
       };
 
       auto tail = [&]() {
-         // let's get the partial sums from each block
-         for (int i = threadIdx.x, ni = gridDim.x; i < ni; i += blockDim.x) {
-           auto j = blockDim.x * i + blockDim.x - 1;
-           psum[i] = (j < size) ? co[j] : T(0);
-         }
-         __syncthreads();
-         blockPrefixScan(psum, psum, gridDim.x, ws);
-         __syncthreads();
-       };
+        // let's get the partial sums from each block
+        for (int i = threadIdx.x, ni = gridDim.x; i < ni; i += blockDim.x) {
+          auto j = blockDim.x * i + blockDim.x - 1;
+          psum[i] = (j < size) ? co[j] : T(0);
+        }
+        __syncthreads();
+        blockPrefixScan(psum, psum, gridDim.x, ws);
+        __syncthreads();
+      };
 
-       task.doit(body,tail);
+      task.doit(body, tail);
 
       // now it is very handy to have the other blocks around...
       {
-        auto first = (blockIdx.x+1) * blockDim.x + threadIdx.x;
-        for (int i=first; i<size; i+=gridDim.x*blockDim.x) {
+        auto first = (blockIdx.x + 1) * blockDim.x + threadIdx.x;
+        for (int i = first; i < size; i += gridDim.x * blockDim.x) {
           co[i] += psum[blockIdx.x];
         }
       }
-
     }
 
     // in principle not limited....
     template <typename T>
-    __global__ void multiTaskPrefixScanKernel(T const* ci, T* co, int32_t size, CUDATask * task, T * psum) {
-       multiTaskPrefixScan(ci, co, size, *task, psum);
+    __global__ void multiTaskPrefixScanKernel(T const* ci, T* co, int32_t size, CUDATask* task, T* psum) {
+      multiTaskPrefixScan(ci, co, size, *task, psum);
     }
-
 
   }  // namespace cuda
 }  // namespace cms

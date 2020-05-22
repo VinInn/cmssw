@@ -245,13 +245,8 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
 
   if (m_params.minHitsPerNtuplet_ < 4 || m_params.doStats_) {
     // fill hit->track "map"
-    numberOfBlocks = (3 * CAConstants::maxNumberOfQuadruplets() / 4 + blockSize - 1) / blockSize;
-    kernel_countHitInTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(
+    kernel_fillHitInTracks<<<device_hitToTuple_->nblocks(), device_hitToTuple_->nthreads(), 0, cudaStream>>>(
         tuples_d, quality_d, device_hitToTuple_.get());
-    cudaCheck(cudaGetLastError());
-    cms::cuda::launchFinalize(device_hitToTuple_.get(), cudaStream);
-    cudaCheck(cudaGetLastError());
-    kernel_fillHitInTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(tuples_d, quality_d, device_hitToTuple_.get());
     cudaCheck(cudaGetLastError());
   }
   if (m_params.minHitsPerNtuplet_ < 4) {

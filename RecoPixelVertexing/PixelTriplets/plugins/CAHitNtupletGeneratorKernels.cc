@@ -153,8 +153,6 @@ void CAHitNtupletGeneratorKernelsCPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
   kernel_fastDuplicateRemover(device_theCells_.get(), device_nCells_, tuples_d, tracks_d);
 
   // fill hit->track "map"
-  kernel_countHitInTracks(tuples_d, quality_d, device_hitToTuple_.get());
-  cms::cuda::launchFinalize(device_hitToTuple_.get(), cudaStream);
   kernel_fillHitInTracks(tuples_d, quality_d, device_hitToTuple_.get());
 
   // remove duplicates (tracks that share a hit)

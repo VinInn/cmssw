@@ -6,27 +6,27 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCompat.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cuda_assert.h"
 
+namespace cms {
+  namespace cuda {
 
-namespace cms{
-namespace cuda {
+    class CUDATask {
+    public:
+      // better to be called in the tail of the previous task...
+      __device__ void __forceinline__ zero() {
+        nWork = 0;
+        nDone = 0;
+        allDone = 0;
+      }
 
-class CUDATask {
+      template <typename BODY, typename TAIL>
+      __device__ void __forceinline__ doit(BODY body, TAIL tail) {
+        __shared__ int iWork;
+        bool done = false;
+        __shared__ bool isLastBlockDone;
 
-public: 
+        isLastBlockDone = false;
 
-  // better to be called in the tail of the previous task...
-  __device__ void __forceinline__ zero() { nWork=0; nDone=0; allDone=0;}
-
-  template<typename BODY, typename TAIL>
-  __device__ void __forceinline__ doit(BODY body, TAIL tail) {
-
-      __shared__ int iWork;
-      bool done=false;
-      __shared__ bool isLastBlockDone;
-
-     isLastBlockDone = false;
-
-     /*     
+        /*     
      //  fast jump for late blocks??  (worth only if way to many blocks scheduled)
      if (0 == threadIdx.x) {
           iWork = nWork;
@@ -35,56 +35,57 @@ public:
      done = iWork >=int(gridDim.x);
      */
 
-      while(__syncthreads_and(!done)) {
-        if (0 == threadIdx.x) {
-          iWork = atomicAdd(&nWork, 1) ;
-        }
-        __syncthreads();
-
-        assert(iWork >=0);
-
-        done = iWork >=int(gridDim.x);
-
-        if (!done) {
-          body(iWork);
-
-          // count blocks that finished
+        while (__syncthreads_and(!done)) {
           if (0 == threadIdx.x) {
-            auto value = atomicAdd(&nDone, 1);  // block counter
-            isLastBlockDone = (value == (int(gridDim.x) - 1));
+            iWork = atomicAdd(&nWork, 1);
           }
+          __syncthreads();
 
-        } // done
-      }  // while
+          assert(iWork >= 0);
 
-      if (isLastBlockDone) {
-        assert(0==(allDone));
+          done = iWork >= int(gridDim.x);
 
-        assert(int(gridDim.x) == nDone);
+          if (!done) {
+            body(iWork);
 
-        // good each block has done its work and now we are left in last block
-        tail();
-        if (0 == threadIdx.x) allDone = 1;
-        __syncthreads();
+            // count blocks that finished
+            if (0 == threadIdx.x) {
+              auto value = atomicAdd(&nDone, 1);  // block counter
+              isLastBlockDone = (value == (int(gridDim.x) - 1));
+            }
+
+          }  // done
+        }    // while
+
+        if (isLastBlockDone) {
+          assert(0 == (allDone));
+
+          assert(int(gridDim.x) == nDone);
+
+          // good each block has done its work and now we are left in last block
+          tail();
+          if (0 == threadIdx.x)
+            allDone = 1;
+          __syncthreads();
+        }
+
+        // we need to wait the one above...
+        while (0 == (allDone)) {
+          __threadfence();
+        }
+
+        __syncthreads();  // at some point we must decide who sync
+
+        assert(1 == allDone);
       }
 
-      // we need to wait the one above...
-      while (0 == (allDone)) { __threadfence();}
+    public:
+      int32_t nWork;
+      int32_t nDone;
+      int32_t allDone;  // can be bool
+    };
 
-      __syncthreads();  // at some point we must decide who sync
-
-      assert(1==allDone);
-
-  }
-
-
-public:
-
-  int32_t nWork;
-  int32_t nDone;
-  int32_t allDone;  // can be bool
-};
-
-}}
+  }  // namespace cuda
+}  // namespace cms
 
 #endif

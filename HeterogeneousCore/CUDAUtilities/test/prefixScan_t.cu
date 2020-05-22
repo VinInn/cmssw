@@ -131,8 +131,8 @@ int main() {
 
     // the block counter
     int32_t *d_pc;
-    cudaCheck(cudaMalloc(&d_pc, 3*sizeof(int32_t)));
- 
+    cudaCheck(cudaMalloc(&d_pc, 3 * sizeof(int32_t)));
+
     cudaCheck(cudaMemset(d_pc, 0, sizeof(int32_t)));
     nthreads = 1024;
     nblocks = (num_items + nthreads - 1) / nthreads;
@@ -143,8 +143,8 @@ int main() {
     cudaCheck(cudaGetLastError());
     cudaDeviceSynchronize();
 
-    uint32_t * psum;
-    CUDATask * task;
+    uint32_t *psum;
+    CUDATask *task;
     cudaCheck(cudaMalloc(&task, sizeof(CUDATask)));
     cudaCheck(cudaMemset(task, 0, sizeof(CUDATask)));
     nthreads = 1024;
@@ -156,8 +156,6 @@ int main() {
     verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
     cudaCheck(cudaGetLastError());
     cudaDeviceSynchronize();
-
-
 
   }  // ksize
   return 0;
