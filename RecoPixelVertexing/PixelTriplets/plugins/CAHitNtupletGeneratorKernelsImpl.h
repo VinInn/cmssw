@@ -302,10 +302,11 @@ __global__ void kernel_mark_used(GPUCACell::Hits const *__restrict__ hhp,
   }
 }
 
-__global__ void kernel_countMultiplicity(HitContainer const *__restrict__ foundNtuplets,
+__global__ void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNtuplets,
                                          Quality const *__restrict__ quality,
                                          CAConstants::TupleMultiplicity *tupleMultiplicity) {
-  auto first = blockIdx.x * blockDim.x + threadIdx.x;
+  auto count = [&](int32_t iWork) {
+  auto first = iWork * blockDim.x + threadIdx.x;
   for (int it = first, nt = foundNtuplets->nbins(); it < nt; it += gridDim.x * blockDim.x) {
     auto nhits = foundNtuplets->size(it);
     if (nhits < 3)
@@ -318,12 +319,10 @@ __global__ void kernel_countMultiplicity(HitContainer const *__restrict__ foundN
     assert(nhits < 8);
     tupleMultiplicity->countDirect(nhits);
   }
-}
+  };
 
-__global__ void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNtuplets,
-                                        Quality const *__restrict__ quality,
-                                        CAConstants::TupleMultiplicity *tupleMultiplicity) {
-  auto first = blockIdx.x * blockDim.x + threadIdx.x;
+  auto fill = [&](int32_t iWork) {
+  auto first = iWork * blockDim.x + threadIdx.x;
   for (int it = first, nt = foundNtuplets->nbins(); it < nt; it += gridDim.x * blockDim.x) {
     auto nhits = foundNtuplets->size(it);
     if (nhits < 3)
@@ -336,6 +335,8 @@ __global__ void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNt
     assert(nhits < 8);
     tupleMultiplicity->fillDirect(nhits, it);
   }
+  };
+  tupleMultiplicity->countAndFill(count,fill);
 }
 
 __global__ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,

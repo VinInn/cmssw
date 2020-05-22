@@ -185,7 +185,7 @@ namespace cms {
 
     // in principle not limited....
     template <typename T>
-    __device__ void __forceinline__ multiTaskPrefixScan(T const* ci, T* co, int32_t size, CUDATask * task, T * psum) {
+    __device__ void __forceinline__ multiTaskPrefixScan(T const* ci, T* co, int32_t size, CUDATask & task, T * psum) {
 
       __shared__ T ws[32];
 
@@ -208,7 +208,7 @@ namespace cms {
          __syncthreads();
        };
 
-       task->doit(body,tail);
+       task.doit(body,tail);
 
       // now it is very handy to have the other blocks around...
       {
@@ -223,7 +223,7 @@ namespace cms {
     // in principle not limited....
     template <typename T>
     __global__ void multiTaskPrefixScanKernel(T const* ci, T* co, int32_t size, CUDATask * task, T * psum) {
-       multiTaskPrefixScan(ci, co, size, task, psum);
+       multiTaskPrefixScan(ci, co, size, *task, psum);
     }
 
 

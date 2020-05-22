@@ -26,14 +26,14 @@ public:
 
      isLastBlockDone = false;
 
-     
+     /*     
      //  fast jump for late blocks??  (worth only if way to many blocks scheduled)
      if (0 == threadIdx.x) {
           iWork = nWork;
      }
      __syncthreads();
      done = iWork >=int(gridDim.x);
-     
+     */
 
       while(__syncthreads_and(!done)) {
         if (0 == threadIdx.x) {
@@ -47,7 +47,6 @@ public:
 
         if (!done) {
           body(iWork);
-          __threadfence();
 
           // count blocks that finished
           if (0 == threadIdx.x) {
@@ -83,7 +82,7 @@ public:
 
   int32_t nWork;
   int32_t nDone;
-  volatile int32_t allDone;  // can be bool
+  int32_t allDone;  // can be bool
 };
 
 }}

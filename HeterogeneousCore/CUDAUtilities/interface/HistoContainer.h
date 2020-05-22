@@ -13,6 +13,7 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cuda_assert.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cudastdAlgorithm.h"
+
 #include "HeterogeneousCore/CUDAUtilities/interface/prefixScan.h"
 
 namespace cms {
@@ -121,12 +122,7 @@ namespace cms {
         }
       };
 
-      auto voidTail = [](){};
-      h.tasks[0].doit(count,voidTail);
-      volatile auto voff = h.off;
-      volatile auto vpsws = h.psws;
-      multiTaskPrefixScan(voff,voff,Histo::totbins(), &h.tasks[1],vpsws);
-      h.tasks[2].doit(fill,voidTail);
+      h.countAndFill(count,fill);
     }
 
     
@@ -317,17 +313,15 @@ namespace cms {
       }
 
       __host__ __device__ __forceinline__ void count(T t) {
-        volatile auto voff = off;
         uint32_t b = bin(t);
         assert(b < nbins());
-        atomicIncrement(voff[b]);
+        atomicIncrement(off[b]);
       }
 
       __host__ __device__ __forceinline__ void fill(T t, index_type j) {
-        volatile auto voff = off;
         uint32_t b = bin(t);
         assert(b < nbins());
-        auto w = atomicDecrement(voff[b]);
+        auto w = atomicDecrement(off[b]);
         assert(w > 0);
         bins[w - 1] = j;
       }
@@ -354,6 +348,21 @@ namespace cms {
         assert(off[totbins() - 1] == 0);
         blockPrefixScan(off, totbins(), ws);
         assert(off[totbins() - 1] == off[totbins() - 2]);
+      }
+
+
+      template<typename COUNT, typename FILL>
+      __device__ __forceinline__ 
+        void countAndFill(COUNT count, FILL fill) {
+        auto voidTail = [](){};
+        tasks[0].doit(count,voidTail);
+#ifdef __CUDACC__
+        multiTaskPrefixScan(off,off,totbins(), tasks[1],psws);
+#else
+        finalize();
+#endif
+        fill(blockIdx.x);
+        // h.tasks[2].doit(fill,voidTail);
       }
 
       constexpr auto size() const { return uint32_t(off[totbins() - 1]); }
