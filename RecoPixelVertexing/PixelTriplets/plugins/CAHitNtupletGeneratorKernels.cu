@@ -35,8 +35,8 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
 
   auto nthTot = 64;
   auto stride = 4;
-  auto blockSize = nthTot / stride;
-  auto numberOfBlocks = (3 * m_params.maxNumberOfDoublets_ / 4 + blockSize - 1) / blockSize;
+  int blockSize = nthTot / stride;
+  int numberOfBlocks = (3 * m_params.maxNumberOfDoublets_ / 4 + blockSize - 1) / blockSize;
   auto rescale = numberOfBlocks / 65536;
   blockSize *= (rescale + 1);
   numberOfBlocks = (3 * m_params.maxNumberOfDoublets_ / 4 + blockSize - 1) / blockSize;
@@ -105,7 +105,8 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
   cudaCheck(cudaGetLastError());
 
   blockSize = device_tupleMultiplicity_->nthreads();
-  numberOfBlocks = device_tupleMultiplicity_->nblocks();
+  numberOfBlocks = std::min(128, int(3 * CAConstants::maxTuples() / 4 + blockSize - 1) / blockSize);
+  numberOfBlocks = std::max(numberOfBlocks, device_tupleMultiplicity_->nblocks());
   kernel_fillMultiplicity<<<numberOfBlocks, blockSize, 0, cudaStream>>>(
       tuples_d, quality_d, device_tupleMultiplicity_.get());
   cudaCheck(cudaGetLastError());
@@ -225,7 +226,7 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
   auto blockSize = 64;
 
   // classify tracks based on kinematics
-  auto numberOfBlocks = (3 * CAConstants::maxNumberOfQuadruplets() / 4 + blockSize - 1) / blockSize;
+  int numberOfBlocks = (3 * CAConstants::maxNumberOfQuadruplets() / 4 + blockSize - 1) / blockSize;
   kernel_classifyTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(tuples_d, tracks_d, m_params.cuts_, quality_d);
   cudaCheck(cudaGetLastError());
 
@@ -245,8 +246,10 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
 
   if (m_params.minHitsPerNtuplet_ < 4 || m_params.doStats_) {
     // fill hit->track "map"
-    kernel_fillHitInTracks<<<device_hitToTuple_->nblocks(), device_hitToTuple_->nthreads(), 0, cudaStream>>>(
-        tuples_d, quality_d, device_hitToTuple_.get());
+    auto nthreads = device_hitToTuple_->nthreads();
+    numberOfBlocks = std::min(128, int(3 * CAConstants::maxTuples() / 4 + nthreads - 1) / blockSize);
+    numberOfBlocks = std::max(numberOfBlocks, device_hitToTuple_->nblocks());
+    kernel_fillHitInTracks<<<numberOfBlocks, nthreads, 0, cudaStream>>>(tuples_d, quality_d, device_hitToTuple_.get());
     cudaCheck(cudaGetLastError());
   }
   if (m_params.minHitsPerNtuplet_ < 4) {

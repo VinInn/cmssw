@@ -48,6 +48,8 @@ namespace cms {
           if (!done) {
             body(iWork);
 
+            __threadfence();
+
             // count blocks that finished
             if (0 == threadIdx.x) {
               auto value = atomicAdd(&nDone, 1);  // block counter
@@ -57,6 +59,7 @@ namespace cms {
           }  // done
         }    // while
 
+
         if (isLastBlockDone) {
           assert(0 == (allDone));
 
@@ -64,6 +67,7 @@ namespace cms {
 
           // good each block has done its work and now we are left in last block
           tail();
+          __syncthreads();
           if (0 == threadIdx.x)
             allDone = 1;
           __syncthreads();
@@ -82,7 +86,7 @@ namespace cms {
     public:
       int32_t nWork;
       int32_t nDone;
-      int32_t allDone;  // can be bool
+      volatile int32_t allDone;  // can be bool
     };
 
   }  // namespace cuda

@@ -1,6 +1,8 @@
 #ifndef HeterogeneousCore_CUDAUtilities_interface_HistoContainer_h
 #define HeterogeneousCore_CUDAUtilities_interface_HistoContainer_h
 
+// #define GPU_DEBUG
+
 #include <algorithm>
 #ifndef __CUDA_ARCH__
 #include <atomic>
@@ -146,7 +148,8 @@ namespace cms {
       cudaCheck(cudaGetLastError());
 #else
       nthreads = Histo::nthreads();
-      auto nblocks = std::max(int(totSize + nthreads - 1) / nthreads, Histo::nblocks());
+      // keep the number of blocks low (but not lower than Histo::nblocks() )
+      auto nblocks = Histo::nblocks(); // std::max(std::min(128, int(totSize + nthreads - 1) / nthreads), Histo::nblocks());
       fillManyFromVectorKernel<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
 #endif
@@ -222,9 +225,10 @@ namespace cms {
       static constexpr uint32_t capacity() { return SIZE; }
 
       static constexpr int32_t nthreads() { return 256; }
-      static constexpr int32_t nblocks() { return totbins() / nthreads(); }
+      static constexpr int32_t nblocks() { return (totbins()+nthreads()-1)/ nthreads(); }
 
       static_assert(nblocks() <= 1024, "too many blocks to perform prefix scan");
+      static_assert(nblocks() >= totbins()/nthreads(), "too few blocks to perform prefix scan");
 
       static constexpr auto histOff(uint32_t nh) { return NBINS * nh; }
 
@@ -354,8 +358,8 @@ namespace cms {
 #else
         finalize();
 #endif
-        fill(blockIdx.x);
-        // h.tasks[2].doit(fill,voidTail);
+        // fill(blockIdx.x);
+        tasks[2].doit(fill,voidTail);
       }
 
       constexpr auto size() const { return uint32_t(off[totbins() - 1]); }
@@ -381,5 +385,7 @@ namespace cms {
 
   }  // namespace cuda
 }  // namespace cms
+
+// #undef GPU_DEBUG
 
 #endif  // HeterogeneousCore_CUDAUtilities_interface_HistoContainer_h
