@@ -146,6 +146,7 @@ int main() {
     uint32_t *psum;
     CUDATask *task;
     cudaCheck(cudaMalloc(&task, sizeof(CUDATask)));
+
     cudaCheck(cudaMemset(task, 0, sizeof(CUDATask)));
     nthreads = 1024;
     nblocks = (num_items + nthreads - 1) / nthreads;
@@ -156,6 +157,22 @@ int main() {
     verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
     cudaCheck(cudaGetLastError());
     cudaDeviceSynchronize();
+    cudaCheck(cudaFree(psum));
+
+    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
+    cudaCheck(cudaMemset(task, 0, sizeof(CUDATask)));
+    nthreads = 256;
+    auto nchunks = num_items/nthreads;
+    nblocks = (num_items + nthreads - 1) / nthreads;
+    cudaCheck(cudaMalloc(&psum, 4 * nchunks));
+    std::cout << "launch multiTaskPrefixScan " << num_items << ' ' << nblocks << std::endl;
+    multiTaskPrefixScanKernel<<<nblocks, nthreads>>>(d_in, d_out2, num_items, task, psum);
+    cudaCheck(cudaGetLastError());
+    verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
+    cudaCheck(cudaGetLastError());
+    cudaDeviceSynchronize();
+
+
 
   }  // ksize
   return 0;

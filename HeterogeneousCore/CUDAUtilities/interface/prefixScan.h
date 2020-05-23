@@ -190,9 +190,9 @@ namespace cms {
     __device__ void __forceinline__ multiTaskPrefixScan(T const* ci, T* co, int32_t size, CUDATask& task, T* psum) {
       __shared__ T ws[32];
 
+      assert(blockDim.x * gridDim.x >= size);
 
       auto body = [&](int32_t iWork) {
-        assert(blockDim.x * gridDim.x >= size);
         // first each block does a scan
         int off = blockDim.x * iWork;
         if (size - off > 0)
