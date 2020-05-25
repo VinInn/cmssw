@@ -194,19 +194,17 @@ namespace cms {
 
       __shared__ T ws[32];
 
-      assert(blockDim.x * gridDim.x >= size);
-
       auto body = [&](int32_t iWork) {
         // first each block does a scan
-        int off = blockDim.x * iWork;
-        if (size - off > 0)
+        for (int off = blockDim.x * iWork; off< size; off+=blockDim.x*gridDim.x) {
           blockPrefixScan(ci + off, co + off, std::min(int(blockDim.x), size - off), ws);
+        }
       };
 
       auto tail = [&]() {
         // let's get the partial sums from each block
         int nChunks = size / blockDim.x;
-        for (int i = threadIdx.x, ni = nChunks; i < ni; i += blockDim.x) {
+        for (int i = threadIdx.x; i < nChunks; i += blockDim.x) {
           auto j = blockDim.x * i + blockDim.x - 1;
           assert(j < size);
           psum[i] = co[j];

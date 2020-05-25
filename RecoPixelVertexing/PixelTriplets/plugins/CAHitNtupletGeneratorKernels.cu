@@ -106,7 +106,7 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
 
   blockSize = device_tupleMultiplicity_->nthreads();
   numberOfBlocks = std::min(128, int(3 * CAConstants::maxTuples() / 4 + blockSize - 1) / blockSize);
-  numberOfBlocks = std::max(numberOfBlocks, device_tupleMultiplicity_->nblocks());
+  // numberOfBlocks = std::max(numberOfBlocks, device_tupleMultiplicity_->nblocks());
   kernel_fillMultiplicity<<<numberOfBlocks, blockSize, 0, cudaStream>>>(
       tuples_d, quality_d, device_tupleMultiplicity_.get());
   cudaCheck(cudaGetLastError());
@@ -248,7 +248,7 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
     // fill hit->track "map"
     auto nthreads = device_hitToTuple_->nthreads();
     numberOfBlocks = std::min(128, int(3 * CAConstants::maxTuples() / 4 + nthreads - 1) / blockSize);
-    numberOfBlocks = std::max(numberOfBlocks, device_hitToTuple_->nblocks());
+    // numberOfBlocks = std::max(numberOfBlocks, device_hitToTuple_->nblocks());
     kernel_fillHitInTracks<<<numberOfBlocks, nthreads, 0, cudaStream>>>(tuples_d, quality_d, device_hitToTuple_.get());
     cudaCheck(cudaGetLastError());
   }

@@ -148,8 +148,8 @@ namespace cms {
       cudaCheck(cudaGetLastError());
 #else
       nthreads = Histo::nthreads();
-      // keep the number of blocks low (but not lower than Histo::nblocks() )
-      auto nblocks = Histo::nblocks(); // std::max(std::min(128, int(totSize + nthreads - 1) / nthreads), Histo::nblocks());
+      // keep the number of blocks low
+      auto nblocks = std::min(128, int(totSize + nthreads - 1) / nthreads);
       fillManyFromVectorKernel<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
 #endif
