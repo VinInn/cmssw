@@ -1,6 +1,8 @@
 #ifndef HeterogeneousCore_CUDAUtilities_interface_HistoContainer_h
 #define HeterogeneousCore_CUDAUtilities_interface_HistoContainer_h
 
+// #define GPU_DEBUG
+
 #include <algorithm>
 #ifndef __CUDA_ARCH__
 #include <atomic>
@@ -13,6 +15,7 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cuda_assert.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cudastdAlgorithm.h"
+
 #include "HeterogeneousCore/CUDAUtilities/interface/prefixScan.h"
 
 namespace cms {
@@ -76,15 +79,49 @@ namespace cms {
     ) {
 #ifdef __CUDACC__
       uint32_t *poff = (uint32_t *)((char *)(h) + offsetof(Histo, off));
-      int32_t *ppsws = (int32_t *)((char *)(h) + offsetof(Histo, psws));
-      auto nthreads = 1024;
-      auto nblocks = (Histo::totbins() + nthreads - 1) / nthreads;
-      multiBlockPrefixScan<<<nblocks, nthreads, sizeof(int32_t) * nblocks, stream>>>(
-          poff, poff, Histo::totbins(), ppsws);
+      CUDATask *ptasks = (CUDATask *)((char *)(h) + offsetof(Histo, tasks));
+      uint32_t *ppsws = (uint32_t *)((char *)(h) + offsetof(Histo, psws));
+
+      auto nthreads = Histo::nthreads();
+      auto nblocks = Histo::nblocks();
+      multiTaskPrefixScanKernel<<<nblocks, nthreads, 0, stream>>>(poff, poff, Histo::totbins(), ptasks, ppsws);
       cudaCheck(cudaGetLastError());
 #else
       h->finalize();
 #endif
+    }
+
+    template <typename Histo, typename T>
+    __global__ void fillManyFromVectorKernel(Histo *__restrict__ ph,
+                                             uint32_t nh,
+                                             T const *__restrict__ v,
+                                             uint32_t const *__restrict__ offsets) {
+      auto &h = *ph;
+      auto count = [&](int32_t iWork) {
+        int first = blockDim.x * iWork + threadIdx.x;
+        for (int i = first, nt = offsets[nh]; i < nt; i += gridDim.x * blockDim.x) {
+          auto off = cuda_std::upper_bound(offsets, offsets + nh + 1, i);
+          assert((*off) > 0);
+          int32_t ih = off - offsets - 1;
+          assert(ih >= 0);
+          assert(ih < int(nh));
+          h.count(v[i], ih);
+        }
+      };
+
+      auto fill = [&](int32_t iWork) {
+        int first = blockDim.x * iWork + threadIdx.x;
+        for (int i = first, nt = offsets[nh]; i < nt; i += gridDim.x * blockDim.x) {
+          auto off = cuda_std::upper_bound(offsets, offsets + nh + 1, i);
+          assert((*off) > 0);
+          int32_t ih = off - offsets - 1;
+          assert(ih >= 0);
+          assert(ih < int(nh));
+          h.fill(v[i], i, ih);
+        }
+      };
+
+      h.countAndFill(count, fill);
     }
 
     template <typename Histo, typename T>
@@ -101,12 +138,21 @@ namespace cms {
     ) {
       launchZero(h, stream);
 #ifdef __CUDACC__
+
+#ifdef NO_CUDATASK
       auto nblocks = (totSize + nthreads - 1) / nthreads;
       countFromVector<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
       launchFinalize(h, stream);
       fillFromVector<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
+#else
+      nthreads = Histo::nthreads();
+      // keep the number of blocks low (but not lower than Histo::nblocks() )
+      auto nblocks = Histo::nblocks(); // std::max(std::min(128, int(totSize + nthreads - 1) / nthreads), Histo::nblocks());
+      fillManyFromVectorKernel<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
+      cudaCheck(cudaGetLastError());
+#endif
 #else
       countFromVector(h, nh, v, offsets);
       h->finalize();
@@ -177,6 +223,12 @@ namespace cms {
       static constexpr uint32_t totbins() { return NHISTS * NBINS + 1; }
       static constexpr uint32_t nbits() { return ilog2(NBINS - 1) + 1; }
       static constexpr uint32_t capacity() { return SIZE; }
+
+      static constexpr int32_t nthreads() { return 256; }
+      static constexpr int32_t nblocks() { return (totbins()+nthreads()-1)/ nthreads(); }
+
+      static_assert(nblocks() <= 1024, "too many blocks to perform prefix scan");
+      static_assert(nblocks() >= totbins()/nthreads(), "too few blocks to perform prefix scan");
 
       static constexpr auto histOff(uint32_t nh) { return NBINS * nh; }
 
@@ -297,6 +349,19 @@ namespace cms {
         assert(off[totbins() - 1] == off[totbins() - 2]);
       }
 
+      template <typename COUNT, typename FILL>
+      __device__ __forceinline__ void countAndFill(COUNT count, FILL fill) {
+        auto voidTail = []() {};
+        tasks[0].doit(count, voidTail);
+#ifdef __CUDACC__
+        multiTaskPrefixScan(off, off, totbins(), tasks[1], psws);
+#else
+        finalize();
+#endif
+        // fill(blockIdx.x);
+        tasks[2].doit(fill,voidTail);
+      }
+
       constexpr auto size() const { return uint32_t(off[totbins() - 1]); }
       constexpr auto size(uint32_t b) const { return off[b + 1] - off[b]; }
 
@@ -307,8 +372,9 @@ namespace cms {
       constexpr index_type const *end(uint32_t b) const { return bins + off[b + 1]; }
 
       Counter off[totbins()];
-      int32_t psws;  // prefix-scan working space
+      CUDATask tasks[3];  // to run count-prefixscan-fill
       index_type bins[capacity()];
+      uint32_t psws[nblocks()];
     };
 
     template <typename I,        // type stored in the container (usually an index in a vector of the input values)
@@ -319,5 +385,7 @@ namespace cms {
 
   }  // namespace cuda
 }  // namespace cms
+
+// #undef GPU_DEBUG
 
 #endif  // HeterogeneousCore_CUDAUtilities_interface_HistoContainer_h

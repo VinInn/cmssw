@@ -302,40 +302,41 @@ __global__ void kernel_mark_used(GPUCACell::Hits const *__restrict__ hhp,
   }
 }
 
-__global__ void kernel_countMultiplicity(HitContainer const *__restrict__ foundNtuplets,
-                                         Quality const *__restrict__ quality,
-                                         CAConstants::TupleMultiplicity *tupleMultiplicity) {
-  auto first = blockIdx.x * blockDim.x + threadIdx.x;
-  for (int it = first, nt = foundNtuplets->nbins(); it < nt; it += gridDim.x * blockDim.x) {
-    auto nhits = foundNtuplets->size(it);
-    if (nhits < 3)
-      continue;
-    if (quality[it] == trackQuality::dup)
-      continue;
-    assert(quality[it] == trackQuality::bad);
-    if (nhits > 5)
-      printf("wrong mult %d %d\n", it, nhits);
-    assert(nhits < 8);
-    tupleMultiplicity->countDirect(nhits);
-  }
-}
-
 __global__ void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNtuplets,
                                         Quality const *__restrict__ quality,
                                         CAConstants::TupleMultiplicity *tupleMultiplicity) {
-  auto first = blockIdx.x * blockDim.x + threadIdx.x;
-  for (int it = first, nt = foundNtuplets->nbins(); it < nt; it += gridDim.x * blockDim.x) {
-    auto nhits = foundNtuplets->size(it);
-    if (nhits < 3)
-      continue;
-    if (quality[it] == trackQuality::dup)
-      continue;
-    assert(quality[it] == trackQuality::bad);
-    if (nhits > 5)
-      printf("wrong mult %d %d\n", it, nhits);
-    assert(nhits < 8);
-    tupleMultiplicity->fillDirect(nhits, it);
-  }
+  auto count = [&](int32_t iWork) {
+    auto first = iWork * blockDim.x + threadIdx.x;
+    for (int it = first, nt = foundNtuplets->nbins(); it < nt; it += gridDim.x * blockDim.x) {
+      auto nhits = foundNtuplets->size(it);
+      if (nhits < 3)
+        continue;
+      if (quality[it] == trackQuality::dup)
+        continue;
+      assert(quality[it] == trackQuality::bad);
+      if (nhits > 5)
+        printf("wrong mult %d %d\n", it, nhits);
+      assert(nhits < 8);
+      tupleMultiplicity->countDirect(nhits);
+    }
+  };
+
+  auto fill = [&](int32_t iWork) {
+    auto first = iWork * blockDim.x + threadIdx.x;
+    for (int it = first, nt = foundNtuplets->nbins(); it < nt; it += gridDim.x * blockDim.x) {
+      auto nhits = foundNtuplets->size(it);
+      if (nhits < 3)
+        continue;
+      if (quality[it] == trackQuality::dup)
+        continue;
+      assert(quality[it] == trackQuality::bad);
+      if (nhits > 5)
+        printf("wrong mult %d %d\n", it, nhits);
+      assert(nhits < 8);
+      tupleMultiplicity->fillDirect(nhits, it);
+    }
+  };
+  tupleMultiplicity->countAndFill(count, fill);
 }
 
 __global__ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
@@ -419,32 +420,32 @@ __global__ void kernel_doStatsForTracks(HitContainer const *__restrict__ tuples,
   }
 }
 
-__global__ void kernel_countHitInTracks(HitContainer const *__restrict__ tuples,
-                                        Quality const *__restrict__ quality,
-                                        CAHitNtupletGeneratorKernelsGPU::HitToTuple *hitToTuple) {
-  int first = blockDim.x * blockIdx.x + threadIdx.x;
-  for (int idx = first, ntot = tuples->nbins(); idx < ntot; idx += gridDim.x * blockDim.x) {
-    if (tuples->size(idx) == 0)
-      break;  // guard
-    if (quality[idx] != trackQuality::loose)
-      continue;
-    for (auto h = tuples->begin(idx); h != tuples->end(idx); ++h)
-      hitToTuple->countDirect(*h);
-  }
-}
-
 __global__ void kernel_fillHitInTracks(HitContainer const *__restrict__ tuples,
                                        Quality const *__restrict__ quality,
                                        CAHitNtupletGeneratorKernelsGPU::HitToTuple *hitToTuple) {
-  int first = blockDim.x * blockIdx.x + threadIdx.x;
-  for (int idx = first, ntot = tuples->nbins(); idx < ntot; idx += gridDim.x * blockDim.x) {
-    if (tuples->size(idx) == 0)
-      break;  // guard
-    if (quality[idx] != trackQuality::loose)
-      continue;
-    for (auto h = tuples->begin(idx); h != tuples->end(idx); ++h)
-      hitToTuple->fillDirect(*h, idx);
-  }
+  auto count = [&](uint32_t iWork) {
+    int first = blockDim.x * iWork + threadIdx.x;
+    for (int idx = first, ntot = tuples->nbins(); idx < ntot; idx += gridDim.x * blockDim.x) {
+      if (tuples->size(idx) == 0)
+        break;  // guard
+      if (quality[idx] != trackQuality::loose)
+        continue;
+      for (auto h = tuples->begin(idx); h != tuples->end(idx); ++h)
+        hitToTuple->countDirect(*h);
+    }
+  };
+  auto fill = [&](uint32_t iWork) {
+    int first = blockDim.x * iWork + threadIdx.x;
+    for (int idx = first, ntot = tuples->nbins(); idx < ntot; idx += gridDim.x * blockDim.x) {
+      if (tuples->size(idx) == 0)
+        break;  // guard
+      if (quality[idx] != trackQuality::loose)
+        continue;
+      for (auto h = tuples->begin(idx); h != tuples->end(idx); ++h)
+        hitToTuple->fillDirect(*h, idx);
+    }
+  };
+  hitToTuple->countAndFill(count, fill);
 }
 
 __global__ void kernel_fillHitDetIndices(HitContainer const *__restrict__ tuples,

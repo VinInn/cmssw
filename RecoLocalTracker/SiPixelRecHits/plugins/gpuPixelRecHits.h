@@ -67,6 +67,7 @@ namespace gpuPixelRecHits {
     if (0 == nclus)
       return;
 
+    /*
 #ifdef GPU_DEBUG
     if (threadIdx.x == 0) {
       auto k = first;
@@ -81,6 +82,7 @@ namespace gpuPixelRecHits {
       if (threadIdx.x == 0)
         printf("hitbuilder: %d clusters in module %d. will write at %d\n", nclus, me, clusters.clusModuleStart(me));
 #endif
+*/
 
     for (int startClus = 0, endClus = nclus; startClus < endClus; startClus += MaxHitsInIter) {
       auto first = clusters.moduleStart(1 + blockIdx.x);
