@@ -86,7 +86,7 @@
 
 
   <bin file="CUDATask_t.cu" name="gpuCUDATask_t">
-    <flags CUDA_FLAGS="-g"/>
+    <flags CUDA_FLAGS="-rdc=true -g"/>
   </bin>
 
   <bin file="CUDATask_t.cpp" name="cpuCUDATask_t">

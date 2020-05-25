@@ -4,6 +4,7 @@
 
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/requireDevices.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/launch.h"
 #include <chrono>
 
 using namespace std::chrono;
@@ -119,6 +120,37 @@ int main() {
     auto delta = duration_cast<duration<double>>(t2 - t1).count();
     std::cout << "task kernel took " << delta << std::endl;
   }
+
+
+  {
+    cudaCheck(cudaMemset(d_in, 0, num_items * sizeof(int32_t)));
+    cudaCheck(cudaMemset(d_out1, 0, num_items * sizeof(int32_t)));
+    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(int32_t)));
+    cudaCheck(cudaMemset(blocks, 0, nblocks * sizeof(uint32_t)));
+
+    auto kc = coopKernelConfig(testCoop<1>);
+
+    std::cout << "scheduling " << kc.first << " blocks of " << kc.second << " threads" << std::endl;
+    cudaDeviceSynchronize();
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    launch_cooperative(testCoop<1>,{kc.first, kc.second, 0},d_in, d_out1, d_out2, blocks, num_items);
+    cudaDeviceSynchronize();
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    cudaCheck(cudaGetLastError());
+    verify<<<nblocks, nthreads, 0>>>(d_out1, d_out2, num_items);
+    cudaCheck(cudaGetLastError());
+    cudaDeviceSynchronize();
+    cudaMemcpy(h_blocks, blocks, nblocks * sizeof(uint32_t), cudaMemcpyDeviceToHost);
+    int s = 0;
+    for (int i = 0; i < nblocks; ++i)
+      s += h_blocks[i];
+    std::cout << "coop kernel used " << s << " blocks" << std::endl;
+    auto delta = duration_cast<duration<double>>(t2 - t1).count();
+    std::cout << "coop kernel took " << delta << std::endl;
+  }
+
+
+
 
   return 0;
 };

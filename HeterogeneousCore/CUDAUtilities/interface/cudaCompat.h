@@ -76,6 +76,15 @@ namespace cms {
       gridDim = {1, 1, 1};
     }
 
+    namespace cooperative_groups {
+      struct grid_group {
+        void sync(){}
+      }; 
+
+      inline auto this_grid() { return grid_group();}
+
+   }
+
   }  // namespace cudacompat
 }  // namespace cms
 
