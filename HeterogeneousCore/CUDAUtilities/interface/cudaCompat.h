@@ -78,12 +78,12 @@ namespace cms {
 
     namespace cooperative_groups {
       struct grid_group {
-        void sync(){}
-      }; 
+        void sync() {}
+      };
 
-      inline auto this_grid() { return grid_group();}
+      inline auto this_grid() { return grid_group(); }
 
-   }
+    }  // namespace cooperative_groups
 
   }  // namespace cudacompat
 }  // namespace cms

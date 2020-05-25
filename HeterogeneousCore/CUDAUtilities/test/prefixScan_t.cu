@@ -173,13 +173,12 @@ int main() {
     cudaDeviceSynchronize();
     cudaCheck(cudaFree(psum));
 
-
     cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
     cudaCheck(cudaMemset(task, 0, sizeof(CUDATask)));
     nthreads = 256;
     nchunks = num_items / nthreads + 1;
-    nblocks /=32;
-    nblocks = std::max(1,nblocks);
+    nblocks /= 32;
+    nblocks = std::max(1, nblocks);
     cudaCheck(cudaMalloc(&psum, 4 * nchunks));
     std::cout << "launch multiTaskPrefixScan " << num_items << ' ' << nblocks << std::endl;
     multiTaskPrefixScanKernel<<<nblocks, nthreads>>>(d_in, d_out2, num_items, task, psum);

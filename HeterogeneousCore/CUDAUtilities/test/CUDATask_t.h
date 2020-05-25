@@ -1,8 +1,8 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/CUDATask.h"
 #include <cstdio>
 
+#include <iostream>
 using namespace cms::cuda;
-
 
 __global__ void one(int32_t *d_in, int32_t *d_out, int32_t n) {
   auto init = [&](int32_t iWork) {
@@ -101,27 +101,29 @@ __global__ void testTask(int32_t *d_in, int32_t *d_out, int32_t *one, int32_t *b
   task[2].doit(testIt1, voidTail);
 }
 
-
 #include <cooperative_groups.h>
 
-template<typename KERNEL>
-__forceinline__
-std::pair<int,int> coopKernelConfig(KERNEL kernel, int dev=0) {
-   assert(dev<16);
-   constexpr int nThreads = 256;
-   static cudaDeviceProp deviceProp[16];
-   static int numBlocksPerSm[16] = {0};
-   if (0==numBlocksPerSm[dev]) { // not fully thread safe....)
-     cudaGetDeviceProperties(&deviceProp[dev], 0);
-     cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm[dev], kernel, nThreads, 0);
-   }
-   return std::make_pair(deviceProp[dev].multiProcessorCount*numBlocksPerSm[dev],nThreads);
- 
-}
+struct CoopKernelConfig {
+  explicit CoopKernelConfig(int nthreads) : nThreads(nthreads) {}
+
+  template <typename KERNEL>
+  inline std::pair<int, int> getConfig(KERNEL kernel, int dev=0) {
+    assert(dev < 16);
+    if (0 == numBlocksPerSm[dev]) {
+      std::cout << " checking device " << std::endl;
+      cudaGetDeviceProperties(&deviceProp[dev], 0);
+      cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm[dev], kernel, nThreads, 0);
+    }
+    return std::make_pair(deviceProp[dev].multiProcessorCount * numBlocksPerSm[dev], nThreads);
+  }
+
+  const int nThreads = 256;
+  cudaDeviceProp deviceProp[16];
+  int numBlocksPerSm[16] = {0};
+};
 
 template <int N>
 __global__ void testCoop(int32_t *d_in, int32_t *d_out, int32_t *one, int32_t *blocks, int32_t n) {
-
   using namespace cooperative_groups;
 
   auto init = [&]() {
@@ -165,10 +167,7 @@ __global__ void testCoop(int32_t *d_in, int32_t *d_out, int32_t *one, int32_t *b
   setIt();
   grid.sync();
   testIt1();
-
 }
-
-
 
 __global__ void verify(int32_t *d_out, int32_t *one, int32_t n) {
   auto first = blockIdx.x * blockDim.x + threadIdx.x;

@@ -47,7 +47,7 @@ int main() {
   cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(int32_t)));
 
   {
-    std::cout << "scheduling " << nblocks << " blocks of " << nthreads << " threads" << std::endl;
+    std::cout << "\nscheduling " << nblocks << " blocks of " << nthreads << " threads" << std::endl;
     cudaDeviceSynchronize();
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     one<<<nblocks, nthreads, 0>>>(d_in, d_out1, num_items);
@@ -76,7 +76,7 @@ int main() {
     cudaCheck(cudaMemset(task, 0, 3 * sizeof(CUDATask)));
     cudaCheck(cudaMemset(blocks, 0, maxBlocks * sizeof(uint32_t)));
 
-    std::cout << "scheduling " << nblocks << " blocks of " << nthreads << " threads" << std::endl;
+    std::cout << "\nscheduling " << nblocks << " blocks of " << nthreads << " threads" << std::endl;
     cudaDeviceSynchronize();
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     testTask<1><<<nblocks, nthreads, 0>>>(d_in, d_out1, d_out2, blocks, num_items, task);
@@ -103,7 +103,7 @@ int main() {
     cudaCheck(cudaMemset(task, 0, 3 * sizeof(CUDATask)));
     cudaCheck(cudaMemset(blocks, 0, nblocks * sizeof(uint32_t)));
 
-    std::cout << "scheduling " << nblocks << " blocks of " << nthreads << " threads" << std::endl;
+    std::cout << "\nscheduling " << nblocks << " blocks of " << nthreads << " threads" << std::endl;
     cudaDeviceSynchronize();
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     testTask<2><<<nblocks, nthreads, 0>>>(d_in, d_out1, d_out2, blocks, num_items, task);
@@ -122,19 +122,19 @@ int main() {
     std::cout << "task kernel took " << delta << std::endl;
   }
 
-
   {
     cudaCheck(cudaMemset(d_in, 0, num_items * sizeof(int32_t)));
     cudaCheck(cudaMemset(d_out1, 0, num_items * sizeof(int32_t)));
     cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(int32_t)));
     cudaCheck(cudaMemset(blocks, 0, maxBlocks * sizeof(uint32_t)));
 
-    auto kc = coopKernelConfig(testCoop<1>);
+    static CoopKernelConfig config(256);
+    auto kc = config.getConfig(testCoop<1>);
 
-    std::cout << "scheduling " << kc.first << " blocks of " << kc.second << " threads" << std::endl;
+    std::cout << "\nscheduling " << kc.first << " blocks of " << kc.second << " threads" << std::endl;
     cudaDeviceSynchronize();
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    launch_cooperative(testCoop<1>,{kc.first, kc.second, 0},d_in, d_out1, d_out2, blocks, num_items);
+    launch_cooperative(testCoop<1>, {kc.first, kc.second, 0}, d_in, d_out1, d_out2, blocks, num_items);
     cudaDeviceSynchronize();
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     cudaCheck(cudaGetLastError());
@@ -150,21 +150,21 @@ int main() {
     std::cout << "coop kernel took " << delta << std::endl;
   }
 
-
   {
     cudaCheck(cudaMemset(d_in, 0, num_items * sizeof(int32_t)));
     cudaCheck(cudaMemset(d_out1, 0, num_items * sizeof(int32_t)));
     cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(int32_t)));
     cudaCheck(cudaMemset(blocks, 0, maxBlocks * sizeof(uint32_t)));
 
-    auto kc = coopKernelConfig(testCoop<2>);
+    static CoopKernelConfig config(256);
+    auto kc = config.getConfig(testCoop<2>);
 
-    nblocks = std::min(kc.first,nblocks);
+    nblocks = std::min(kc.first, nblocks);
 
-    std::cout << "scheduling " << nblocks << " blocks of " << kc.second << " threads" << std::endl;
+    std::cout << "\nscheduling " << nblocks << " blocks of " << kc.second << " threads" << std::endl;
     cudaDeviceSynchronize();
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    launch_cooperative(testCoop<2>,{nblocks, kc.second, 0},d_in, d_out1, d_out2, blocks, num_items);
+    launch_cooperative(testCoop<2>, {nblocks, kc.second, 0}, d_in, d_out1, d_out2, blocks, num_items);
     cudaDeviceSynchronize();
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     cudaCheck(cudaGetLastError());
@@ -179,9 +179,6 @@ int main() {
     auto delta = duration_cast<duration<double>>(t2 - t1).count();
     std::cout << "coop kernel took " << delta << std::endl;
   }
-
-
-
 
   return 0;
 };

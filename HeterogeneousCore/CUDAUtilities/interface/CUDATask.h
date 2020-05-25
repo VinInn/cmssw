@@ -59,7 +59,6 @@ namespace cms {
           }  // done
         }    // while
 
-
         if (isLastBlockDone) {
           assert(0 == (allDone));
 

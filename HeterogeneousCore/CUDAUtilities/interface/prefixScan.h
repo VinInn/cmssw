@@ -189,14 +189,14 @@ namespace cms {
     template <typename T>
     __device__ void __forceinline__ multiTaskPrefixScan(T const* gci, T* gco, int32_t size, CUDATask& task, T* gpsum) {
       volatile auto ci = gci;
-      volatile auto co  = gco;
+      volatile auto co = gco;
       volatile auto psum = gpsum;
 
       __shared__ T ws[32];
 
       auto body = [&](int32_t iWork) {
         // first each block does a scan
-        for (int off = blockDim.x * iWork; off< size; off+=blockDim.x*gridDim.x) {
+        for (int off = blockDim.x * iWork; off < size; off += blockDim.x * gridDim.x) {
           blockPrefixScan(ci + off, co + off, std::min(int(blockDim.x), size - off), ws);
         }
       };

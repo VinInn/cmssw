@@ -225,10 +225,10 @@ namespace cms {
       static constexpr uint32_t capacity() { return SIZE; }
 
       static constexpr int32_t nthreads() { return 256; }
-      static constexpr int32_t nblocks() { return (totbins()+nthreads()-1)/ nthreads(); }
+      static constexpr int32_t nblocks() { return (totbins() + nthreads() - 1) / nthreads(); }
 
       static_assert(nblocks() <= 1024, "too many blocks to perform prefix scan");
-      static_assert(nblocks() >= totbins()/nthreads(), "too few blocks to perform prefix scan");
+      static_assert(nblocks() >= totbins() / nthreads(), "too few blocks to perform prefix scan");
 
       static constexpr auto histOff(uint32_t nh) { return NBINS * nh; }
 
@@ -359,7 +359,7 @@ namespace cms {
         finalize();
 #endif
         // fill(blockIdx.x);
-        tasks[2].doit(fill,voidTail);
+        tasks[2].doit(fill, voidTail);
       }
 
       constexpr auto size() const { return uint32_t(off[totbins() - 1]); }

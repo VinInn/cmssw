@@ -89,8 +89,7 @@ int main() {
     std::cout << "task kernel took " << delta << std::endl;
   }
 
-
- {
+  {
     memset(d_in, 0, num_items * sizeof(int32_t));
     memset(d_out1, 0, num_items * sizeof(int32_t));
     memset(d_out2, 0, num_items * sizeof(int32_t));
@@ -109,8 +108,6 @@ int main() {
     auto delta = duration_cast<duration<double>>(t2 - t1).count();
     std::cout << "coop kernel took " << delta << std::endl;
   }
-
-
 
   return 0;
 };
