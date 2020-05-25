@@ -106,15 +106,16 @@ __global__ void testTask(int32_t *d_in, int32_t *d_out, int32_t *one, int32_t *b
 
 template<typename KERNEL>
 __forceinline__
-std::pair<int,int> coopKernelConfig(KERNEL kernel) {
+std::pair<int,int> coopKernelConfig(KERNEL kernel, int dev=0) {
+   assert(dev<16);
    constexpr int nThreads = 256;
-   static cudaDeviceProp deviceProp;
-   static int numBlocksPerSm = 0;
-   if (0==numBlocksPerSm) { // not fully thread safe....)
-     cudaGetDeviceProperties(&deviceProp, 0);  // assume one device "0"
-     cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, kernel, nThreads, 0);
+   static cudaDeviceProp deviceProp[16];
+   static int numBlocksPerSm[16] = {0};
+   if (0==numBlocksPerSm[dev]) { // not fully thread safe....)
+     cudaGetDeviceProperties(&deviceProp[dev], 0);
+     cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm[dev], kernel, nThreads, 0);
    }
-   return std::make_pair(deviceProp.multiProcessorCount*numBlocksPerSm,nThreads);
+   return std::make_pair(deviceProp[dev].multiProcessorCount*numBlocksPerSm[dev],nThreads);
  
 }
 
