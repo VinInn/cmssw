@@ -33,7 +33,6 @@ int main() {
 
   {
     std::cout << "scheduling " << nblocks << " blocks of " << nthreads << " threads" << std::endl;
-    cudaDeviceSynchronize();
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     one(d_in, d_out1, num_items);
     two(d_in, d_out1, d_out2, blocks, num_items);
@@ -89,6 +88,29 @@ int main() {
     auto delta = duration_cast<duration<double>>(t2 - t1).count();
     std::cout << "task kernel took " << delta << std::endl;
   }
+
+
+ {
+    memset(d_in, 0, num_items * sizeof(int32_t));
+    memset(d_out1, 0, num_items * sizeof(int32_t));
+    memset(d_out2, 0, num_items * sizeof(int32_t));
+    memset(task, 0, 3 * sizeof(CUDATask));
+    memset(blocks, 0, nblocks * sizeof(uint32_t));
+
+    std::cout << "scheduling " << nblocks << " blocks of " << nthreads << " threads" << std::endl;
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    testCoop<1>(d_in, d_out1, d_out2, blocks, num_items);
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    verify(d_out1, d_out2, num_items);
+    int s = 0;
+    for (int i = 0; i < nblocks; ++i)
+      s += h_blocks[i];
+    std::cout << "coop kernel used " << s << " blocks" << std::endl;
+    auto delta = duration_cast<duration<double>>(t2 - t1).count();
+    std::cout << "coop kernel took " << delta << std::endl;
+  }
+
+
 
   return 0;
 };
