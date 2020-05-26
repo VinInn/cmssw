@@ -101,7 +101,6 @@ __global__ void testTask(int32_t *d_in, int32_t *d_out, int32_t *one, int32_t *b
   task[2].doit(testIt1, voidTail);
 }
 
-
 template <int N>
 __global__ void testCoop(int32_t *d_in, int32_t *d_out, int32_t *one, int32_t *blocks, int32_t n) {
   using namespace cooperative_groups;

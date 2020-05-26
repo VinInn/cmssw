@@ -10,27 +10,27 @@
 
 namespace cms {
   namespace cuda {
-struct CoopKernelConfig {
-  explicit CoopKernelConfig(int nthreads) : nThreads(nthreads) {}
+    struct CoopKernelConfig {
+      explicit CoopKernelConfig(int nthreads) : nThreads(nthreads) {}
 
-  template <typename KERNEL>
-  inline std::pair<int, int> getConfig(KERNEL kernel, int dev=0) {
-    assert(dev < 16);
-    if (0 == numBlocksPerSm[dev]) {
-    //  std::cout << " checking device " << std::endl;
-      cudaGetDeviceProperties(&deviceProp[dev], 0);
-      cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm[dev], kernel, nThreads, 0);
-    }
-    return std::make_pair(deviceProp[dev].multiProcessorCount * numBlocksPerSm[dev], nThreads);
-  }
+      template <typename KERNEL>
+      inline std::pair<int, int> getConfig(KERNEL kernel, int dev = 0) {
+        assert(dev < 16);
+        if (0 == numBlocksPerSm[dev]) {
+          //  std::cout << " checking device " << std::endl;
+          cudaGetDeviceProperties(&deviceProp[dev], 0);
+          cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm[dev], kernel, nThreads, 0);
+        }
+        return std::make_pair(deviceProp[dev].multiProcessorCount * numBlocksPerSm[dev], nThreads);
+      }
 
-  const int nThreads = 256;
-  cudaDeviceProp deviceProp[16];
-  int numBlocksPerSm[16] = {0};
-};
+      const int nThreads = 256;
+      cudaDeviceProp deviceProp[16];
+      int numBlocksPerSm[16] = {0};
+    };
 
-}
-}
+  }  // namespace cuda
+}  // namespace cms
 
 namespace cms {
   namespace cuda {

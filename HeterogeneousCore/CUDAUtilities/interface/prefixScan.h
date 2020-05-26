@@ -9,7 +9,6 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/CUDATask.h"
 #include <cooperative_groups.h>
 
-
 #ifdef __CUDA_ARCH__
 
 template <typename T>
@@ -231,13 +230,11 @@ namespace cms {
       multiTaskPrefixScan(ci, co, size, *task, psum);
     }
 
-
-
     // in principle not limited....
     template <typename T>
     __device__ void __forceinline__ coopPrefixScan(T const* gci, T* gco, int32_t size, T* gpsum) {
       using namespace cooperative_groups;
-  
+
       volatile auto ci = gci;
       volatile auto co = gco;
       volatile auto psum = gpsum;
@@ -258,22 +255,22 @@ namespace cms {
           auto j = blockDim.x * i + blockDim.x - 1;
           assert(j < size);
           psum[i] = co[j];
-           }
-           __syncthreads();
-           blockPrefixScan(psum, psum, nChunks, ws);
+        }
+        __syncthreads();
+        blockPrefixScan(psum, psum, nChunks, ws);
       };
 
-      
       cooperative_groups::grid_group grid = cooperative_groups::this_grid();
       body();
       grid.sync();
-      if(0==blockIdx.x) tail();
+      if (0 == blockIdx.x)
+        tail();
       grid.sync();
 
       // now it is very handy to have the other blocks around...
       auto first = (blockIdx.x + 1) * blockDim.x + threadIdx.x;
       for (int i = first; i < size; i += gridDim.x * blockDim.x) {
-           assert(blockIdx.x < size / blockDim.x);
+        assert(blockIdx.x < size / blockDim.x);
         co[i] += psum[blockIdx.x];
       }
     }
