@@ -3,6 +3,7 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/prefixScan.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/requireDevices.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/launch.h"
 
 using namespace cms::cuda;
 
@@ -126,7 +127,7 @@ int main() {
 
     auto nthreads = 256;
     auto nblocks = (num_items + nthreads - 1) / nthreads;
-
+    auto maxBlocks = nblocks;
     init<<<nblocks, nthreads, 0>>>(d_in, 1, num_items);
 
     // the block counter
@@ -187,6 +188,55 @@ int main() {
     cudaCheck(cudaGetLastError());
     cudaDeviceSynchronize();
     cudaCheck(cudaFree(psum));
+
+
+    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
+    static CoopKernelConfig config(256);
+    auto kc = config.getConfig(coopPrefixScanKernel<uint32_t>);
+
+
+    nblocks = maxBlocks;
+    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
+    nthreads = kc.second;
+    nchunks = num_items / nthreads + 1;
+    nblocks = std::min(kc.first,std::max(1, nblocks));
+    cudaCheck(cudaMalloc(&psum, 4 * nchunks));
+    std::cout << "launch coopPrefixScan " << num_items << ' ' << nblocks << std::endl;
+    launch_cooperative(coopPrefixScanKernel<uint32_t>,{nblocks, nthreads},d_in, d_out2, num_items, psum);
+    cudaCheck(cudaGetLastError());
+    verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
+    cudaCheck(cudaGetLastError());
+    cudaDeviceSynchronize();
+    cudaCheck(cudaFree(psum));
+
+    nblocks /=32;
+    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
+    nthreads = kc.second;
+    nchunks = num_items / nthreads + 1;
+    nblocks = std::min(kc.first,std::max(1, nblocks));
+    cudaCheck(cudaMalloc(&psum, 4 * nchunks));
+    std::cout << "launch coopPrefixScan " << num_items << ' ' << nblocks << std::endl;
+    launch_cooperative(coopPrefixScanKernel<uint32_t>,{nblocks, nthreads},d_in, d_out2, num_items, psum);
+    cudaCheck(cudaGetLastError());
+    verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
+    cudaCheck(cudaGetLastError());
+    cudaDeviceSynchronize();
+    cudaCheck(cudaFree(psum));
+
+    nblocks /=32;
+    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
+    nthreads = kc.second;
+    nchunks = num_items / nthreads + 1;
+    nblocks = std::min(kc.first,std::max(1, nblocks));
+    cudaCheck(cudaMalloc(&psum, 4 * nchunks));
+    std::cout << "launch coopPrefixScan " << num_items << ' ' << nblocks << std::endl;
+    launch_cooperative(coopPrefixScanKernel<uint32_t>,{nblocks, nthreads},d_in, d_out2, num_items, psum);
+    cudaCheck(cudaGetLastError());
+    verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
+    cudaCheck(cudaGetLastError());
+    cudaDeviceSynchronize();
+    cudaCheck(cudaFree(psum));
+
 
   }  // ksize
   return 0;

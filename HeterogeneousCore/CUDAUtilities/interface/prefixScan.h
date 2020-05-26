@@ -7,6 +7,8 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/cuda_assert.h"
 
 #include "HeterogeneousCore/CUDAUtilities/interface/CUDATask.h"
+#include <cooperative_groups.h>
+
 
 #ifdef __CUDA_ARCH__
 
@@ -227,6 +229,59 @@ namespace cms {
     template <typename T>
     __global__ void multiTaskPrefixScanKernel(T const* ci, T* co, int32_t size, CUDATask* task, T* psum) {
       multiTaskPrefixScan(ci, co, size, *task, psum);
+    }
+
+
+
+    // in principle not limited....
+    template <typename T>
+    __device__ void __forceinline__ coopPrefixScan(T const* gci, T* gco, int32_t size, T* gpsum) {
+      using namespace cooperative_groups;
+  
+      volatile auto ci = gci;
+      volatile auto co = gco;
+      volatile auto psum = gpsum;
+
+      __shared__ T ws[32];
+
+      auto body = [&]() {
+        // first each block does a scan
+        for (int off = blockDim.x * blockIdx.x; off < size; off += blockDim.x * gridDim.x) {
+          blockPrefixScan(ci + off, co + off, std::min(int(blockDim.x), size - off), ws);
+        }
+      };
+
+      auto tail = [&]() {
+        // let's get the partial sums from each block
+        int nChunks = size / blockDim.x;
+        for (int i = threadIdx.x; i < nChunks; i += blockDim.x) {
+          auto j = blockDim.x * i + blockDim.x - 1;
+          assert(j < size);
+          psum[i] = co[j];
+           }
+           __syncthreads();
+           blockPrefixScan(psum, psum, nChunks, ws);
+      };
+
+      
+      cooperative_groups::grid_group grid = cooperative_groups::this_grid();
+      body();
+      grid.sync();
+      if(0==blockIdx.x) tail();
+      grid.sync();
+
+      // now it is very handy to have the other blocks around...
+      auto first = (blockIdx.x + 1) * blockDim.x + threadIdx.x;
+      for (int i = first; i < size; i += gridDim.x * blockDim.x) {
+           assert(blockIdx.x < size / blockDim.x);
+        co[i] += psum[blockIdx.x];
+      }
+    }
+
+    // in principle not limited....
+    template <typename T>
+    __global__ void coopPrefixScanKernel(T const* ci, T* co, int32_t size, T* psum) {
+      coopPrefixScan(ci, co, size, psum);
     }
 
   }  // namespace cuda

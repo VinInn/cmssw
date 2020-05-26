@@ -101,26 +101,6 @@ __global__ void testTask(int32_t *d_in, int32_t *d_out, int32_t *one, int32_t *b
   task[2].doit(testIt1, voidTail);
 }
 
-#include <cooperative_groups.h>
-
-struct CoopKernelConfig {
-  explicit CoopKernelConfig(int nthreads) : nThreads(nthreads) {}
-
-  template <typename KERNEL>
-  inline std::pair<int, int> getConfig(KERNEL kernel, int dev=0) {
-    assert(dev < 16);
-    if (0 == numBlocksPerSm[dev]) {
-      std::cout << " checking device " << std::endl;
-      cudaGetDeviceProperties(&deviceProp[dev], 0);
-      cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm[dev], kernel, nThreads, 0);
-    }
-    return std::make_pair(deviceProp[dev].multiProcessorCount * numBlocksPerSm[dev], nThreads);
-  }
-
-  const int nThreads = 256;
-  cudaDeviceProp deviceProp[16];
-  int numBlocksPerSm[16] = {0};
-};
 
 template <int N>
 __global__ void testCoop(int32_t *d_in, int32_t *d_out, int32_t *one, int32_t *blocks, int32_t n) {
