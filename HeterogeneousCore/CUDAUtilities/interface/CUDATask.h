@@ -5,6 +5,7 @@
 
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCompat.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cuda_assert.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 
 #include <cooperative_groups.h>
 
@@ -18,13 +19,13 @@ namespace cms {
         assert(dev < 16);
         if (0 == numBlocksPerSm[dev]) {
           //  std::cout << " checking device " << std::endl;
-          cudaGetDeviceProperties(&deviceProp[dev], 0);
-          cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm[dev], kernel, nThreads, 0);
+          cudaCheck(cudaGetDeviceProperties(&deviceProp[dev], 0));
+          cudaCheck(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm[dev], kernel, nThreads, 0));
         }
         return std::make_pair(deviceProp[dev].multiProcessorCount * numBlocksPerSm[dev], nThreads);
       }
 
-      const int nThreads = 256;
+      const int nThreads;
       cudaDeviceProp deviceProp[16];
       int numBlocksPerSm[16] = {0};
     };
@@ -99,8 +100,8 @@ namespace cms {
         }
 
         // we need to wait the one above...
-        while (0 == (allDone)) {
-          __threadfence();
+        if (0 == threadIdx.x) while (0 == (allDone)) {
+          // __threadfence();
         }
 
         __syncthreads();  // at some point we must decide who sync

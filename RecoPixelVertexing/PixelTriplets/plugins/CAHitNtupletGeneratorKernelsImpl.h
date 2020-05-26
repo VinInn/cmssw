@@ -17,7 +17,7 @@
 #include "CAHitNtupletGeneratorKernels.h"
 #include "GPUCACell.h"
 #include "gpuFishbone.h"
-#include "gpuPixelDoublets.h"
+#include "gpuPixelDoubletsAlgos.h"
 
 using HitsOnGPU = TrackingRecHit2DSOAView;
 using HitsOnCPU = TrackingRecHit2DCUDA;

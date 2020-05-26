@@ -17,6 +17,7 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/cudastdAlgorithm.h"
 
 #include "HeterogeneousCore/CUDAUtilities/interface/prefixScan.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/launch.h"
 
 namespace cms {
   namespace cuda {
@@ -79,12 +80,14 @@ namespace cms {
     ) {
 #ifdef __CUDACC__
       uint32_t *poff = (uint32_t *)((char *)(h) + offsetof(Histo, off));
-      CUDATask *ptasks = (CUDATask *)((char *)(h) + offsetof(Histo, tasks));
       uint32_t *ppsws = (uint32_t *)((char *)(h) + offsetof(Histo, psws));
 
+      static CoopKernelConfig config(Histo::nthreads());
+      auto kc = config.getConfig(coopPrefixScanKernel<uint32_t>);
+
       auto nthreads = Histo::nthreads();
-      auto nblocks = Histo::nblocks();
-      multiTaskPrefixScanKernel<<<nblocks, nthreads, 0, stream>>>(poff, poff, Histo::totbins(), ptasks, ppsws);
+      auto nblocks = std::min(Histo::nblocks(),kc.first);
+      launch_cooperative(coopPrefixScanKernel<uint32_t>,{nblocks, nthreads, 0, stream},poff, poff, Histo::totbins(), ppsws);
       cudaCheck(cudaGetLastError());
 #else
       h->finalize();
@@ -147,10 +150,12 @@ namespace cms {
       fillFromVector<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
 #else
+      static CoopKernelConfig config(Histo::nthreads());
+      auto kc = config.getConfig(fillManyFromVectorKernel<Histo, T>);
+
       nthreads = Histo::nthreads();
-      // keep the number of blocks low
-      auto nblocks = std::min(128, int(totSize + nthreads - 1) / nthreads);
-      fillManyFromVectorKernel<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
+      auto nblocks = std::min(kc.first, int(totSize + nthreads - 1) / nthreads);
+      launch_cooperative(fillManyFromVectorKernel<Histo, T>,{nblocks, nthreads, 0, stream},h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
 #endif
 #else
@@ -351,15 +356,16 @@ namespace cms {
 
       template <typename COUNT, typename FILL>
       __device__ __forceinline__ void countAndFill(COUNT count, FILL fill) {
-        auto voidTail = []() {};
-        tasks[0].doit(count, voidTail);
+        auto grid = cooperative_groups::this_grid();
+        count(blockIdx.x);
+        grid.sync();
 #ifdef __CUDACC__
-        multiTaskPrefixScan(off, off, totbins(), tasks[1], psws);
+        coopPrefixScan(off, off, totbins(), psws);
 #else
         finalize();
 #endif
-        // fill(blockIdx.x);
-        tasks[2].doit(fill, voidTail);
+        grid.sync();
+        fill(blockIdx.x);
       }
 
       constexpr auto size() const { return uint32_t(off[totbins() - 1]); }

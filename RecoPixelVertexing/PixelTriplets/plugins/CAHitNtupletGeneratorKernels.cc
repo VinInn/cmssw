@@ -1,4 +1,5 @@
 #include "RecoPixelVertexing/PixelTriplets/plugins/CAHitNtupletGeneratorKernelsImpl.h"
+#include "gpuPixelDoublets.h"
 
 template <>
 void CAHitNtupletGeneratorKernelsCPU::printCounters(Counters const *counters) {
