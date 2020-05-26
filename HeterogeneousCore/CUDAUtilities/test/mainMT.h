@@ -1,3 +1,4 @@
+#include <vector>
 #include <thread>
 #include <atomic>
 #include <cstdlib>
@@ -20,6 +21,7 @@ int main(int argc, char ** argv) {
 
   std::atomic<int> tid(nThreads);
   std::atomic<bool> wait(true);
+
   auto wrapper = [&]() {
     std::cout <<'.';
     int me = --tid;
@@ -28,7 +30,8 @@ int main(int argc, char ** argv) {
     theRealMain(me);
   };
 
-  std::vector<std::threads> pool(nThreads,wrapper);
+  std::vector<std::thread> pool(nThreads); 
+  for ( auto & t : pool) t = std::move(std::thread(wrapper));
 
   for ( auto & t : pool) t.join();
 

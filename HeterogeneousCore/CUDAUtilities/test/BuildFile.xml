@@ -1,5 +1,8 @@
 <use name="HeterogeneousCore/CUDAUtilities"/>
 <iftool name="cuda-gcc-support">
+
+  <bin file="mainMT_t.cpp" />
+
   <bin file="assert_t.cu" name="cudaAssert_t">
     <flags CUDA_FLAGS="-g"/>
   </bin>
