@@ -93,6 +93,9 @@ std::mutex lock;
 
 void theRealMain(int tid) {
 
+   cudaStream_t stream;
+   cudaStreamCreate(&stream);
+
    std::ostringstream sout;
 
    sout << "running " << tid << '\n';
@@ -101,27 +104,27 @@ void theRealMain(int tid) {
 
   sout << "warp level" << std::endl;
   // sout << "warp 32" << std::endl;
-  testWarpPrefixScan<int><<<1, 32>>>(32);
-  cudaDeviceSynchronize();
+  testWarpPrefixScan<int><<<1, 32,0, stream>>>(32);
+  cudaStreamSynchronize(stream);
   // sout << "warp 16" << std::endl;
-  testWarpPrefixScan<int><<<1, 32>>>(16);
-  cudaDeviceSynchronize();
+  testWarpPrefixScan<int><<<1, 32,0, stream>>>(16);
+  cudaStreamSynchronize(stream);
   // sout << "warp 5" << std::endl;
-  testWarpPrefixScan<int><<<1, 32>>>(5);
-  cudaDeviceSynchronize();
+  testWarpPrefixScan<int><<<1, 32,0, stream>>>(5);
+  cudaStreamSynchronize(stream);
 
   sout << "block level" << std::endl;
   for (int bs = 32; bs <= 1024; bs += 32) {
     // sout << "bs " << bs << std::endl;
     for (int j = 1; j <= 1024; ++j) {
       // sout << j << std::endl;
-      testPrefixScan<uint16_t><<<1, bs>>>(j);
-      cudaDeviceSynchronize();
-      testPrefixScan<float><<<1, bs>>>(j);
-      cudaDeviceSynchronize();
+      testPrefixScan<uint16_t><<<1, bs,0, stream>>>(j);
+      cudaStreamSynchronize(stream);
+      testPrefixScan<float><<<1, bs,0, stream>>>(j);
+      cudaStreamSynchronize(stream);
     }
   }
-  cudaDeviceSynchronize();
+  cudaStreamSynchronize(stream);
 
   int num_items = 200;
   for (int ksize = 1; ksize < 4; ++ksize) {
@@ -140,112 +143,112 @@ void theRealMain(int tid) {
     auto nthreads = 256;
     auto nblocks = (num_items + nthreads - 1) / nthreads;
     auto maxBlocks = nblocks;
-    init<<<nblocks, nthreads, 0>>>(d_in, 1, num_items);
+    init<<<nblocks, nthreads, 0, stream>>>(d_in, 1, num_items);
 
     // the block counter
     int32_t *d_pc;
     cudaCheck(cudaMalloc(&d_pc, 3 * sizeof(int32_t)));
 
-    cudaCheck(cudaMemset(d_pc, 0, sizeof(int32_t)));
+    cudaCheck(cudaMemsetAsync(d_pc, 0, sizeof(int32_t),stream));
     nthreads = 1024;
     nblocks = (num_items + nthreads - 1) / nthreads;
     sout << "launch multiBlockPrefixScan " << num_items << ' ' << nblocks << std::endl;
-    multiBlockPrefixScan<<<nblocks, nthreads, 4 * nblocks>>>(d_in, d_out1, num_items, d_pc);
+    multiBlockPrefixScan<<<nblocks, nthreads, 4 * nblocks, stream>>>(d_in, d_out1, num_items, d_pc);
     cudaCheck(cudaGetLastError());
-    verify<<<nblocks, nthreads, 0>>>(d_out1, num_items);
+    verify<<<nblocks, nthreads, 0, stream>>>(d_out1, num_items);
     cudaCheck(cudaGetLastError());
-    cudaDeviceSynchronize();
+    cudaStreamSynchronize(stream);
 
     uint32_t *psum;
     CUDATask *task;
     cudaCheck(cudaMalloc(&task, sizeof(CUDATask)));
 
-    cudaCheck(cudaMemset(task, 0, sizeof(CUDATask)));
+    cudaCheck(cudaMemsetAsync(task, 0, sizeof(CUDATask),stream));
     nthreads = 1024;
     nblocks = (num_items + nthreads - 1) / nthreads;
     cudaCheck(cudaMalloc(&psum, 4 * nblocks));
     sout << "launch multiTaskPrefixScan " << num_items << ' ' << nblocks << std::endl;
-    multiTaskPrefixScanKernel<<<nblocks, nthreads>>>(d_in, d_out2, num_items, task, psum);
+    multiTaskPrefixScanKernel<<<nblocks, nthreads,0, stream>>>(d_in, d_out2, num_items, task, psum);
     cudaCheck(cudaGetLastError());
-    verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
+    verify<<<nblocks, nthreads, 0, stream>>>(d_out2, num_items);
     cudaCheck(cudaGetLastError());
-    cudaDeviceSynchronize();
+    cudaStreamSynchronize(stream);
     cudaCheck(cudaFree(psum));
 
-    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
-    cudaCheck(cudaMemset(task, 0, sizeof(CUDATask)));
+    cudaCheck(cudaMemsetAsync(d_out2, 0, num_items * sizeof(uint32_t),stream));
+    cudaCheck(cudaMemsetAsync(task, 0, sizeof(CUDATask),stream));
     nthreads = 256;
     auto nchunks = num_items / nthreads + 1;  // avoid zero
     nblocks = (num_items + nthreads - 1) / nthreads;
     cudaCheck(cudaMalloc(&psum, 4 * nchunks));
     sout << "launch multiTaskPrefixScan " << num_items << ' ' << nblocks << std::endl;
-    multiTaskPrefixScanKernel<<<nblocks, nthreads>>>(d_in, d_out2, num_items, task, psum);
+    multiTaskPrefixScanKernel<<<nblocks, nthreads,0, stream>>>(d_in, d_out2, num_items, task, psum);
     cudaCheck(cudaGetLastError());
-    verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
+    verify<<<nblocks, nthreads, 0, stream>>>(d_out2, num_items);
     cudaCheck(cudaGetLastError());
-    cudaDeviceSynchronize();
+    cudaStreamSynchronize(stream);
     cudaCheck(cudaFree(psum));
 
-    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
-    cudaCheck(cudaMemset(task, 0, sizeof(CUDATask)));
+    cudaCheck(cudaMemsetAsync(d_out2, 0, num_items * sizeof(uint32_t),stream));
+    cudaCheck(cudaMemsetAsync(task, 0, sizeof(CUDATask),stream));
     nthreads = 256;
     nchunks = num_items / nthreads + 1;
     nblocks /= 32;
     nblocks = std::max(1, nblocks);
     cudaCheck(cudaMalloc(&psum, 4 * nchunks));
     sout << "launch multiTaskPrefixScan " << num_items << ' ' << nblocks << std::endl;
-    multiTaskPrefixScanKernel<<<nblocks, nthreads>>>(d_in, d_out2, num_items, task, psum);
+    multiTaskPrefixScanKernel<<<nblocks, nthreads,0, stream>>>(d_in, d_out2, num_items, task, psum);
     cudaCheck(cudaGetLastError());
-    verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
+    verify<<<nblocks, nthreads, 0, stream>>>(d_out2, num_items);
     cudaCheck(cudaGetLastError());
-    cudaDeviceSynchronize();
+    cudaStreamSynchronize(stream);
     cudaCheck(cudaFree(psum));
 
-    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
+    cudaCheck(cudaMemsetAsync(d_out2, 0, num_items * sizeof(uint32_t),stream));
     static CoopKernelConfig config(256);
     auto kc = config.getConfig(coopPrefixScanKernel<uint32_t>);
 
     nblocks = maxBlocks;
-    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
+    cudaCheck(cudaMemsetAsync(d_out2, 0, num_items * sizeof(uint32_t),stream));
     nthreads = kc.second;
     nchunks = num_items / nthreads + 1;
     nblocks = std::min(kc.first, std::max(1, nblocks));
     cudaCheck(cudaMalloc(&psum, 4 * nchunks));
     sout << "launch coopPrefixScan " << num_items << ' ' << nblocks << std::endl;
-    launch_cooperative(coopPrefixScanKernel<uint32_t>, {nblocks, nthreads}, d_in, d_out2, num_items, psum);
+    launch_cooperative(coopPrefixScanKernel<uint32_t>, {nblocks, nthreads,0,stream}, d_in, d_out2, num_items, psum);
     cudaCheck(cudaGetLastError());
-    verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
+    verify<<<nblocks, nthreads, 0, stream>>>(d_out2, num_items);
     cudaCheck(cudaGetLastError());
-    cudaDeviceSynchronize();
+    cudaStreamSynchronize(stream);
+    // cudaCheck(cudaFree(psum));
+
+    nblocks /= 32;
+    cudaCheck(cudaMemsetAsync(d_out2, 0, num_items * sizeof(uint32_t),stream));
+    nthreads = kc.second;
+    nchunks = num_items / nthreads + 1;
+    nblocks = std::min(kc.first, std::max(1, nblocks));
+    cudaCheck(cudaMalloc(&psum, 4 * nchunks));
+    sout << "launch coopPrefixScan " << num_items << ' ' << nblocks << std::endl;
+    launch_cooperative(coopPrefixScanKernel<uint32_t>, {nblocks, nthreads,0,stream}, d_in, d_out2, num_items, psum);
+    cudaCheck(cudaGetLastError());
+    verify<<<nblocks, nthreads, 0, stream>>>(d_out2, num_items);
+    cudaCheck(cudaGetLastError());
+    cudaStreamSynchronize(stream);
     cudaCheck(cudaFree(psum));
 
     nblocks /= 32;
-    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
+    cudaCheck(cudaMemsetAsync(d_out2, 0, num_items * sizeof(uint32_t),stream));
     nthreads = kc.second;
     nchunks = num_items / nthreads + 1;
     nblocks = std::min(kc.first, std::max(1, nblocks));
     cudaCheck(cudaMalloc(&psum, 4 * nchunks));
     sout << "launch coopPrefixScan " << num_items << ' ' << nblocks << std::endl;
-    launch_cooperative(coopPrefixScanKernel<uint32_t>, {nblocks, nthreads}, d_in, d_out2, num_items, psum);
+    launch_cooperative(coopPrefixScanKernel<uint32_t>, {nblocks, nthreads,0,stream}, d_in, d_out2, num_items, psum);
     cudaCheck(cudaGetLastError());
-    verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
+    verify<<<nblocks, nthreads, 0, stream>>>(d_out2, num_items);
     cudaCheck(cudaGetLastError());
-    cudaDeviceSynchronize();
-    cudaCheck(cudaFree(psum));
-
-    nblocks /= 32;
-    cudaCheck(cudaMemset(d_out2, 0, num_items * sizeof(uint32_t)));
-    nthreads = kc.second;
-    nchunks = num_items / nthreads + 1;
-    nblocks = std::min(kc.first, std::max(1, nblocks));
-    cudaCheck(cudaMalloc(&psum, 4 * nchunks));
-    sout << "launch coopPrefixScan " << num_items << ' ' << nblocks << std::endl;
-    launch_cooperative(coopPrefixScanKernel<uint32_t>, {nblocks, nthreads}, d_in, d_out2, num_items, psum);
-    cudaCheck(cudaGetLastError());
-    verify<<<nblocks, nthreads, 0>>>(d_out2, num_items);
-    cudaCheck(cudaGetLastError());
-    cudaDeviceSynchronize();
-    cudaCheck(cudaFree(psum));
+    cudaStreamSynchronize(stream);
+    // cudaCheck(cudaFree(psum));
 
   }  // ksize
 
