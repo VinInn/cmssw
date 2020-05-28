@@ -188,10 +188,7 @@ namespace cms {
 
     // in principle not limited....
     template <typename T>
-    __device__ void __forceinline__ multiTaskPrefixScan(T const* gci, T* gco, int32_t size, CUDATask& task, T* gpsum) {
-      volatile auto ci = gci;
-      volatile auto co = gco;
-      volatile auto psum = gpsum;
+    __device__ void __forceinline__ multiTaskPrefixScan(T const* ci, T* co, int32_t size, CUDATask * task, T* psum) {
 
       __shared__ T ws[32];
 
@@ -214,6 +211,47 @@ namespace cms {
         blockPrefixScan(psum, psum, nChunks, ws);
       };
 
+      task[0].doit(body, tail);
+
+      auto epilogue = [&](int32_t iWork) {
+      // now it is very handy to have the other blocks around...
+      auto first = (iWork + 1) * blockDim.x + threadIdx.x;
+      for (int i = first; i < size; i += gridDim.x * blockDim.x) {
+        assert(iWork < size / blockDim.x);
+        co[i] += psum[iWork];
+      }
+      };
+
+      auto voidTail = [](){};
+      task[1].doit(epilogue,voidTail);
+
+    }
+
+    // in principle not limited....
+    template <typename T>
+    __device__ void __forceinline__ simpleTaskPrefixScan(T const* ci, T* co, int32_t size, CUDATask& task, T* psum) {
+
+      __shared__ T ws[32];
+
+      auto body = [&](int32_t iWork) {
+        // first each block does a scan
+        for (int off = blockDim.x * iWork; off < size; off += blockDim.x * gridDim.x) {
+          blockPrefixScan(ci + off, co + off, std::min(int(blockDim.x), size - off), ws);
+        }
+      };
+
+      auto tail = [&]() {
+        // let's get the partial sums from each block
+        int nChunks = size / blockDim.x;
+        for (int i = threadIdx.x; i < nChunks; i += blockDim.x) {
+          auto j = blockDim.x * i + blockDim.x - 1;
+          assert(j < size);
+          psum[i] = co[j];
+        }
+    __syncthreads();
+        blockPrefixScan(psum, psum, nChunks, ws);
+      };
+
       task.doit(body, tail);
 
       // now it is very handy to have the other blocks around...
@@ -224,20 +262,18 @@ namespace cms {
       }
     }
 
+
+
     // in principle not limited....
     template <typename T>
     __global__ void multiTaskPrefixScanKernel(T const* ci, T* co, int32_t size, CUDATask* task, T* psum) {
-      multiTaskPrefixScan(ci, co, size, *task, psum);
+      simpleTaskPrefixScan(ci, co, size, *task, psum);
     }
 
     // in principle not limited....
     template <typename T>
-    __device__ void __forceinline__ coopPrefixScan(T const* gci, T* gco, int32_t size, T* gpsum) {
+    __device__ void __forceinline__ coopPrefixScan(T const* ci, T* co, int32_t size, T* psum) {
       using namespace cooperative_groups;
-
-      volatile auto ci = gci;
-      volatile auto co = gco;
-      volatile auto psum = gpsum;
 
       __shared__ T ws[32];
 

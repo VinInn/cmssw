@@ -98,9 +98,8 @@ namespace cms {
           __syncthreads();
         }
 
-        // we need to wait the one above...
-        while (0 == (allDone)) {
-          __threadfence();
+        if (0 == threadIdx.x) while (0 == (allDone)) {
+         //  __threadfence();
         }
 
         __syncthreads();  // at some point we must decide who sync

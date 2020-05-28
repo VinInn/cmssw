@@ -149,7 +149,7 @@ namespace cms {
 #else
       nthreads = Histo::nthreads();
       // keep the number of blocks low
-      auto nblocks = std::min(128, int(totSize + nthreads - 1) / nthreads);
+      auto nblocks = std::min(256, int(totSize + nthreads - 1) / nthreads);
       fillManyFromVectorKernel<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
 #endif
@@ -354,12 +354,11 @@ namespace cms {
         auto voidTail = []() {};
         tasks[0].doit(count, voidTail);
 #ifdef __CUDACC__
-        multiTaskPrefixScan(off, off, totbins(), tasks[1], psws);
+        multiTaskPrefixScan(off, off, totbins(), tasks+1, psws);
 #else
         finalize();
 #endif
-        // fill(blockIdx.x);
-        tasks[2].doit(fill, voidTail);
+        fill(blockIdx.x);
       }
 
       constexpr auto size() const { return uint32_t(off[totbins() - 1]); }
