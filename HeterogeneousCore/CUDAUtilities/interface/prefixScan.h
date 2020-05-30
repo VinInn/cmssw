@@ -188,7 +188,10 @@ namespace cms {
 
     // in principle not limited....
     template <typename T>
-    __device__ void __forceinline__ multiTaskPrefixScan(T const* ci, T* co, int32_t size, CUDATask * task, T* psum) {
+    __device__ void __forceinline__ multiTaskPrefixScan(T const* gci, T* gco, int32_t size, CUDATask * task, T* gpsum) {
+      volatile auto ci = gci;
+      volatile auto co = gco;
+      volatile auto psum = gpsum;
 
       __shared__ T ws[32];
 
@@ -216,9 +219,10 @@ namespace cms {
       auto epilogue = [&](int32_t iWork) {
       // now it is very handy to have the other blocks around...
       auto first = (iWork + 1) * blockDim.x + threadIdx.x;
-      for (int i = first; i < size; i += gridDim.x * blockDim.x) {
-        assert(iWork < size / blockDim.x);
-        co[i] += psum[iWork];
+      for (int i = first, k=iWork; i < size; i += gridDim.x * blockDim.x, k+=gridDim.x) {
+        assert(k < size / blockDim.x);
+        assert( (0==k) || (psum[k]>=psum[k-1]) );
+        co[i] += psum[k];
       }
       };
 
@@ -255,10 +259,12 @@ namespace cms {
       task.doit(body, tail);
 
       // now it is very handy to have the other blocks around...
-      auto first = (blockIdx.x + 1) * blockDim.x + threadIdx.x;
-      for (int i = first; i < size; i += gridDim.x * blockDim.x) {
-        assert(blockIdx.x < size / blockDim.x);
-        co[i] += psum[blockIdx.x];
+      auto iWork = blockIdx.x;
+      auto first = (iWork + 1) * blockDim.x + threadIdx.x;
+      for (int i = first, k=iWork; i < size; i += gridDim.x * blockDim.x, k+=gridDim.x) {
+        assert(k < size / blockDim.x);
+        assert( (0==k) || (psum[k]>=psum[k-1]) );
+        co[i] += psum[k];
       }
     }
 
@@ -304,10 +310,12 @@ namespace cms {
       grid.sync();
 
       // now it is very handy to have the other blocks around...
-      auto first = (blockIdx.x + 1) * blockDim.x + threadIdx.x;
-      for (int i = first; i < size; i += gridDim.x * blockDim.x) {
-        assert(blockIdx.x < size / blockDim.x);
-        co[i] += psum[blockIdx.x];
+      auto iWork = blockIdx.x;
+      auto first = (iWork + 1) * blockDim.x + threadIdx.x;
+      for (int i = first, k=iWork; i < size; i += gridDim.x * blockDim.x, k+=gridDim.x) {
+        assert(k < size / blockDim.x);
+        assert( (0==k) || (psum[k]>=psum[k-1]) );
+        co[i] += psum[k];
       }
     }
 

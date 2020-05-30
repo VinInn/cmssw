@@ -77,6 +77,38 @@ __global__ void fill(TK const* __restrict__ tk, Assoc* __restrict__ assoc, int32
   }
 }
 
+__global__ void countAndFill(TK const* __restrict__ tk, Assoc* __restrict__ assoc, int32_t n) {
+
+  auto count = [&](int iWork) {
+  int first = blockDim.x * iWork + threadIdx.x;
+  for (int i = first; i < 4 * n; i += gridDim.x * blockDim.x) {
+    auto k = i / 4;
+    auto j = i - 4 * k;
+    assert(j < 4);
+    if (k >= n)
+      return;
+    if (tk[k][j] < MaxElem)
+      assoc->countDirect(tk[k][j]);
+  }
+  };
+
+  auto fill = [&](int iWork) {
+  int first = blockDim.x * iWork + threadIdx.x;
+  for (int i = first; i < 4 * n; i += gridDim.x * blockDim.x) {
+    auto k = i / 4;
+    auto j = i - 4 * k;
+    assert(j < 4);
+    if (k >= n)
+      return;
+    if (tk[k][j] < MaxElem)
+      assoc->fillDirect(tk[k][j], k);
+  }
+  };
+
+  assoc->countAndFill(count,fill);
+}
+
+
 __global__ void verify(Assoc* __restrict__ assoc) { assert(assoc->size() < Assoc::capacity()); }
 
 template <typename Assoc>
@@ -169,11 +201,16 @@ int main() {
   assert(v_d.get());
   auto a_d = cms::cuda::make_device_unique<Assoc[]>(1, nullptr);
   auto sa_d = cms::cuda::make_device_unique<SmallAssoc[]>(1, nullptr);
+  auto a2_d = cms::cuda::make_device_unique<Assoc[]>(1, nullptr);
+  auto sa2_d = cms::cuda::make_device_unique<SmallAssoc[]>(1, nullptr);
+
   cudaCheck(cudaMemcpy(v_d.get(), tr.data(), N * sizeof(std::array<uint16_t, 4>), cudaMemcpyHostToDevice));
 #else
   auto a_d = std::make_unique<Assoc>();
   auto sa_d = std::make_unique<SmallAssoc>();
   auto v_d = tr.data();
+  auto a2_d = std::make_unique<Assoc>();
+  auto sa2_d = std::make_unique<SmallAssoc>();
 #endif
 
   launchZero(a_d.get(), 0);
@@ -187,19 +224,26 @@ int main() {
   launchFinalize(a_d.get(), 0);
   verify<<<1, 1>>>(a_d.get());
   fill<<<nBlocks, nThreads>>>(v_d.get(), a_d.get(), N);
+
+  countAndFill<<<nBlocks, nThreads>>>(v_d.get(), a2_d.get(), N);
+
 #else
   count(v_d, a_d.get(), N);
   launchFinalize(a_d.get());
   verify(a_d.get());
   fill(v_d, a_d.get(), N);
+  countAndFill(v_d, a2_d.get(), N);
+
 #endif
 
   Assoc la;
 
+auto verifyA = [&](Assoc const * pa) {
+
 #ifdef __CUDACC__
-  cudaCheck(cudaMemcpy(&la, a_d.get(), sizeof(Assoc), cudaMemcpyDeviceToHost));
+  cudaCheck(cudaMemcpy(&la, pa, sizeof(Assoc), cudaMemcpyDeviceToHost));
 #else
-  memcpy(&la, a_d.get(), sizeof(Assoc));  // not required, easier
+  memcpy(&la, pa, sizeof(Assoc));  // not required, easier
 #endif
 
   std::cout << la.size() << std::endl;
@@ -217,6 +261,14 @@ int main() {
   }
   assert(0 == la.size(n));
   std::cout << "found with " << n << " elements " << double(ave) / n << ' ' << imax << ' ' << z << std::endl;
+};
+
+verifyA(a_d.get());
+verifyA(a2_d.get());
+
+
+
+
 
   // now the inverse map (actually this is the direct....)
   AtomicPairCounter* dc_d;

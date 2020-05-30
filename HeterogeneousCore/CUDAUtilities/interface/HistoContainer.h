@@ -150,6 +150,7 @@ namespace cms {
       nthreads = Histo::nthreads();
       // keep the number of blocks low
       auto nblocks = std::min(256, int(totSize + nthreads - 1) / nthreads);
+      // std::cout << "fillManyFromVectorKernel " << nblocks <<' '<< nthreads << std::endl;
       fillManyFromVectorKernel<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
 #endif
@@ -358,7 +359,21 @@ namespace cms {
 #else
         finalize();
 #endif
-        fill(blockIdx.x);
+/*       
+       auto verify = [&](int iWork) {
+//        if (iWork + threadIdx.x == 0) printf("last bins %d: %d %d %d\n",totbins(),off[totbins() - 1], off[totbins() - 2], off[totbins() - 3]);
+        assert(off[totbins() - 1] == off[totbins() - 2]);
+        auto first = blockDim.x * iWork + threadIdx.x;
+        for (auto i = first; i < totbins()-1; i += gridDim.x * blockDim.x) {
+          if (off[i+1] < off[i]) printf("error %d: %d %d %d %d\n",i,off[i-1],off[i],off[i+1],off[i+2]);
+//          assert(off[i+1] >=off[i]);
+        }
+       };
+       tasks[4].doit(verify, voidTail);
+*/       
+
+        tasks[3].doit(fill, voidTail);
+        //fill(blockIdx.x);
       }
 
       constexpr auto size() const { return uint32_t(off[totbins() - 1]); }
@@ -371,7 +386,7 @@ namespace cms {
       constexpr index_type const *end(uint32_t b) const { return bins + off[b + 1]; }
 
       Counter off[totbins()];
-      CUDATask tasks[3];  // to run count-prefixscan-fill
+      CUDATask tasks[5];  // to run count-prefixscan-fill
       index_type bins[capacity()];
       uint32_t psws[nblocks()];
     };

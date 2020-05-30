@@ -107,6 +107,7 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
   blockSize = device_tupleMultiplicity_->nthreads();
   numberOfBlocks = std::min(256, int(3 * CAConstants::maxTuples() / 4 + blockSize - 1) / blockSize);
   // numberOfBlocks = std::max(numberOfBlocks, device_tupleMultiplicity_->nblocks());
+  // std::cout    << "fillMultiplicity " << numberOfBlocks <<' '<< blockSize << std::endl;
   kernel_fillMultiplicity<<<numberOfBlocks, blockSize, 0, cudaStream>>>(
       tuples_d, quality_d, device_tupleMultiplicity_.get());
   cudaCheck(cudaGetLastError());

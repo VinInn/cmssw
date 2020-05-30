@@ -24,7 +24,7 @@ namespace cms {
         return std::make_pair(deviceProp[dev].multiProcessorCount * numBlocksPerSm[dev], nThreads);
       }
 
-      const int nThreads = 256;
+      const int nThreads;
       cudaDeviceProp deviceProp[16];
       int numBlocksPerSm[16] = {0};
     };
@@ -52,14 +52,14 @@ namespace cms {
 
         isLastBlockDone = false;
 
-        /*     
+           
      //  fast jump for late blocks??  (worth only if way to many blocks scheduled)
      if (0 == threadIdx.x) {
           iWork = nWork;
      }
      __syncthreads();
      done = iWork >=int(gridDim.x);
-     */
+     
 
         while (__syncthreads_and(!done)) {
           if (0 == threadIdx.x) {
@@ -92,6 +92,7 @@ namespace cms {
 
           // good each block has done its work and now we are left in last block
           tail();
+           __threadfence();
           __syncthreads();
           if (0 == threadIdx.x)
             allDone = 1;
