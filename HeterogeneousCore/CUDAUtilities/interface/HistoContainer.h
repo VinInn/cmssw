@@ -1,6 +1,8 @@
 #ifndef HeterogeneousCore_CUDAUtilities_interface_HistoContainer_h
 #define HeterogeneousCore_CUDAUtilities_interface_HistoContainer_h
 
+// #define GPU_DEBUG
+
 #include <algorithm>
 #ifndef __CUDA_ARCH__
 #include <atomic>
@@ -13,7 +15,9 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cuda_assert.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cudastdAlgorithm.h"
+
 #include "HeterogeneousCore/CUDAUtilities/interface/prefixScan.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/launch.h"
 
 namespace cms {
   namespace cuda {
@@ -76,15 +80,51 @@ namespace cms {
     ) {
 #ifdef __CUDACC__
       uint32_t *poff = (uint32_t *)((char *)(h) + offsetof(Histo, off));
-      int32_t *ppsws = (int32_t *)((char *)(h) + offsetof(Histo, psws));
-      auto nthreads = 1024;
-      auto nblocks = (Histo::totbins() + nthreads - 1) / nthreads;
-      multiBlockPrefixScan<<<nblocks, nthreads, sizeof(int32_t) * nblocks, stream>>>(
-          poff, poff, Histo::totbins(), ppsws);
+      uint32_t *ppsws = (uint32_t *)((char *)(h) + offsetof(Histo, psws));
+
+      static CoopKernelConfig config(Histo::nthreads());
+      auto kc = config.getConfig(coopPrefixScanKernel<uint32_t>);
+
+      auto nthreads = Histo::nthreads();
+      auto nblocks = std::min(Histo::nblocks(),kc.first);
+      launch_cooperative(coopPrefixScanKernel<uint32_t>,{nblocks, nthreads, 0, stream},poff, poff, Histo::totbins(), ppsws);
       cudaCheck(cudaGetLastError());
 #else
       h->finalize();
 #endif
+    }
+
+    template <typename Histo, typename T>
+    __global__ void fillManyFromVectorKernel(Histo *__restrict__ ph,
+                                             uint32_t nh,
+                                             T const *__restrict__ v,
+                                             uint32_t const *__restrict__ offsets) {
+      auto &h = *ph;
+      auto count = [&](int32_t iWork) {
+        int first = blockDim.x * iWork + threadIdx.x;
+        for (int i = first, nt = offsets[nh]; i < nt; i += gridDim.x * blockDim.x) {
+          auto off = cuda_std::upper_bound(offsets, offsets + nh + 1, i);
+          assert((*off) > 0);
+          int32_t ih = off - offsets - 1;
+          assert(ih >= 0);
+          assert(ih < int(nh));
+          h.count(v[i], ih);
+        }
+      };
+
+      auto fill = [&](int32_t iWork) {
+        int first = blockDim.x * iWork + threadIdx.x;
+        for (int i = first, nt = offsets[nh]; i < nt; i += gridDim.x * blockDim.x) {
+          auto off = cuda_std::upper_bound(offsets, offsets + nh + 1, i);
+          assert((*off) > 0);
+          int32_t ih = off - offsets - 1;
+          assert(ih >= 0);
+          assert(ih < int(nh));
+          h.fill(v[i], i, ih);
+        }
+      };
+
+      h.countAndFill(count, fill);
     }
 
     template <typename Histo, typename T>
@@ -101,12 +141,23 @@ namespace cms {
     ) {
       launchZero(h, stream);
 #ifdef __CUDACC__
+
+#ifdef NO_CUDATASK
       auto nblocks = (totSize + nthreads - 1) / nthreads;
       countFromVector<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
       launchFinalize(h, stream);
       fillFromVector<<<nblocks, nthreads, 0, stream>>>(h, nh, v, offsets);
       cudaCheck(cudaGetLastError());
+#else
+      static CoopKernelConfig config(Histo::nthreads());
+      auto kc = config.getConfig(fillManyFromVectorKernel<Histo, T>);
+
+      nthreads = Histo::nthreads();
+      auto nblocks = std::min(kc.first, int(totSize + nthreads - 1) / nthreads);
+      launch_cooperative(fillManyFromVectorKernel<Histo, T>,{nblocks, nthreads, 0, stream},h, nh, v, offsets);
+      cudaCheck(cudaGetLastError());
+#endif
 #else
       countFromVector(h, nh, v, offsets);
       h->finalize();
@@ -177,6 +228,12 @@ namespace cms {
       static constexpr uint32_t totbins() { return NHISTS * NBINS + 1; }
       static constexpr uint32_t nbits() { return ilog2(NBINS - 1) + 1; }
       static constexpr uint32_t capacity() { return SIZE; }
+
+      static constexpr int32_t nthreads() { return 256; }
+      static constexpr int32_t nblocks() { return (totbins() + nthreads() - 1) / nthreads(); }
+
+      static_assert(nblocks() <= 1024, "too many blocks to perform prefix scan");
+      static_assert(nblocks() >= totbins() / nthreads(), "too few blocks to perform prefix scan");
 
       static constexpr auto histOff(uint32_t nh) { return NBINS * nh; }
 
@@ -297,6 +354,20 @@ namespace cms {
         assert(off[totbins() - 1] == off[totbins() - 2]);
       }
 
+      template <typename COUNT, typename FILL>
+      __device__ __forceinline__ void countAndFill(COUNT count, FILL fill) {
+        auto grid = cooperative_groups::this_grid();
+        count(blockIdx.x);
+        grid.sync();
+#ifdef __CUDACC__
+        coopPrefixScan(off, off, totbins(), psws);
+#else
+        finalize();
+#endif
+        grid.sync();
+        fill(blockIdx.x);
+      }
+
       constexpr auto size() const { return uint32_t(off[totbins() - 1]); }
       constexpr auto size(uint32_t b) const { return off[b + 1] - off[b]; }
 
@@ -307,8 +378,9 @@ namespace cms {
       constexpr index_type const *end(uint32_t b) const { return bins + off[b + 1]; }
 
       Counter off[totbins()];
-      int32_t psws;  // prefix-scan working space
+      CUDATask tasks[3];  // to run count-prefixscan-fill
       index_type bins[capacity()];
+      uint32_t psws[nblocks()];
     };
 
     template <typename I,        // type stored in the container (usually an index in a vector of the input values)
@@ -319,5 +391,7 @@ namespace cms {
 
   }  // namespace cuda
 }  // namespace cms
+
+// #undef GPU_DEBUG
 
 #endif  // HeterogeneousCore_CUDAUtilities_interface_HistoContainer_h

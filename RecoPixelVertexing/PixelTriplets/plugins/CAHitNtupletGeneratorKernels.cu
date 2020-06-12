@@ -1,3 +1,4 @@
+#define GPU_DEBUG
 #include "RecoPixelVertexing/PixelTriplets/plugins/CAHitNtupletGeneratorKernelsImpl.h"
 
 template <>
@@ -35,8 +36,8 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
 
   auto nthTot = 64;
   auto stride = 4;
-  auto blockSize = nthTot / stride;
-  auto numberOfBlocks = (3 * m_params.maxNumberOfDoublets_ / 4 + blockSize - 1) / blockSize;
+  int blockSize = nthTot / stride;
+  int numberOfBlocks = (3 * m_params.maxNumberOfDoublets_ / 4 + blockSize - 1) / blockSize;
   auto rescale = numberOfBlocks / 65536;
   blockSize *= (rescale + 1);
   numberOfBlocks = (3 * m_params.maxNumberOfDoublets_ / 4 + blockSize - 1) / blockSize;
@@ -104,12 +105,13 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
       device_theCells_.get(), device_nCells_, tuples_d, quality_d);
   cudaCheck(cudaGetLastError());
 
-  blockSize = 128;
-  numberOfBlocks = (3 * CAConstants::maxTuples() / 4 + blockSize - 1) / blockSize;
-  kernel_countMultiplicity<<<numberOfBlocks, blockSize, 0, cudaStream>>>(
-      tuples_d, quality_d, device_tupleMultiplicity_.get());
-  cms::cuda::launchFinalize(device_tupleMultiplicity_.get(), cudaStream);
-  kernel_fillMultiplicity<<<numberOfBlocks, blockSize, 0, cudaStream>>>(
+  // fill multiplicity histos 
+  static cms::cuda::CoopKernelConfig config(CAConstants::TupleMultiplicity::nthreads());
+  auto kc = config.getConfig(kernel_fillMultiplicity);
+  blockSize = kc.second;
+  numberOfBlocks = int(3 * CAConstants::maxTuples() / 4 + blockSize - 1) / blockSize;
+  numberOfBlocks = std::min(numberOfBlocks,kc.first);
+  launch_cooperative(kernel_fillMultiplicity,{numberOfBlocks, blockSize, 0, cudaStream},
       tuples_d, quality_d, device_tupleMultiplicity_.get());
   cudaCheck(cudaGetLastError());
 
@@ -146,78 +148,6 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
 #endif
 }
 
-template <>
-void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, cudaStream_t stream) {
-  auto nhits = hh.nHits();
-
-#ifdef NTUPLE_DEBUG
-  std::cout << "building Doublets out of " << nhits << " Hits" << std::endl;
-#endif
-
-#ifdef GPU_DEBUG
-  cudaDeviceSynchronize();
-  cudaCheck(cudaGetLastError());
-#endif
-
-  // in principle we can use "nhits" to heuristically dimension the workspace...
-  device_isOuterHitOfCell_ = cms::cuda::make_device_unique<GPUCACell::OuterHitOfCell[]>(std::max(1U, nhits), stream);
-  assert(device_isOuterHitOfCell_.get());
-  {
-    int threadsPerBlock = 128;
-    // at least one block!
-    int blocks = (std::max(1U, nhits) + threadsPerBlock - 1) / threadsPerBlock;
-    gpuPixelDoublets::initDoublets<<<blocks, threadsPerBlock, 0, stream>>>(device_isOuterHitOfCell_.get(),
-                                                                           nhits,
-                                                                           device_theCellNeighbors_,
-                                                                           device_theCellNeighborsContainer_.get(),
-                                                                           device_theCellTracks_,
-                                                                           device_theCellTracksContainer_.get());
-    cudaCheck(cudaGetLastError());
-  }
-
-  device_theCells_ = cms::cuda::make_device_unique<GPUCACell[]>(m_params.maxNumberOfDoublets_, stream);
-
-#ifdef GPU_DEBUG
-  cudaDeviceSynchronize();
-  cudaCheck(cudaGetLastError());
-#endif
-
-  if (0 == nhits)
-    return;  // protect against empty events
-
-  // FIXME avoid magic numbers
-  auto nActualPairs = gpuPixelDoublets::nPairs;
-  if (!m_params.includeJumpingForwardDoublets_)
-    nActualPairs = 15;
-  if (m_params.minHitsPerNtuplet_ > 3) {
-    nActualPairs = 13;
-  }
-
-  assert(nActualPairs <= gpuPixelDoublets::nPairs);
-  int stride = 4;
-  int threadsPerBlock = gpuPixelDoublets::getDoubletsFromHistoMaxBlockSize / stride;
-  int blocks = (4 * nhits + threadsPerBlock - 1) / threadsPerBlock;
-  dim3 blks(1, blocks, 1);
-  dim3 thrs(stride, threadsPerBlock, 1);
-  gpuPixelDoublets::getDoubletsFromHisto<<<blks, thrs, 0, stream>>>(device_theCells_.get(),
-                                                                    device_nCells_,
-                                                                    device_theCellNeighbors_,
-                                                                    device_theCellTracks_,
-                                                                    hh.view(),
-                                                                    device_isOuterHitOfCell_.get(),
-                                                                    nActualPairs,
-                                                                    m_params.idealConditions_,
-                                                                    m_params.doClusterCut_,
-                                                                    m_params.doZ0Cut_,
-                                                                    m_params.doPtCut_,
-                                                                    m_params.maxNumberOfDoublets_);
-  cudaCheck(cudaGetLastError());
-
-#ifdef GPU_DEBUG
-  cudaDeviceSynchronize();
-  cudaCheck(cudaGetLastError());
-#endif
-}
 
 template <>
 void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA *tracks_d, cudaStream_t cudaStream) {
@@ -228,7 +158,7 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
   auto blockSize = 64;
 
   // classify tracks based on kinematics
-  auto numberOfBlocks = (3 * CAConstants::maxNumberOfQuadruplets() / 4 + blockSize - 1) / blockSize;
+  int numberOfBlocks = (3 * CAConstants::maxNumberOfQuadruplets() / 4 + blockSize - 1) / blockSize;
   kernel_classifyTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(tuples_d, tracks_d, m_params.cuts_, quality_d);
   cudaCheck(cudaGetLastError());
 
@@ -248,14 +178,14 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
 
   if (m_params.minHitsPerNtuplet_ < 4 || m_params.doStats_) {
     // fill hit->track "map"
-    numberOfBlocks = (3 * CAConstants::maxNumberOfQuadruplets() / 4 + blockSize - 1) / blockSize;
-    kernel_countHitInTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(
+     static cms::cuda::CoopKernelConfig config(CAConstants::HitToTuple::nthreads());
+     auto kc = config.getConfig(kernel_fillHitInTracks);
+     blockSize = kc.second;
+     numberOfBlocks = int(3 * CAConstants::maxTuples() / 4 + blockSize - 1) / blockSize;
+     numberOfBlocks = std::min(numberOfBlocks,kc.first);
+     launch_cooperative(kernel_fillHitInTracks,{numberOfBlocks, blockSize, 0, cudaStream},
         tuples_d, quality_d, device_hitToTuple_.get());
-    cudaCheck(cudaGetLastError());
-    cms::cuda::launchFinalize(device_hitToTuple_.get(), cudaStream);
-    cudaCheck(cudaGetLastError());
-    kernel_fillHitInTracks<<<numberOfBlocks, blockSize, 0, cudaStream>>>(tuples_d, quality_d, device_hitToTuple_.get());
-    cudaCheck(cudaGetLastError());
+     cudaCheck(cudaGetLastError());
   }
   if (m_params.minHitsPerNtuplet_ < 4) {
     // remove duplicates (tracks that share a hit)

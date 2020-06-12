@@ -1,5 +1,8 @@
 <use name="HeterogeneousCore/CUDAUtilities"/>
 <iftool name="cuda-gcc-support">
+
+  <bin file="mainMT_t.cpp" />
+
   <bin file="assert_t.cu" name="cudaAssert_t">
     <flags CUDA_FLAGS="-g"/>
   </bin>
@@ -83,6 +86,16 @@
   <bin file="prefixScan_t.cu" name="gpuPrefixScan_debug">
     <flags CUDA_FLAGS="-g -DGPU_DEBUG"/>
   </bin>
+
+
+  <bin file="CUDATask_t.cu" name="gpuCUDATask_t">
+    <flags CUDA_FLAGS="-g"/>
+  </bin>
+
+  <bin file="CUDATask_t.cpp" name="cpuCUDATask_t">
+    <flags CXXFLAGS="-g"/>
+  </bin>
+
 
   <bin file="testCatch2Main.cpp,device_unique_ptr_t.cpp,host_unique_ptr_t.cpp,host_noncached_unique_ptr_t.cpp,copyAsync_t.cpp,memsetAsync_t.cpp" name="cudaMemUtils_t">
     <use name="catch2"/>
