@@ -205,15 +205,17 @@ void PixelCPEFast::fillParamsForGpu() {
       return std::min(511, int(x * 1.e4f + 0.5f));
     };
 
-    {
-      // average angle
-      auto gvx = p.theOrigin.x() + 40.f * m_commonParamsGPU.thePitchX;
-      auto gvy = p.theOrigin.y();
-      auto gvz = 1.f / p.theOrigin.z();
-      cp.cotalpha = gvx * gvz;
-      cp.cotbeta = gvy * gvz;
-      errorFromTemplates(p, cp, 20000.);
-    }
+    // average angle
+    auto gvx = p.theOrigin.x() + 40.f * m_commonParamsGPU.thePitchX;
+    auto gvy = p.theOrigin.y();
+    auto gvz = 1.f / p.theOrigin.z();
+    cp.cotalpha = gvx * gvz;
+    cp.cotbeta = gvy * gvz;
+    auto aveCA = cp.cotalpha;
+    auto aveCB = cp.cotbeta;
+
+    errorFromTemplates(p, cp, 20000.);
+
 #ifdef DUMP_ERRORS
     auto m = 10000.f;
     std::cout << i << ' ' << (g.isBarrel ? 'B' : 'E') << " ape " << m * std::sqrt(lape.xx()) << ' '
@@ -230,13 +232,11 @@ void PixelCPEFast::fillParamsForGpu() {
 
     // sample xerr as function of position
     auto xoff = -81.f * m_commonParamsGPU.thePitchX;
-
     for (int ix = 0; ix < 16; ++ix) {
       auto x = xoff + (0.5f + float(ix)) * 162.f * m_commonParamsGPU.thePitchX / 16.f;
       auto gvx = p.theOrigin.x() - x;
-      auto gvy = p.theOrigin.y();
       auto gvz = 1.f / p.theOrigin.z();
-      cp.cotbeta = gvy * gvz;
+      cp.cotbeta = aveCB;
       cp.cotalpha = gvx * gvz;
       errorFromTemplates(p, cp, 20000.f);
       g.sigmax[ix] = toMicronX(cp.sigmax);
@@ -247,31 +247,90 @@ void PixelCPEFast::fillParamsForGpu() {
 #endif
     }
 
-#ifdef DUMP_ERRORS
-    // sample yerr as function of position
-    auto yoff = -54 * 4.f * m_commonParamsGPU.thePitchY;
-    for (int ix = 0; ix < 16; ++ix) {
-      auto y = yoff + (0.5f + float(ix)) * 432.f * m_commonParamsGPU.thePitchY / 16.f;
-      auto gvx = p.theOrigin.x() + 40.f * m_commonParamsGPU.thePitchY;
-      auto gvy = p.theOrigin.y() - y;
-      auto gvz = 1.f / p.theOrigin.z();
-      cp.cotbeta = gvy * gvz;
-      cp.cotalpha = gvx * gvz;
+    /*    not needed:  all the same!
+    // sample yerr as function of real angle
+    cp.cotalpha = aveCB;
+    auto cbMin = 1000.f;
+    auto cbMax = -1000.f;
+    LocalPoint vz[2] =  { p.theDet->surface().toLocal(GlobalPoint(0, 0, 15.)), p.theDet->surface().toLocal(GlobalPoint(0, 0, -15.))};
+    auto ymax = 54.f * 4.f * m_commonParamsGPU.thePitchY;
+    for (auto const & v : vz) {
+      auto gvy1 = v.y() - ymax;
+      auto gvy2 = v.y() + ymax;
+      auto gvz = 1.f / v.z();
+      cbMin = std::min(cbMin, gvy1 * gvz);
+      cbMax = std::max(cbMax, gvy1 * gvz);
+      cbMin = std::min(cbMin, gvy2 * gvz);
+      cbMax = std::max(cbMax, gvy2 * gvz);
+    }
+    assert(cbMax>cbMin);
+    auto cbIncr = (cbMax-cbMin)/16.f;
+    for (int iy = 0; iy < 16; ++iy) {
+      cp.cotbeta = cbMin + cbIncr*(float(iy)+0.5f);
       errorFromTemplates(p, cp, 20000.f);
-      std::cout << "sigmay vs y " << i << ' ' << y << ' ' << cp.cotbeta << ' ' << 10000.f * cp.sigmay << std::endl;
+      g.sigmayByCB[iy] = toMicronY(cp.sigmay);
+    }
+// #ifdef DUMP_ERRORS
+    std::cout << "sigmay vs cb " << i << ' ' << cbMin << '/' << cbMax;
+    for (auto s : g.sigmayByCB) std::cout << ' ' << int(s);
+    std::cout << std::endl;
+// #endif
+*/
+
+#ifdef DUMP_ERRORS
+    std::cout << "sigmay vs cb " << i;
+    for (float cb = 0.0f; cb < 2.4f; cb += 0.05f) {
+      cp.cotbeta = cb;
+      errorFromTemplates(p, cp, 20000.f);
+      std::cout << ' ' << int(100000.f * cp.sigmay + 0.5f);
+    }
+    std::cout << std::endl;
+#endif
+
+#ifdef DUMP_ERRORS
+    {
+      // sample xerr/yerr as function of real angle
+      cbMin = 1000.f;
+      cbMax = -1000.f;
+      LocalPoint vz[2] = {p.theDet->surface().toLocal(GlobalPoint(0, 0, 15.)),
+                          p.theDet->surface().toLocal(GlobalPoint(0, 0, -15.))};
+      auto xmax = 81 * m_commonParamsGPU.thePitchX;
+      auto ymax = 54 * 4.f * m_commonParamsGPU.thePitchY;
+      for (auto const& v : vz) {
+        auto gvx1 = v.x() + xmax;
+        auto gvx2 = v.x() - xmax;
+        auto gvy1 = v.y() - ymax;
+        auto gvy2 = v.y() + ymax;
+        auto gvz = 1.f / v.z();
+
+        cp.cotalpha = gvx1 * gvz;
+        cp.cotbeta = gvy1 * gvz;
+
+        errorFromTemplates(p, cp, 20000.f);
+        std::cout << "sigmas vs vz " << i << ' ' << cp.cotalpha << '/' << cp.cotbeta << ' ' << 10000.f * cp.sigmax
+                  << '/' << 10000.f * cp.sigmay << std::endl;
+        cp.cotbeta = gvy2 * gvz;
+        errorFromTemplates(p, cp, 20000.f);
+        std::cout << "sigmas vs vz " << i << ' ' << cp.cotalpha << '/' << cp.cotbeta << ' ' << 10000.f * cp.sigmax
+                  << '/' << 10000.f * cp.sigmay << std::endl;
+
+        cp.cotalpha = gvx2 * gvz;
+        cp.cotbeta = gvy1 * gvz;
+        errorFromTemplates(p, cp, 20000.f);
+        std::cout << "sigmas vs vz " << i << ' ' << cp.cotalpha << '/' << cp.cotbeta << ' ' << 10000.f * cp.sigmax
+                  << '/' << 10000.f * cp.sigmay << std::endl;
+        cp.cotbeta = gvy2 * gvz;
+        errorFromTemplates(p, cp, 20000.f);
+        std::cout << "sigmas vs vz " << i << ' ' << cp.cotalpha << '/' << cp.cotbeta << ' ' << 10000.f * cp.sigmax
+                  << '/' << 10000.f * cp.sigmay << std::endl;
+      }
     }
 #endif
 
     // average angle
-    auto gvx = p.theOrigin.x() + 40.f * m_commonParamsGPU.thePitchX;
-    auto gvy = p.theOrigin.y();
-    auto gvz = 1.f / p.theOrigin.z();
-    //--- Note that the normalization is not required as only the ratio used
-
-    // calculate angles
-    cp.cotalpha = gvx * gvz;
-    cp.cotbeta = gvy * gvz;
-    auto aveCB = cp.cotbeta;
+    cp.cotalpha = aveCA;
+    ;
+    cp.cotbeta = aveCB;
 
     // sample x by charge
     int qbin = 5;  // low charge
@@ -308,7 +367,7 @@ void PixelCPEFast::fillParamsForGpu() {
     float ys = 8.f - 4.f;  // apperent bias of half pixel (see plot)
     // sample yerr as function of "size"
     for (int iy = 0; iy < 16; ++iy) {
-      ys += 1.f;  // first bin 0 is for size 9  (and size is in fixed point 2^3)
+      ys += 1.f;  // first bin 0 is for size 9  (and size is in fixed point 2^3)  bin 8 corresponds to cb = 0.79
       if (15 == iy)
         ys += 8.f;  // last bin for "overflow"
       // cp.cotalpha = ys*100.f/(8.f*285.f);

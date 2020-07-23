@@ -72,15 +72,26 @@ __global__ void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
     __syncthreads();
     bool dump = (foundNtuplets->size(tkid) == 5 && 0 == atomicAdd(&done, 1));
 #endif
-
-    // Prepare data structure
     auto const *hitId = foundNtuplets->begin(tkid);
+    // try to compute more precise error in y
+    auto dx = hhp->xGlobal(hitId[hitsInFit - 1]) - hhp->xGlobal(hitId[0]);
+    auto dy = hhp->yGlobal(hitId[hitsInFit - 1]) - hhp->yGlobal(hitId[0]);
+    auto dz = hhp->zGlobal(hitId[hitsInFit - 1]) - hhp->zGlobal(hitId[0]);
+    float ux, uy, uz;
+    // Prepare data structure
     for (unsigned int i = 0; i < hitsInFit; ++i) {
       auto hit = hitId[i];
+      auto const &dp = hhp->cpeParams().detParams(hhp->detectorIndex(hit));
       float ge[6];
-      hhp->cpeParams()
-          .detParams(hhp->detectorIndex(hit))
-          .frame.toGlobal(hhp->xerrLocal(hit), 0, hhp->yerrLocal(hit), ge);
+      // compute cotanbeta
+      dp.frame.rotation().multiply(dx, dy, dz, ux, uy, uz);
+      auto cb = std::abs(uy / uz);
+      int bin = int(cb * (285.f / 150.f) * 8.f) - 4;
+      bin = std::max(0, std::min(15, bin));
+      float yerr = dp.sigmay[bin] * 1.e-4f;
+      yerr *= yerr;
+      yerr = hhp->yerrLocal(hit) > (400.e-8f) ? hhp->yerrLocal(hit) : yerr;  // inflate add ape....
+      dp.frame.toGlobal(hhp->xerrLocal(hit), 0, yerr, ge);
 #ifdef BL_DUMP_HITS
       if (dump) {
         printf("Hit global: %d: %d hits.col(%d) << %f,%f,%f\n",
