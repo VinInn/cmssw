@@ -734,7 +734,7 @@ __global__ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict_
   // quality to mark rejected
   auto const reject = pixelTrack::Quality::loose;
   /// min quality of good
-  auto const good = pixelTrack::Quality::dup;
+  auto const good = pixelTrack::Quality::loose;
 
   auto &hitToTuple = *phitToTuple;
   auto const &foundNtuplets = *ptuples;
