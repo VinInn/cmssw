@@ -734,7 +734,7 @@ __global__ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict_
   // quality to mark rejected
   auto const reject = pixelTrack::Quality::loose;
   /// min quality of good
-  auto const good = pixelTrack::Quality::strict;
+  auto const good = pixelTrack::Quality::dup;
 
   auto &hitToTuple = *phitToTuple;
   auto const &foundNtuplets = *ptuples;
@@ -747,6 +747,8 @@ __global__ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict_
 
     float mc = 10000.f;
     uint16_t im = 60000;
+
+    /*
     uint32_t maxNh = 0;
 
     // find maxNh
@@ -760,8 +762,9 @@ __global__ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict_
     // only triplets
     if (maxNh != 3)
       continue;
+    */
 
-    // for triplets choose best tip!  (should we first find best quality???)
+    // choose best tip!  (should we first find best quality???)
     for (auto ip = hitToTuple.begin(idx); ip != hitToTuple.end(idx); ++ip) {
       auto const it = *ip;
       if (quality[it] >= good && std::abs(tracks.tip(it)) < mc) {
@@ -776,7 +779,7 @@ __global__ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict_
     // mark worse ambiguities
     for (auto ip = hitToTuple.begin(idx); ip != hitToTuple.end(idx); ++ip) {
       auto const it = *ip;
-      if (quality[it] > reject && it != im)
+      if (quality[it] > reject && foundNtuplets.size(it)==3 && it != im)
         quality[it] = reject;  //no race:  simple assignment of the same constant
     }
 
