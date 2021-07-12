@@ -35,19 +35,11 @@ SiPixelGainCalibrationForHLTGPU::SiPixelGainCalibrationForHLTGPU(const SiPixelGa
   auto maxPed = gains.getPedHigh();
   auto minGain = gains.getGainLow();
   auto maxGain = gains.getGainHigh();
-  auto nBinsToUseForEncoding = 253;
 
   // we will simplify later (not everything is needed....)
+  constexpr float nBinsToUseForEncoding = 253;
   gainForHLTonHost_->minPed_ = minPed;
-  gainForHLTonHost_->maxPed_ = maxPed;
   gainForHLTonHost_->minGain_ = minGain;
-  gainForHLTonHost_->maxGain_ = maxGain;
-
-  gainForHLTonHost_->numberOfRowsAveragedOver_ = 80;
-  gainForHLTonHost_->nBinsToUseForEncoding_ = nBinsToUseForEncoding;
-  gainForHLTonHost_->deadFlag_ = 255;
-  gainForHLTonHost_->noisyFlag_ = 254;
-
   gainForHLTonHost_->pedPrecision_ = static_cast<float>(maxPed - minPed) / nBinsToUseForEncoding;
   gainForHLTonHost_->gainPrecision_ = static_cast<float>(maxGain - minGain) / nBinsToUseForEncoding;
 

@@ -42,8 +42,9 @@ namespace gpuCalibPixel {
       if (invalidModuleId == id[i])
         continue;
 
-      float conversionFactor = (isRun2) ? (id[i] < 96 ? VCaltoElectronGain_L1 : VCaltoElectronGain) : 1.f;
-      float offset = (isRun2) ? (id[i] < 96 ? VCaltoElectronOffset_L1 : VCaltoElectronOffset) : 0;
+      // run2 values  (for run 3 are 1. and 0.)
+      float conversionFactor = (id[i] < 96 ? VCaltoElectronGain_L1 : VCaltoElectronGain);
+      float offset = (id[i] < 96 ? VCaltoElectronOffset_L1 : VCaltoElectronOffset);
 
       bool isDeadColumn = false, isNoisyColumn = false;
 
@@ -58,8 +59,8 @@ namespace gpuCalibPixel {
         adc[i] = 0;
         printf("bad pixel at %d in %d\n", i, id[i]);
       } else {
-        float vcal = adc[i] * gain - pedestal * gain;
-        adc[i] = std::max(100, int(vcal * conversionFactor + offset));
+        float vcal = (float(adc[i]) - pedestal) * gain;
+        adc[i] = std::max(100, int(isRun2 ? vcal * conversionFactor + offset : vcal));
       }
     }
   }
