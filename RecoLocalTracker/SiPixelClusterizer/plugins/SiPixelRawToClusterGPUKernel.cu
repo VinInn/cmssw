@@ -456,7 +456,8 @@ namespace pixelgpudetails {
                                       uint32_t *__restrict__ moduleStart,
                                       uint32_t const *__restrict__ nModules,
                                       uint32_t *__restrict__ nModules_Clusters) {
-    assert(gpuClustering::maxNumModules < 2048);  // easy to extend at least till 32*1024
+    assert(gpuClustering::maxNumModules > 1024);
+    assert(gpuClustering::maxNumModules < 4 * 1024);  // easy to extend at least till 32*1024
     assert(1 == gridDim.x);
     assert(0 == blockIdx.x);
 
@@ -466,16 +467,43 @@ namespace pixelgpudetails {
     for (int i = first, iend = gpuClustering::maxNumModules; i < iend; i += blockDim.x) {
       moduleStart[i + 1] = std::min(gpuClustering::maxHitsInModule(), clusInModule[i]);
     }
+    __syncthreads();
 
     __shared__ uint32_t ws[32];
     cms::cuda::blockPrefixScan(moduleStart + 1, moduleStart + 1, 1024, ws);
-    cms::cuda::blockPrefixScan(moduleStart + 1025, moduleStart + 1025, gpuClustering::maxNumModules - 1024, ws);
+    cms::cuda::blockPrefixScan(
+        moduleStart + 1025, moduleStart + 1025, std::min(1024, gpuClustering::maxNumModules - 1024), ws);
+    if constexpr (gpuClustering::maxNumModules > 2 * 1024)
+      cms::cuda::blockPrefixScan(moduleStart + 1024 + 1025,
+                                 moduleStart + 1024 + 1025,
+                                 std::min(1024, gpuClustering::maxNumModules - 2 * 1024),
+                                 ws);
+    if constexpr (gpuClustering::maxNumModules > 3 * 1024)
+      cms::cuda::blockPrefixScan(moduleStart + 2048 + 1025,
+                                 moduleStart + 2048 + 1025,
+                                 std::min(1024, gpuClustering::maxNumModules - 3 * 1024),
+                                 ws);
 
-    for (int i = first + 1025, iend = gpuClustering::maxNumModules + 1; i < iend; i += blockDim.x) {
+    for (int i = first + 1025, iend = std::min(2 * 1024, int(gpuClustering::maxNumModules)) + 1; i < iend;
+         i += blockDim.x) {
       moduleStart[i] += moduleStart[1024];
     }
     __syncthreads();
-
+    if constexpr (gpuClustering::maxNumModules > 2 * 1024) {
+      for (int i = first + 1024 + 1025, iend = std::min(3 * 1024, int(gpuClustering::maxNumModules)) + 1; i < iend;
+           i += blockDim.x) {
+        moduleStart[i] += moduleStart[2 * 1024];
+      }
+      __syncthreads();
+      if constexpr (gpuClustering::maxNumModules > 3 * 1024) {
+        for (int i = first + 2 * 1024 + 1025, iend = std::min(4 * 1024, int(gpuClustering::maxNumModules)) + 1;
+             i < iend;
+             i += blockDim.x) {
+          moduleStart[i] += moduleStart[3 * 1024];
+        }
+        __syncthreads();
+      }
+    }
     if (threadIdx.x == 0) {
       // copy the number of modules
       nModules_Clusters[0] = *nModules;
@@ -486,19 +514,21 @@ namespace pixelgpudetails {
     }
 
 #ifdef GPU_DEBUG
-    assert(0 == moduleStart[0]);
-    auto c0 = std::min(gpuClustering::maxHitsInModule(), clusInModule[0]);
-    assert(c0 == moduleStart[1]);
-    assert(moduleStart[1024] >= moduleStart[1023]);
-    assert(moduleStart[1025] >= moduleStart[1024]);
-    assert(moduleStart[gpuClustering::maxNumModules] >= moduleStart[1025]);
-
+    if (threadIdx.x == 0) {
+      assert(0 == moduleStart[0]);
+      auto c0 = std::min(gpuClustering::maxHitsInModule(), clusInModule[0]);
+      assert(c0 == moduleStart[1]);
+      assert(moduleStart[1024] >= moduleStart[1023]);
+      assert(moduleStart[1025] >= moduleStart[1024]);
+      assert(moduleStart[gpuClustering::maxNumModules] >= moduleStart[1025]);
+      printf("tot clusters: %d\n", moduleStart[gpuClustering::maxNumModules]);
+    }
     for (int i = first, iend = gpuClustering::maxNumModules + 1; i < iend; i += blockDim.x) {
       if (0 != i)
         assert(moduleStart[i] >= moduleStart[i - i]);
       // [BPX1, BPX2, BPX3, BPX4,  FP1,  FP2,  FP3,  FN1,  FN2,  FN3, LAST_VALID]
       // [   0,   96,  320,  672, 1184, 1296, 1408, 1520, 1632, 1744,       1856]
-      if (i == 96 || i == 1184 || i == 1744 || i == gpuClustering::maxNumModules)
+      if (i == 96 || i == 1184 || i == 1744 || i == 2048 + 2 || i == 3 * 1024 + 3 || i == gpuClustering::maxNumModules)
         printf("moduleStart %d %d\n", i, moduleStart[i]);
     }
 #endif
@@ -592,6 +622,7 @@ namespace pixelgpudetails {
                                                                         clusters_d.moduleStart(),
                                                                         clusters_d.clusInModule(),
                                                                         clusters_d.clusModuleStart());
+
       cudaCheck(cudaGetLastError());
 #ifdef GPU_DEBUG
       cudaDeviceSynchronize();
