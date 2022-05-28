@@ -14,7 +14,7 @@ namespace {
 
   //  free callback
   void CUDART_CB freeCallback(cudaStream_t streamId, cudaError_t status, void *p) {
-    //void CUDART_CB freeCallback(void *p) {
+    //void CUDART_CB freeCallback(void *p) {  // alternative signature in case of use of cudaLaunchHostFunc
     if (status != cudaSuccess) {
       std::cout << "Error in free callaback in stream " << streamId << std::endl;
       auto error = cudaGetErrorName(status);
@@ -37,7 +37,7 @@ struct CudaAlloc {
       poolDetails::freeAsync(payload);
     else
       cudaCheck(cudaStreamAddCallback((cudaStream_t)(stream), freeCallback, payload, 0));
-    // cudaCheck(cudaLaunchHostFunc(stream, freeCallback, payload));
+    // cudaCheck(cudaLaunchHostFunc(stream, freeCallback, payload)); // alternative
   }
 };
 

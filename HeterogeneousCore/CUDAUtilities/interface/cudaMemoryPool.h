@@ -1,5 +1,5 @@
 #pragma once
-#include "memoryPool.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/memoryPool.h"
 #include <vector>
 
 // only for cudaStream_t
@@ -59,17 +59,7 @@ namespace memoryPool {
     };
 
     template <typename T>
-    Buffer<T> makeBuffer(uint64_t size, Deleter const &del) {
-      auto ret = alloc(sizeof(T) * size, *del.pool());
-      if (ret.second < 0) {
-        std::cout << "could not allocate " << size << ' ' << typeid(T).name() << " of size " << sizeof(T) << std::endl;
-        throw std::bad_alloc();
-      }
-      return Buffer<T>((T *)(ret.first), ret.second, del);
-    }
-
-    template <typename T>
-    Buffer<T> makeBuffer(uint64_t size, Deleter &&del) {
+    Buffer<T> makeBuffer(uint64_t size, Deleter del) {
       auto ret = alloc(sizeof(T) * size, *del.pool());
       if (ret.second < 0) {
         std::cout << "could not allocate " << size << ' ' << typeid(T).name() << " of size " << sizeof(T) << std::endl;

@@ -24,8 +24,7 @@ namespace memoryPool {
   class Deleter {
   public:
     Deleter() = default;
-    explicit Deleter(std::shared_ptr<DeleterBase> const& del) : me(del) {}
-    explicit Deleter(std::shared_ptr<DeleterBase>&& del) : me(del) {}
+    explicit Deleter(std::shared_ptr<DeleterBase> del) : me(std::move(del)) {}
 
     void set(std::shared_ptr<DeleterBase> const& del) { me = del; }
     std::shared_ptr<DeleterBase> const& get() const { return me; }
@@ -57,8 +56,7 @@ namespace memoryPool {
 
     Buffer() = default;
     Buffer(T* p, int bucket) : m_p(p), m_bucket(bucket) {}
-    Buffer(T* p, int bucket, Deleter const& del) : m_deleter(del), m_p(p), m_bucket(bucket) {}
-    Buffer(T* p, int bucket, Deleter&& del) : m_deleter(del), m_p(p), m_bucket(bucket) {}
+    Buffer(T* p, int bucket, Deleter del) : m_deleter(std::move(del)), m_p(p), m_bucket(bucket) {}
     Buffer(std::pair<T*, int> const& rh, Deleter const& del) : m_deleter(del), m_p(rh.first), m_bucket(rh.second) {}
     Buffer(Buffer const&) = delete;
     Buffer& operator=(Buffer const&) = delete;
@@ -73,7 +71,7 @@ namespace memoryPool {
     }
 
     ~Buffer() {
-      // assert(m_p == pool()->pointer(m_bucket));
+      // assert(m_p == pool()->pointer(m_bucket));  // does not compile with current dependency of headers.
       if (m_p)
         m_deleter(m_bucket);
     }

@@ -26,8 +26,7 @@ TrackingRecHit2DHeterogeneous::TrackingRecHit2DHeterogeneous(uint32_t nHits,
   assert(view.get());
   view->m_nHits = nHits;
   view->m_nMaxModules = m_nMaxModules;
-  m_view = makeBuffer<TrackingRecHit2DSOAView>(
-      1, deleter);  // stream, where); // deleter);  // leave it on host and pass it by value?
+  m_view = makeBuffer<TrackingRecHit2DSOAView>(1, deleter);  // leave it on host and pass it by value?
   assert(m_view.get());
   m_AverageGeometryStore = makeBuffer<TrackingRecHit2DSOAView::AverageGeometry>(1, deleter);
   view->m_averageGeometry = m_AverageGeometryStore.get();

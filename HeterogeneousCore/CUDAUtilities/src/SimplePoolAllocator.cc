@@ -34,8 +34,10 @@ int SimplePoolAllocator::allocImpl(uint64_t s) {
   if (m_size >= m_maxSlots)
     return -1;
   ls = m_size++;
-  if (ls >= m_maxSlots)
+  if (ls >= m_maxSlots) {
+    --m_size;
     return -1;
+  }
 #ifdef MEMORY_POOL_DEBUG
   m_last[ls] = 2;
 #endif
