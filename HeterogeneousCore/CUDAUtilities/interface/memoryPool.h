@@ -1,119 +1,92 @@
 #pragma once
-#include <memory>
-#include <new>
+#include "HeterogeneousCore/CUDAUtilities/interface/Buffer.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/Queue.h"
 
-#include <iostream>
-class SimplePoolAllocator;
+#include <vector>
+
+#include <cassert>
 
 namespace memoryPool {
 
-  enum Where { onCPU, onDevice, onHost, unified };
+    void init(bool onlyCPU = false);
+    void shutdown();
 
-  class DeleterBase {
-  public:
-    explicit DeleterBase(SimplePoolAllocator* pool) : m_pool(pool) {}
-    virtual ~DeleterBase() = default;
-    virtual void operator()(int bucket) = 0;
+    void dumpStat();
 
-    SimplePoolAllocator* pool() const { return m_pool; }
+    SimplePoolAllocator *getPool(Queue queue, Where where);
 
-  protected:
-    SimplePoolAllocator* m_pool;
-  };
+    // allocate either on current device or on host
+    std::pair<void *, int> alloc(uint64_t size, SimplePoolAllocator &pool);
 
-  class Deleter {
-  public:
-    Deleter() = default;
-    explicit Deleter(std::shared_ptr<DeleterBase> del) : me(std::move(del)) {}
+    // schedule free
+    void free(Queue queue, std::vector<int> buckets);
 
-    void set(std::shared_ptr<DeleterBase> const& del) { me = del; }
-    std::shared_ptr<DeleterBase> const& get() const { return me; }
+    // alternative are virtual functions in Queue
+    void cpuCopy(void * dst,  void const * src,  uint64_t size);
+    void cudaCopy(void *    dst,  void const * src,     uint64_t size);
+    void hipCopy(void *    dst,  void const * src,     uint64_t size);
 
-    void operator()(int bucket) {
-      if (!me) {
-        std::cout << "deleter w/o implementation!!!" << std::endl;
+    void doCopy(void * dst,  void const * src,  uint64_t size, Queue queue) {
+       switch (queue->m_api) {
+        case DeviceAPI::posix :
+          cpuCopy(dst.get(),src.get(),size); break;
+        case DeviceAPI::cuda :
+          cudaCopy(dst.get(),src.get(),size); break;
+        case DeviceAPI::hip :
+             hipCopy(dst.get(),src.get(),size); break;
+        case default :
+         break;
+      }
+    }
+
+    template <typename T>
+    void copy(Buffer<T> &dst, Buffer<T> const &src, Queue queue, uint64_t size=src.size()) {
+      assert(dst.get());
+      assert(src.get());
+      assert(size > 0);
+      doCopy(dst.get(),src.get(),size,queue); break;
+    }
+
+    struct DeviceDeleterBase : public DeleterBase {
+      DeviceDeleterBase(Queue queue, Where where) : DeleterBase(getPool(queue, where)), m_queue(std::move(queue)) {}
+
+      DeviceDeleterBase(Queue const &queue, SimplePoolAllocator *pool) : DeleterBase(pool), m_queue(std::move(queue)) {}
+
+      ~DeviceDeleterBase() override = default;
+
+      Queue m_queue;
+    };
+
+    struct DeleteOne final : public DeviceDeleterBase {
+      using DeviceDeleterBase::DeviceDeleterBase;
+
+      ~DeleteOne() override = default;
+      void operator()(int bucket) override { free(m_queue, std::vector<int>(1, bucket), *pool()); }
+    };
+
+    struct BundleDelete final : public DeviceDeleterBase {
+      BundleDelete(Queue const &queue, Where where) : DeviceDeleterBase(queue, where) { m_buckets.reserve(8); }
+
+      ~BundleDelete() override { free(m_queue, std::move(m_buckets), *pool()); }
+
+      void operator()(int bucket) override { m_buckets.push_back(bucket); }
+
+      std::vector<int> m_buckets;
+    };
+
+    template <typename T>
+    Buffer<T> makeBuffer(uint64_t size, Deleter del) {
+      auto ret = alloc(sizeof(T) * size, *del.pool());
+      if (ret.second < 0) {
+        std::cout << "could not allocate " << size << ' ' << typeid(T).name() << " of size " << sizeof(T) << std::endl;
         throw std::bad_alloc();
       }
-      if (bucket < 0)
-        std::cout << "delete with negative bucket!!!" << std::endl;
-      (*me)(bucket);
+      return Buffer<T>((T *)(ret.first), ret.second, std::move(del));
     }
 
-    SimplePoolAllocator* pool() const { return me->pool(); }
-
-  private:
-    std::shared_ptr<DeleterBase> me;  //!
-  };
-
-  template <typename T>
-  class Buffer {
-  public:
-    typedef T value_type;
-    typedef T* pointer;
-    typedef T& reference;
-    typedef T const* const_pointer;
-    typedef T const& const_reference;
-
-    Buffer() = default;
-    Buffer(T* p, int bucket) : m_p(p), m_bucket(bucket) {}
-    Buffer(T* p, int bucket, Deleter del) : m_deleter(std::move(del)), m_p(p), m_bucket(bucket) {}
-    Buffer(std::pair<T*, int> const& rh, Deleter const& del) : m_deleter(del), m_p(rh.first), m_bucket(rh.second) {}
-    Buffer(Buffer const&) = delete;
-    Buffer& operator=(Buffer const&) = delete;
-
-    template <typename U>
-    Buffer(Buffer<U>&& rh) : Buffer(rh.release(), rh.deleter()) {}
-    template <typename U>
-    Buffer& operator=(Buffer<U>&& rh) {
-      reset(rh.release());
-      m_deleter = rh.deleter();
-      return *this;
+    template <typename T>
+    Buffer<T> makeBuffer(uint64_t size, Queue const &queue, Where where) {
+      return makeBuffer<T>(size, Deleter(std::make_shared<DeleteOne>(queue, where)));
     }
-
-    ~Buffer() {
-      // assert(m_p == pool()->pointer(m_bucket));  // does not compile with current dependency of headers.
-      if (m_p)
-        m_deleter(m_bucket);
-    }
-
-    pointer get() { return m_p; }
-    const_pointer get() const { return m_p; }
-    reference operator*() { return *m_p; }
-    const_reference operator*() const { return *m_p; }
-    pointer operator->() { return get(); }
-    const_pointer operator->() const { return get(); }
-    reference operator[](int i) { return m_p[i]; }
-    const_reference operator[](int i) const { return m_p[i]; }
-
-    Deleter& deleter() { return m_deleter; }
-    Deleter const& deleter() const { return m_deleter; }
-    SimplePoolAllocator* pool() const { return deleter().pool(); }
-
-    int bucket() const { return m_bucket; }
-
-    std::pair<T*, int> release() {
-      auto ret = std::make_pair(m_p, m_bucket);
-      m_p = nullptr;
-      m_bucket = -1;
-      return ret;
-    }
-    void reset() {
-      if (m_p)
-        m_deleter(m_bucket);
-      m_p = nullptr;
-      m_bucket = -1;
-    }
-    void reset(std::pair<T*, int> const& rh) {
-      if (m_p)
-        m_deleter(m_bucket);
-      m_p = rh.first;
-      m_bucket = rh.second;
-    }
-
-  private:
-    Deleter m_deleter;      //!
-    pointer m_p = nullptr;  //!
-    int m_bucket = -1;      //!
-  };
 
 }  // namespace memoryPool
