@@ -242,7 +242,7 @@ void go() {
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 
-// copy from implementation
+// copied from implementation
 
 struct CudaAlloc {
   // not called in this test (done inline)

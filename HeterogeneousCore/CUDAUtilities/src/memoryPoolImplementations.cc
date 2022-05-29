@@ -1,12 +1,54 @@
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaMemoryPool.h"
+// This file has to be split in N, one for each backend
 
 #include "HeterogeneousCore/CUDAUtilities/interface/SimplePoolAllocator.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/Queue.h"
 
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
+#include<new>
+#include<memory>
+
+// POSIX implementations
+
+#include <cstring>
+
+namespace {
+
+  std::unique_ptr<SimplePoolAllocatorImpl<PosixAlloc>> cpuPool;
+
+}
+
+namespace memoryPool {
+
+    void initCPU() {
+      constexpr int poolSize = 128 * 1024;
+      cpuPool = std::make_unique<SimplePoolAllocatorImpl<PosixAlloc>>(poolSize);
+    }
+
+    void shutdownCPU() {
+      cpuPool.reset();
+    }
+
+
+   Queue getCPUQueue() {
+     OpaqueQueue q{cpuPool.get(), cpuPool.get(), nullptr, DeviceAPI::posix};
+     return std::make_shared<OpaqueQueue>(q);
+   }
+
+   void cpuCopy(void * dst,  void const * src,  uint64_t size) {
+      ::memcpy(dst,src,size);
+   }
+ 
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+// CUDA implementations
 
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
+
+#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/SimplePoolAllocator.h"
 
 #include <iostream>
 
@@ -72,10 +114,8 @@ struct CudaHostAlloc : public CudaAlloc {
   static void free(Pointer ptr) { cudaFreeHost(ptr); }
 };
 
-namespace {
 
-  // FIXME : move it in its own place
-  std::unique_ptr<SimplePoolAllocatorImpl<PosixAlloc>> cpuPool;
+namespace {
 
   std::unique_ptr<SimplePoolAllocatorImpl<CudaHostAlloc>> hostPool;
 
@@ -98,51 +138,59 @@ namespace {
     return devicePools[dev].get();
   }
 
+
+  using CudaQueue = memoryPool::OpaqueQueue; // no derived class yet....
+
 }  // namespace
 
-namespace memoryPool {
-  namespace cuda {
 
-    void init(bool onlyCPU) {
+namespace memoryPool {
+
+    void initCUDA() {
       constexpr int poolSize = 128 * 1024;
-      cpuPool = std::make_unique<SimplePoolAllocatorImpl<PosixAlloc>>(poolSize);
-      if (onlyCPU)
-        return;
       initDevicePools(poolSize);
       hostPool = std::make_unique<SimplePoolAllocatorImpl<CudaHostAlloc>>(poolSize);
     }
 
-    void shutdown() {
-      cpuPool.reset();
+    void shutdownCUDA() {
       devicePools.clear();
       hostPool.reset();
     }
 
-    void dumpStat() {
+    void dumpStatCUDA() {
       std::cout << "device pool" << std::endl;
       getDevicePool()->dumpStat();
       std::cout << "host pool" << std::endl;
       hostPool->dumpStat();
     }
 
-    SimplePoolAllocator *getPool(Where where) {
-      return onCPU == where ? (SimplePoolAllocator *)(cpuPool.get())
-                            : (onDevice == where ? (SimplePoolAllocator *)(getDevicePool())
-                                                 : (SimplePoolAllocator *)(hostPool.get()));
-    }
 
-    // allocate either on current device or on host (actually anywhere, not cuda specific)
-    std::pair<void *, int> alloc(uint64_t size, SimplePoolAllocator &pool) {
-      int i = pool.alloc(size);
-      void *p = pool.pointer(i);
-      return std::pair<void *, int>(p, i);
-    }
+ Queue getCudaQueue(void * ostream) {
+    // auto stream =  cudaStream_t(ostream);  // eventually
+    return std::make_shared<CudaQueue>(CudaQueue{getDevicePool(), hostPool.get() , ostream, DeviceAPI::cuda});
 
-    // schedule free
-    void free(cudaStream_t stream, std::vector<int> buckets, SimplePoolAllocator &pool) {
-      auto payload = new Payload{&pool, std::move(buckets)};
-      pool.scheduleFree(payload, stream);
-    }
+ }
 
-  }  // namespace cuda
-}  // namespace memoryPool
+
+ void cudaCopy(void *    dst,  void const * src,     uint64_t size, void * stream) {
+    cudaCheck(cudaMemcpyAsync(dst, src, size, cudaMemcpyDefault, cudaStream_t(stream)));
+ }
+
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+// HIP implementations 
+// just take cuda and sed-it
+namespace memoryPool {
+
+  Queue getHipQueue(void *) {
+     return Queue();
+  }
+
+
+ void hipCopy(void *    dst,  void const * src,     uint64_t size, void * stream) {}
+
+}

@@ -1,6 +1,6 @@
 #pragma once
 #include<new>
-$include<memory>
+#include<memory>
 class SimplePoolAllocator;
 
 
@@ -12,10 +12,10 @@ namespace memoryPool {
   // an opaque "Device" Queue (or Device Interface?)
   class OpaqueQueue {
   public:
-    virtual ~OpaqueQueue() = default;
+    // virtual ~OpaqueQueue() = default;
     SimplePoolAllocator * m_devicePool;
-    SimplePoolAllocator * m_HostPool;
-    void * m_stream;  // not really needed here
+    SimplePoolAllocator * m_hostPool;
+    void * m_stream;  // not really needed here, can be moded in derived class (if any)
     DeviceAPI m_api;
     
   };

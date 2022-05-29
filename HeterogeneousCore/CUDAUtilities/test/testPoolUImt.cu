@@ -1,4 +1,4 @@
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaMemoryPool.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/memoryPool.h"
 
 #include <cmath>
 #include <unistd.h>
@@ -60,7 +60,7 @@ __global__ void kernel_test(int s, Node **p, int me) {
 }
 #endif
 
-template <memoryPool::Where where>
+template <memoryPool::DeviceAPI API>
 void go() {
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -81,7 +81,11 @@ void go() {
 
 #endif
 
-  memoryPool::cuda::init(false);
+  memoryPool::initCUDA();
+  memoryPool::dumpStatCUDA();
+  memoryPool::initCPU();
+
+  auto where = memoryPool::Where::onDevice;
 
   bool stop = false;
   bool bin24 = false;
@@ -89,7 +93,7 @@ void go() {
     int n = 10;
     while (n--) {
       sleep(5);
-      memoryPool::cuda::dumpStat();
+      memoryPool::dumpStatCUDA();
       if (5 == n)
         bin24 = true;
     }
@@ -101,15 +105,16 @@ void go() {
   {
     std::cout << "try to allocate " << s << std::endl;
     auto stream = streams[0];
+    auto queue = memoryPool::getQueue(stream, API);
     {
-      auto pd = memoryPool::cuda::makeBuffer<int>(s, stream, where);
+      auto pd = memoryPool::makeBuffer<int>(s, queue, where);
       assert(pd.get());
-      memoryPool::cuda::dumpStat();
-      pd = memoryPool::cuda::makeBuffer<int>(s, stream, where);
-      memoryPool::cuda::dumpStat();
+      memoryPool::dumpStatCUDA();
+      pd = memoryPool::makeBuffer<int>(s, queue, where);
+      memoryPool::dumpStatCUDA();
     }
     cudaStreamSynchronize(stream);
-    memoryPool::cuda::dumpStat();
+    memoryPool::dumpStatCUDA();
   }
   std::atomic<int> nt = 0;
 
@@ -133,6 +138,7 @@ void go() {
     assert(hp);
 #endif
     auto &stream = streams[me];
+    auto queue = memoryPool::getQueue(stream, API);
 
     int iter = 0;
     while (true) {
@@ -140,7 +146,7 @@ void go() {
         break;
       iter++;
 
-      memoryPool::Deleter devDeleter(std::make_shared<memoryPool::cuda::BundleDelete>(stream, where));
+      memoryPool::Deleter devDeleter(std::make_shared<memoryPool::BundleDelete>(queue, where));
       auto n = rgen1(eng);
       bool large = 0 == (iter % (128 + me));
       for (int k = 0; k < n; ++k) {
@@ -153,18 +159,18 @@ void go() {
         uint64_t s = 1LL << b;
         assert(s > 0);
         try {
-          auto p0 = memoryPool::cuda::makeBuffer<Node>(s / sizeof(Node) + sizeof(Node), devDeleter);
+          auto p0 = memoryPool::makeBuffer<Node>(s / sizeof(Node) + sizeof(Node), devDeleter);
           auto p = p0.get();
           if (nullptr == p) {
             std::cout << "error not detected??? " << b << ' ' << std::endl;
-            memoryPool::cuda::dumpStat();
+            memoryPool::dumpStatCUDA();
           }
           assert(p);
           hp[k] = p;
         } catch (...) {
           std::cout << "\n\n!!!Failed " << me << " at " << iter << std::endl;
           cudaStreamSynchronize(stream);
-          memoryPool::cuda::dumpStat();
+          memoryPool::dumpStatCUDA();
           return;
         }
       }
@@ -175,7 +181,7 @@ void go() {
       kernel_set<<<1, 128, 0, stream>>>(n, dp, me);
       kernel_test<<<1, 128, 0, stream>>>(n, dp, me);
 
-      // better sync each "event"
+      // better sync each "event" ?
       // cudaStreamSynchronize(stream);
 #else
       // do something???
@@ -217,9 +223,9 @@ void go() {
   monitor.join();
   cudaDeviceSynchronize();
   std::cout << "\nfinished\n" << std::endl;
-  memoryPool::cuda::dumpStat();
+  memoryPool::dumpStatCUDA();
   std::cout << "\nshutdown\n" << std::endl;
-  memoryPool::cuda::shutdown();
+  memoryPool::shutdownCUDA();
 }
 
 #ifdef __CUDACC__
@@ -239,10 +245,10 @@ int main() {
   }
 
   std::cout << "\ntesting cuda device" << std::endl;
-  go<memoryPool::onDevice>();
+  go<memoryPool::DeviceAPI::cuda>();
 #else
   std::cout << "testing posix" << std::endl;
-  go<memoryPool::onCPU>();
+  go<memoryPool::DeviceAPI::posix>();
 #endif
 
   return 0;

@@ -8,43 +8,38 @@
 
 namespace memoryPool {
 
-    void init(bool onlyCPU = false);
-    void shutdown();
+    void initCPU();
+    void shutdownCPU();
 
-    void dumpStat();
+    void initCUDA();
+    void shutdownCUDA();
+    void dumpStatCUDA();
 
-    SimplePoolAllocator *getPool(Queue queue, Where where);
 
-    // allocate either on current device or on host
+    SimplePoolAllocator *getPool(Queue queue, Where where) {
+      return  Where::onDevice == where ? queue->m_devicePool : queue->m_hostPool;
+    }
+
+    // allocate either on current device or host
     std::pair<void *, int> alloc(uint64_t size, SimplePoolAllocator &pool);
 
     // schedule free
-    void free(Queue queue, std::vector<int> buckets);
+    void free(Queue queue, std::vector<int> buckets, SimplePoolAllocator &pool);
 
-    // alternative are virtual functions in Queue
-    void cpuCopy(void * dst,  void const * src,  uint64_t size);
-    void cudaCopy(void *    dst,  void const * src,     uint64_t size);
-    void hipCopy(void *    dst,  void const * src,     uint64_t size);
+    // copy fanout
+    void doCopy(void * dst,  void const * src,  uint64_t size, Queue queue);
 
-    void doCopy(void * dst,  void const * src,  uint64_t size, Queue queue) {
-       switch (queue->m_api) {
-        case DeviceAPI::posix :
-          cpuCopy(dst.get(),src.get(),size); break;
-        case DeviceAPI::cuda :
-          cudaCopy(dst.get(),src.get(),size); break;
-        case DeviceAPI::hip :
-             hipCopy(dst.get(),src.get(),size); break;
-        case default :
-         break;
-      }
-    }
 
     template <typename T>
-    void copy(Buffer<T> &dst, Buffer<T> const &src, Queue queue, uint64_t size=src.size()) {
+    void copy(Buffer<T> &dst, Buffer<T> const &src, Queue queue, uint64_t size) {
       assert(dst.get());
       assert(src.get());
       assert(size > 0);
-      doCopy(dst.get(),src.get(),size,queue); break;
+      doCopy(dst.get(),src.get(),size,queue);
+    }
+    template <typename T>
+    void copy(Buffer<T> &dst, Buffer<T> const &src, Queue queue) {
+      copy(dst,src,queue,src.size());
     }
 
     struct DeviceDeleterBase : public DeleterBase {
@@ -81,7 +76,7 @@ namespace memoryPool {
         std::cout << "could not allocate " << size << ' ' << typeid(T).name() << " of size " << sizeof(T) << std::endl;
         throw std::bad_alloc();
       }
-      return Buffer<T>((T *)(ret.first), ret.second, std::move(del));
+      return Buffer<T>((T *)(ret.first), ret.second, size, std::move(del));
     }
 
     template <typename T>

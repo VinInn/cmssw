@@ -1,11 +1,6 @@
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaMemoryPool.h"
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
-#include <iostream>
+#include "HeterogeneousCore/CUDAUtilities/interface/memoryPool.h"
 
-template <memoryPool::Where where>
-struct dataProducer {
-  auto operator()(cudaStream_t stream) { return memoryPool::cuda::makeBuffer<int>(20, stream, where); }
-};
+#include <iostream>
 
 int main() {
   {
@@ -29,73 +24,81 @@ int main() {
     cudaStreamCreate(&(streams[i]));
   }
 
-  memoryPool::cuda::init(false);
-  memoryPool::cuda::dumpStat();
+  memoryPool::initCUDA();
+  memoryPool::dumpStatCUDA();
+  memoryPool::initCPU();
 
   auto& stream = streams[0];
+  auto queue = memoryPool::getQueue(stream, memoryPool::DeviceAPI::cuda);
+  auto cpuQueue = memoryPool::getQueue(nullptr,memoryPool::DeviceAPI::posix);
 
   {
-    auto pd = memoryPool::cuda::makeBuffer<int>(20, stream, memoryPool::onDevice);
-    auto ph = memoryPool::cuda::makeBuffer<int>(20, stream, memoryPool::onHost);
-    auto pc = memoryPool::cuda::makeBuffer<int>(20, nullptr, memoryPool::onCPU);
+    auto pd = memoryPool::makeBuffer<int>(20, queue, memoryPool::Where::onDevice);
+    auto ph = memoryPool::makeBuffer<int>(20, queue, memoryPool::Where::onHost);
+    auto pc = memoryPool::makeBuffer<int>(20, cpuQueue, memoryPool::Where::onDevice);
+    assert(20==pd.size());
+    assert(20==ph.size());
+    assert(20==pc.size());
 
-    auto dp = dataProducer<memoryPool::onDevice>()(stream);
-
-    cudaCheck(memoryPool::cuda::copy(ph, pd, 20, stream));
-    cudaCheck(memoryPool::cuda::copy(pd, ph, 20, stream));
+    memoryPool::copy(ph, pd, queue);
+    memoryPool::copy(pd, ph, queue);
     std::cout << "expect 2a 2u 1a 1u" << std::endl;
-    memoryPool::cuda::dumpStat();
+    memoryPool::dumpStatCUDA();
 
     {
-      auto ph = memoryPool::cuda::makeBuffer<int>(20, stream, memoryPool::onHost);
-      cudaCheck(memoryPool::cuda::copy(pd, ph, 20, stream));
+      auto ph = memoryPool::makeBuffer<int>(20, queue, memoryPool::Where::onHost);
+      memoryPool::copy(pd, ph, queue);
     }
     cudaStreamSynchronize(stream);
     std::cout << "expect 2a 2u 2a 1u " << std::endl;
-    memoryPool::cuda::dumpStat();
+    memoryPool::dumpStatCUDA();
     {
-      auto ph = memoryPool::cuda::makeBuffer<int>(20, stream, memoryPool::onHost);
-      cudaCheck(memoryPool::cuda::copy(pd, ph, 20, stream));
+      auto ph = memoryPool::makeBuffer<int>(20, queue, memoryPool::Where::onHost);
+      memoryPool::copy(pd, ph, queue);
     }
     std::cout << "expect 2a 2u 2a 1u " << std::endl;
     cudaStreamSynchronize(stream);
-    memoryPool::cuda::dumpStat();
+    memoryPool::dumpStatCUDA();
   }
   std::cout << "expect 2a 0u 2a 0u " << std::endl;
   cudaStreamSynchronize(stream);
-  memoryPool::cuda::dumpStat();
+  memoryPool::dumpStatCUDA();
 
   {
-    memoryPool::Deleter devDeleter(std::make_shared<memoryPool::cuda::BundleDelete>(stream, memoryPool::onDevice));
-    memoryPool::Deleter hosDeleter(std::make_shared<memoryPool::cuda::BundleDelete>(stream, memoryPool::onHost));
+    memoryPool::Deleter devDeleter(std::make_shared<memoryPool::BundleDelete>(queue, memoryPool::Where::onDevice));
+    memoryPool::Deleter hosDeleter(std::make_shared<memoryPool::BundleDelete>(queue, memoryPool::Where::onHost));
 
-    auto p0 = memoryPool::cuda::makeBuffer<int>(20, devDeleter);
-    auto p1 = memoryPool::cuda::makeBuffer<double>(20, devDeleter);
-    auto p2 = memoryPool::cuda::makeBuffer<bool>(20, devDeleter);
-    auto p3 = memoryPool::cuda::makeBuffer<int>(20, devDeleter);
+    auto p0 = memoryPool::makeBuffer<int>(20, devDeleter);
+    auto p1 = memoryPool::makeBuffer<double>(20, devDeleter);
+    auto p2 = memoryPool::makeBuffer<bool>(20, devDeleter);
+    auto p3 = memoryPool::makeBuffer<int>(20, devDeleter);
 
     {
-      auto pd = memoryPool::cuda::makeBuffer<int>(40, stream, memoryPool::onDevice);
+      auto pd = memoryPool::makeBuffer<int>(40, queue, memoryPool::Where::onDevice);
+      assert(40==pd.size());
+      assert(20==p0.size());
       p0.reset(pd.release());
-      memoryPool::cuda::dumpStat();
+      assert(40==p0.size());
+      assert(0==pd.size());
+      memoryPool::dumpStatCUDA();
     }
     cudaStreamSynchronize(stream);
 
-    auto hp0 = memoryPool::cuda::makeBuffer<int>(40, hosDeleter);
-    auto hp1 = memoryPool::cuda::makeBuffer<double>(20, hosDeleter);
-    auto hp2 = memoryPool::cuda::makeBuffer<bool>(20, hosDeleter);
-    auto hp3 = memoryPool::cuda::makeBuffer<int>(20, hosDeleter);
+    auto hp0 = memoryPool::makeBuffer<int>(40, hosDeleter);
+    auto hp1 = memoryPool::makeBuffer<double>(20, hosDeleter);
+    auto hp2 = memoryPool::makeBuffer<bool>(20, hosDeleter);
+    auto hp3 = memoryPool::makeBuffer<int>(20, hosDeleter);
 
-    cudaCheck(memoryPool::cuda::copy(hp3, p3, 20, stream));
-    cudaCheck(memoryPool::cuda::copy(p0, hp0, 40, stream));
-    ;
+    memoryPool::copy(hp3, p3, queue);
+    memoryPool::copy(p0, hp0, queue);
+    
 
-    memoryPool::cuda::dumpStat();
+    memoryPool::dumpStatCUDA();
   }
 
   cudaStreamSynchronize(stream);
-  memoryPool::cuda::dumpStat();
-  memoryPool::cuda::shutdown();
+  memoryPool::dumpStatCUDA();
+  memoryPool::shutdownCUDA();
 
   return 0;
 }
