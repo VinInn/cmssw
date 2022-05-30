@@ -176,6 +176,17 @@ namespace memoryPool {
     cudaCheck(cudaMemcpyAsync(dst, src, size, cudaMemcpyDefault, cudaStream_t(stream)));
  }
 
+
+    void copyToHost(void * dst,  void const * src,  uint64_t size, Queue queue) {
+        cudaCheck(cudaMemcpyAsync(dst, src, size, cudaMemcpyDeviceToHost, cudaStream_t(queue->m_stream)));
+    }
+
+    void copyToDevice(void * dst,  void const * src,  uint64_t size, Queue queue) {
+      cudaCheck(cudaMemcpyAsync(dst, src, size, cudaMemcpyHostToDevice, cudaStream_t(queue->m_stream)));
+    }
+
+
+
 }
 
 

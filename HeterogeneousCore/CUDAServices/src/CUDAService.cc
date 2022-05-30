@@ -16,7 +16,7 @@
 #include "HeterogeneousCore/CUDAUtilities/interface/StreamCache.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cachingAllocators.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaMemoryPool.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/memoryPool.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/currentDevice.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/device_unique_ptr.h"
 #include "HeterogeneousCore/CUDAUtilities/interface/host_unique_ptr.h"
@@ -137,7 +137,7 @@ CUDAService::CUDAService(edm::ParameterSet const& config) : verbose_(config.getU
   if (not configEnabled) {
     edm::LogInfo("CUDAService") << "CUDAService disabled by configuration";
     // enable cpu memory pool
-    memoryPool::cuda::init(true);
+    memoryPool::initCPU(); // move somewehre else?
     return;
   }
 
@@ -365,7 +365,9 @@ CUDAService::CUDAService(edm::ParameterSet const& config) : verbose_(config.getU
   cms::cuda::getStreamCache().clear();
 
   // enable memory pool
-  memoryPool::cuda::init(false);
+  memoryPool::initCUDA();
+  memoryPool::initCPU(); // move somewhere else?
+
 
   if (verbose_) {
     log << '\n' << "CUDAService fully initialized";
@@ -388,7 +390,8 @@ CUDAService::~CUDAService() {
     cms::cuda::getStreamCache().clear();
 
     // destroy cpu memory pool
-    memoryPool::cuda::shutdown();
+    memoryPool::shutdownCUDA();
+    memoryPool::shutdownCPU(); // move elsewhere?
 
     for (int i = 0; i < numberOfDevices_; ++i) {
       cudaCheck(cudaSetDevice(i));

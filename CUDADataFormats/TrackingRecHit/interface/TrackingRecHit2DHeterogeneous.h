@@ -31,6 +31,7 @@ public:
 
   template <typename T>
   using Buffer = typename memoryPool::Buffer<T>;
+  using Queue = memoryPool::Queue;
 
   using PhiBinner = TrackingRecHit2DSOAView::PhiBinner;
 
@@ -41,8 +42,7 @@ public:
                                 int32_t offsetBPIX2,
                                 pixelCPEforGPU::ParamsOnGPU const* cpeParams,
                                 uint32_t const* hitsModuleStart,
-                                memoryPool::Where where,
-                                cudaStream_t stream,
+                                Queue queue,
                                 TrackingRecHit2DHeterogeneous const* input = nullptr);
 
   // used on CPU only
@@ -50,8 +50,7 @@ public:
                                 uint16_t* store16,
                                 uint32_t* modules,
                                 int nHits,
-                                memoryPool::Where where = memoryPool::onCPU,
-                                cudaStream_t stream = nullptr);
+                                Queue queue);
   ~TrackingRecHit2DHeterogeneous() = default;
 
   TrackingRecHit2DHeterogeneous(const TrackingRecHit2DHeterogeneous&) = delete;
@@ -72,15 +71,15 @@ public:
   auto phiBinnerStorage() { return m_phiBinnerStorage; }
   auto iphi() { return m_iphi; }
 
-  Buffer<float> localCoordToHostAsync(cudaStream_t stream) const;
+  Buffer<float> localCoordToHostAsync(Queue queue) const;
 
-  Buffer<uint32_t> hitsModuleStartToHostAsync(cudaStream_t stream) const;
+  Buffer<uint32_t> hitsModuleStartToHostAsync(Queue queue) const;
 
-  Buffer<uint16_t> store16ToHostAsync(cudaStream_t stream) const;
-  Buffer<float> store32ToHostAsync(cudaStream_t stream) const;
+  Buffer<uint16_t> store16ToHostAsync(Queue queue) const;
+  Buffer<float> store32ToHostAsync(Queue queue) const;
 
   // needed for Host
-  void copyFromGPU(TrackingRecHit2DHeterogeneous const* input, cudaStream_t stream);
+  void copyFromGPU(TrackingRecHit2DHeterogeneous const* input, Queue queue);
 
 private:
   static constexpr uint32_t n16 = 4;                 // number of elements in m_store16

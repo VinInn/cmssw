@@ -34,14 +34,21 @@ int main() {
 
   {
     auto pd = memoryPool::makeBuffer<int>(20, queue, memoryPool::Where::onDevice);
-    auto ph = memoryPool::makeBuffer<int>(20, queue, memoryPool::Where::onHost);
+    auto phi = memoryPool::makeBuffer<int>(20, queue, memoryPool::Where::onHost);
+    auto pho = memoryPool::makeBuffer<int>(20, queue, memoryPool::Where::onHost);
     auto pc = memoryPool::makeBuffer<int>(20, cpuQueue, memoryPool::Where::onDevice);
     assert(20==pd.size());
-    assert(20==ph.size());
+    assert(20==phi.size());
+    assert(20==pho.size());
     assert(20==pc.size());
 
-    memoryPool::copy(ph, pd, queue);
-    memoryPool::copy(pd, ph, queue);
+    for (int i=0; i<20; ++i) phi[i]=i;
+
+    memoryPool::copy(pd, phi, queue);
+    memoryPool::copy(pho, pd,  queue);
+    cudaStreamSynchronize(stream);
+    for  (int i=0; i<20; ++i) assert(pho[i]==phi[i]);
+
     std::cout << "expect 2a 2u 1a 1u" << std::endl;
     memoryPool::dumpStatCUDA();
 

@@ -4,7 +4,7 @@
 #include "Geometry/CommonTopologies/interface/SimplePixelTopology.h"
 
 #include "HeterogeneousCore/CUDAUtilities/interface/SimplePoolAllocator.h"
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaMemoryPool.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/memoryPool.h"
 
 namespace testTrackingRecHit2D {
 
@@ -14,62 +14,80 @@ namespace testTrackingRecHit2D {
 
 int main() {
   cms::cudatest::requireDevices();
-  memoryPool::cuda::init(false);
-
-  cudaStream_t stream;
-  cudaCheck(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
+  memoryPool::initCUDA();
 
   auto nHits = 200;
+
+  {
+  cudaStream_t stream;
+  cudaCheck(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
+  assert(stream);
+  auto queue = memoryPool::getQueue(stream, memoryPool::DeviceAPI::cuda);
+  assert(stream==queue->m_stream);
+
+
   // inner scope to deallocate memory before destroying the stream
   {
-    TrackingRecHit2DGPU tkhit(nHits, false, 0, nullptr, nullptr, memoryPool::onDevice, stream);
+    TrackingRecHit2DGPU tkhit(nHits, false, 0, nullptr, nullptr, queue);
     testTrackingRecHit2D::runKernels(tkhit.view());
 
-    TrackingRecHit2DGPU tkhitPhase2(nHits, true, 0, nullptr, nullptr, memoryPool::onDevice, stream);
+    TrackingRecHit2DGPU tkhitPhase2(nHits, true, 0, nullptr, nullptr, queue);
     testTrackingRecHit2D::runKernels(tkhitPhase2.view());
 
-    memoryPool::cuda::dumpStat();
+    memoryPool::dumpStatCUDA();
 
-    TrackingRecHit2DHost tkhitH(nHits, false, 0, nullptr, nullptr, memoryPool::onHost, stream, &tkhit);
+    TrackingRecHit2DHost tkhitH(nHits, false, 0, nullptr, nullptr, queue, &tkhit);
 
-    cudaStreamSynchronize(stream);
-    memoryPool::cuda::dumpStat();
+    cudaCheck(cudaStreamSynchronize(stream));
+    memoryPool::dumpStatCUDA();
+
+    std::cout <<"\n\nTransferred to host\n" << std::endl;
 
     assert(tkhitH.view());
     assert(tkhitH.view()->nHits() == unsigned(nHits));
     assert(tkhitH.view()->nMaxModules() == phase1PixelTopology::numberOfModules);
 
-    TrackingRecHit2DHost tkhitHPhase2(nHits, true, 0, nullptr, nullptr, memoryPool::onHost, stream, &tkhitPhase2);
-    cudaStreamSynchronize(stream);
+    TrackingRecHit2DHost tkhitHPhase2(nHits, true, 0, nullptr, nullptr, queue, &tkhitPhase2);
+    cudaCheck(cudaStreamSynchronize(stream));
     assert(tkhitHPhase2.view());
     assert(tkhitHPhase2.view()->nHits() == unsigned(nHits));
     assert(tkhitHPhase2.view()->nMaxModules() == phase2PixelTopology::numberOfModules);
 
-    memoryPool::cuda::dumpStat();
+    memoryPool::dumpStatCUDA();
   }
 
   cudaCheck(cudaStreamSynchronize(stream));
-  memoryPool::cuda::dumpStat();
-
-  std::cout << "on CPU" << std::endl;
-  ((SimplePoolAllocatorImpl<PosixAlloc>*)memoryPool::cuda::getPool(memoryPool::onCPU))->dumpStat();
+  memoryPool::dumpStatCUDA();
 
   cudaCheck(cudaStreamDestroy(stream));
 
-  memoryPool::cuda::dumpStat();
+  memoryPool::dumpStatCUDA();
+  memoryPool::shutdownCUDA();
+  }
+
+  std::cout << "\n\nDone with CUDA now CPU\n" << std::endl;
 
   {
-    TrackingRecHit2DGPU tkhit(nHits, false, 0, nullptr, nullptr, memoryPool::onCPU, nullptr);
+   memoryPool::initCPU();
+  
+    auto queue = memoryPool::getQueue(nullptr, memoryPool::DeviceAPI::posix);
+    assert(nullptr==queue->m_stream);
+    std::cout << "on CPU" << std::endl;
+    queue->m_devicePool->dumpStat();
+
+  {
+    TrackingRecHit2DCPU tkhit(nHits, false, 0, nullptr, nullptr, queue);
     assert(tkhit.view());
     assert(tkhit.view()->nHits() == unsigned(nHits));
     assert(tkhit.view()->nMaxModules() == phase1PixelTopology::numberOfModules);
     std::cout << "on CPU" << std::endl;
-    ((SimplePoolAllocatorImpl<PosixAlloc>*)memoryPool::cuda::getPool(memoryPool::onCPU))->dumpStat();
+    queue->m_devicePool->dumpStat();
   }
   std::cout << "on CPU" << std::endl;
-  ((SimplePoolAllocatorImpl<PosixAlloc>*)memoryPool::cuda::getPool(memoryPool::onCPU))->dumpStat();
+  queue->m_devicePool->dumpStat();
 
-  memoryPool::cuda::shutdown();
+  memoryPool::shutdownCPU();
+  }
 
   return 0;
 }

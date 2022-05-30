@@ -66,7 +66,7 @@ namespace memoryPool {
     Buffer& operator=(Buffer const&) = delete;
 
     template <typename U>
-    Buffer(Buffer<U>&& rh) : Buffer(rh.release(), rh.size(), rh.deleter()) {}
+    Buffer(Buffer<U>&& rh) : Buffer(rh.release(), rh.deleter()) {}
     template <typename U>
     Buffer& operator=(Buffer<U>&& rh) {
       reset(rh.release());

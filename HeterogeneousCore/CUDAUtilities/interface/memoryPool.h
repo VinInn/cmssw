@@ -16,7 +16,7 @@ namespace memoryPool {
     void dumpStatCUDA();
 
 
-    SimplePoolAllocator *getPool(Queue queue, Where where) {
+    inline SimplePoolAllocator *getPool(Queue queue, Where where) {
       return  Where::onDevice == where ? queue->m_devicePool : queue->m_hostPool;
     }
 
@@ -29,18 +29,26 @@ namespace memoryPool {
     // copy fanout
     void doCopy(void * dst,  void const * src,  uint64_t size, Queue queue);
 
+    // special cases when original is not a buffer...
+    void copyToHost(void * dst,  void const * src,  uint64_t size, Queue queue);
+    void copyToDevice(void * dst,  void const * src,  uint64_t size, Queue queue);
+
 
     template <typename T>
-    void copy(Buffer<T> &dst, Buffer<T> const &src, Queue queue, uint64_t size) {
+    void copy(Buffer<T> &dst, Buffer<T> const &src, uint64_t size, Queue queue) {
       assert(dst.get());
       assert(src.get());
       assert(size > 0);
-      doCopy(dst.get(),src.get(),size,queue);
+      assert(dst.size()>=size);
+      assert(src.size()>=size);
+      doCopy(dst.get(),src.get(),sizeof(T)*size,queue);
     }
+
     template <typename T>
     void copy(Buffer<T> &dst, Buffer<T> const &src, Queue queue) {
-      copy(dst,src,queue,src.size());
+      copy(dst,src,src.size(),queue);
     }
+
 
     struct DeviceDeleterBase : public DeleterBase {
       DeviceDeleterBase(Queue queue, Where where) : DeleterBase(getPool(queue, where)), m_queue(std::move(queue)) {}

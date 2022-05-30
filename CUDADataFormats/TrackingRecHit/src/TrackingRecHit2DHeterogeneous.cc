@@ -3,40 +3,43 @@
 #include "CUDADataFormats/TrackingRecHit/interface/TrackingRecHit2DSOAView.h"
 #include "RecoLocalTracker/SiPixelRecHits/interface/pixelCPEforGPU.h"
 
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaCheck.h"
-#include "HeterogeneousCore/CUDAUtilities/interface/cudaMemoryPool.h"
+#include "HeterogeneousCore/CUDAUtilities/interface/memoryPool.h"
 
 TrackingRecHit2DHeterogeneous::TrackingRecHit2DHeterogeneous(uint32_t nHits,
                                                              bool isPhase2,
                                                              int32_t offsetBPIX2,
                                                              pixelCPEforGPU::ParamsOnGPU const* cpeParams,
                                                              uint32_t const* hitsModuleStart,
-                                                             memoryPool::Where where,
-                                                             cudaStream_t stream,
+                                                             memoryPool::Queue queue,
                                                              TrackingRecHit2DHeterogeneous const* input)
     : m_nHits(nHits), m_offsetBPIX2(offsetBPIX2), m_hitsModuleStart(hitsModuleStart) {
-  using namespace memoryPool::cuda;
 
-  memoryPool::Deleter deleter = memoryPool::Deleter(std::make_shared<memoryPool::cuda::BundleDelete>(stream, where));
+  auto where = input == nullptr ? memoryPool::Where::onDevice : memoryPool::Where::onHost;
+
+  if (input) assert(nHits==input->nHits());
+
+  memoryPool::Deleter deleter = memoryPool::Deleter(std::make_shared<memoryPool::BundleDelete>(queue, where));
   assert(deleter.pool());
-  auto view = makeBuffer<TrackingRecHit2DSOAView>(
-      1, stream, memoryPool::onCPU == where ? memoryPool::onCPU : memoryPool::onHost);
+
+  auto view = memoryPool::makeBuffer<TrackingRecHit2DSOAView>(1, queue, memoryPool::Where::onHost);
   assert(view.get());
   m_nMaxModules = isPhase2 ? phase2PixelTopology::numberOfModules : phase1PixelTopology::numberOfModules;
   assert(view.get());
   view->m_nHits = nHits;
   view->m_nMaxModules = m_nMaxModules;
-  m_view = makeBuffer<TrackingRecHit2DSOAView>(1, deleter);  // leave it on host and pass it by value?
+
+  m_view = memoryPool::makeBuffer<TrackingRecHit2DSOAView>(1, deleter);  // leave it on host and pass it by value?
   assert(m_view.get());
-  m_AverageGeometryStore = makeBuffer<TrackingRecHit2DSOAView::AverageGeometry>(1, deleter);
+  m_AverageGeometryStore = memoryPool::makeBuffer<TrackingRecHit2DSOAView::AverageGeometry>(1, deleter);
+
   view->m_averageGeometry = m_AverageGeometryStore.get();
   view->m_cpeParams = cpeParams;
   view->m_hitsModuleStart = hitsModuleStart;
 
   // if empy do not bother
   if (0 == nHits) {
-    if (memoryPool::onDevice == where) {
-      cudaCheck(memoryPool::cuda::copy(m_view, view, sizeof(TrackingRecHit2DSOAView), stream));
+    if (memoryPool::Where::onDevice == where) {
+      memoryPool::copy(m_view, view, queue);
     } else {
       m_view.reset(view.release());
     }
@@ -50,19 +53,20 @@ TrackingRecHit2DHeterogeneous::TrackingRecHit2DHeterogeneous(uint32_t nHits,
   // so unless proven VERY inefficient we keep it ordered as generated
 
   // host copy is "reduced"  (to be reviewed at some point)
-  if (memoryPool::onHost == where) {
+  if (memoryPool::Where::onHost == where) {
     // it has to compile for ALL cases
-    copyFromGPU(input, stream);
+    copyFromGPU(input, queue);
   } else {
     assert(input == nullptr);
 
     auto nL = isPhase2 ? phase2PixelTopology::numberOfLayers : phase1PixelTopology::numberOfLayers;
 
-    m_store16 = makeBuffer<uint16_t>(nHits * n16, deleter);
-    m_store32 = makeBuffer<float>(nHits * n32 + nL + 1, deleter);
-    m_PhiBinnerStore = makeBuffer<TrackingRecHit2DSOAView::PhiBinner>(1, deleter);
+    m_store16 = memoryPool::makeBuffer<uint16_t>(nHits * n16, deleter);
+    m_store32 = memoryPool::makeBuffer<float>(nHits * n32 + nL + 1, deleter);
+    m_PhiBinnerStore = memoryPool::makeBuffer<TrackingRecHit2DSOAView::PhiBinner>(1, deleter);
   }
 
+  
   static_assert(sizeof(TrackingRecHit2DSOAView::hindex_type) == sizeof(float));
   static_assert(sizeof(TrackingRecHit2DSOAView::hindex_type) == sizeof(TrackingRecHit2DSOAView::PhiBinner::index_type));
 
@@ -79,7 +83,7 @@ TrackingRecHit2DHeterogeneous::TrackingRecHit2DHeterogeneous(uint32_t nHits,
   view->m_yerr = get32(Storage32::kYerror);
   view->m_chargeAndStatus = reinterpret_cast<uint32_t*>(get32(Storage32::kCharge));
 
-  if (memoryPool::onHost != where) {
+  if (memoryPool::Where::onHost != where) {
     assert(input == nullptr);
     view->m_xg = get32(Storage32::kXGlobal);
     view->m_yg = get32(Storage32::kYGlobal);
@@ -98,53 +102,42 @@ TrackingRecHit2DHeterogeneous::TrackingRecHit2DHeterogeneous(uint32_t nHits,
   }
 
   // transfer view
-  if (memoryPool::onDevice == where) {
-    cudaCheck(
-        cudaMemcpyAsync(m_view.get(), view.get(), sizeof(TrackingRecHit2DSOAView), cudaMemcpyHostToDevice, stream));
-    //    cudaCheck(memoryPool::cuda::copy(m_view, view, sizeof(TrackingRecHit2DSOAView), stream));
+  if (memoryPool::Where::onDevice == where) {
+    memoryPool::copy(m_view, view, queue);
   } else {
     m_view.reset(view.release());
   }
 }
 
-//this is intended to be used only for CPU SoA but doesn't hurt to have it for all cases
+//this is intended to be used only for CPU
 TrackingRecHit2DHeterogeneous::TrackingRecHit2DHeterogeneous(
-    float* store32, uint16_t* store16, uint32_t* modules, int nHits, memoryPool::Where where, cudaStream_t stream)
+    float* store32, uint16_t* store16, uint32_t* modules, int nHits, memoryPool::Queue queue)
     : m_nHits(nHits), m_hitsModuleStart(modules) {
-  using namespace memoryPool::cuda;
-  auto view = makeBuffer<TrackingRecHit2DSOAView>(
-      1, stream, memoryPool::onCPU == where ? memoryPool::onCPU : memoryPool::onHost);
 
-  m_view = makeBuffer<TrackingRecHit2DSOAView>(1, stream, where);
+  assert(nullptr==queue->m_stream);
+  assert(queue->m_api==memoryPool::DeviceAPI::posix);
+  auto where = memoryPool::Where::onDevice;
 
+  m_view = memoryPool::makeBuffer<TrackingRecHit2DSOAView>(1, queue, where);
+  auto view = m_view.get();
+  assert(view);
   view->m_nHits = nHits;
 
   if (0 == nHits) {
-    if (memoryPool::onDevice == where) {
-      cudaCheck(memoryPool::cuda::copy(m_view, view, sizeof(TrackingRecHit2DSOAView), stream));
-    } else {
-      m_view = std::move(view);
-    }
     return;
   }
 
-  m_store16 = makeBuffer<uint16_t>(nHits * n16, stream, where);
-  m_store32 = makeBuffer<float>(nHits * n32, stream, where);
-  m_PhiBinnerStore = makeBuffer<TrackingRecHit2DSOAView::PhiBinner>(1, stream, where);
-  m_AverageGeometryStore = makeBuffer<TrackingRecHit2DSOAView::AverageGeometry>(1, stream, where);
+  m_store16 = memoryPool::makeBuffer<uint16_t>(nHits * n16, queue, where);
+  m_store32 = memoryPool::makeBuffer<float>(nHits * n32, queue, where);
+  m_PhiBinnerStore = memoryPool::makeBuffer<TrackingRecHit2DSOAView::PhiBinner>(1, queue, where);
+  m_AverageGeometryStore = memoryPool::makeBuffer<TrackingRecHit2DSOAView::AverageGeometry>(1, queue, where);
 
   view->m_averageGeometry = m_AverageGeometryStore.get();
   view->m_hitsModuleStart = m_hitsModuleStart;
 
   //store transfer
-  if (memoryPool::onDevice == where) {
-    cudaCheck(cudaMemcpyAsync(m_store32.get(), store32, nHits * n32 * sizeof(float), cudaMemcpyHostToDevice, stream));
-    cudaCheck(
-        cudaMemcpyAsync(m_store16.get(), store16, nHits * n16 * sizeof(uint16_t), cudaMemcpyHostToDevice, stream));
-  } else {
     std::copy(store32, store32 + nHits * n32, m_store32.get());  // want to copy it
     std::copy(store16, store16 + nHits * n16, m_store16.get());
-  }
 
   //getters
   auto get32 = [&](Storage32 i) { return m_store32.get() + static_cast<int>(i) * nHits; };
@@ -171,45 +164,38 @@ TrackingRecHit2DHeterogeneous::TrackingRecHit2DHeterogeneous(
   view->m_xsize = reinterpret_cast<int16_t*>(get16(Storage16::kXSize));
   view->m_ysize = reinterpret_cast<int16_t*>(get16(Storage16::kYSize));
 
-  // transfer view
-  if (memoryPool::onDevice == where) {
-    cudaCheck(memoryPool::cuda::copy(m_view, view, sizeof(TrackingRecHit2DSOAView), stream));
-  } else {
-    m_view = std::move(view);
-  }
 }
 
-using namespace memoryPool::cuda;
+using namespace memoryPool;
 
-memoryPool::Buffer<float> TrackingRecHit2DGPU::localCoordToHostAsync(cudaStream_t stream) const {
-  auto ret = makeBuffer<float>(5 * nHits(), stream, memoryPool::onHost);
-  cudaCheck(cudaMemcpyAsync(ret.get(), m_store32.get(), 5 * sizeof(float) * nHits(), cudaMemcpyDeviceToHost, stream));
+memoryPool::Buffer<float> TrackingRecHit2DGPU::localCoordToHostAsync(Queue queue) const {
+  auto ret = memoryPool::makeBuffer<float>(5 * nHits(), queue, memoryPool::Where::onHost);
+  memoryPool::copy(ret, m_store32, 5 * nHits(), queue);
   return ret;
 }
 
-memoryPool::Buffer<float> TrackingRecHit2DGPU::store32ToHostAsync(cudaStream_t stream) const {
-  auto ret = makeBuffer<float>(static_cast<int>(n32) * nHits(), stream, memoryPool::onHost);
-  cudaCheck(cudaMemcpyAsync(
-      ret.get(), m_store32.get(), static_cast<int>(n32) * sizeof(float) * nHits(), cudaMemcpyDeviceToHost, stream));
+memoryPool::Buffer<float> TrackingRecHit2DGPU::store32ToHostAsync(Queue queue) const {
+  int nElem = nHits() * n32;
+  auto ret = memoryPool::makeBuffer<float>(nElem, queue, memoryPool::Where::onHost);
+  memoryPool::copy(ret, m_store32, nElem, queue);
   return ret;
 }
 
-memoryPool::Buffer<uint16_t> TrackingRecHit2DGPU::store16ToHostAsync(cudaStream_t stream) const {
-  auto ret = makeBuffer<uint16_t>(static_cast<int>(n16) * nHits(), stream, memoryPool::onHost);
-  cudaCheck(cudaMemcpyAsync(
-      ret.get(), m_store16.get(), static_cast<int>(n16) * sizeof(uint16_t) * nHits(), cudaMemcpyDeviceToHost, stream));
+
+memoryPool::Buffer<uint16_t> TrackingRecHit2DGPU::store16ToHostAsync(Queue queue) const {
+  auto ret = memoryPool::makeBuffer<uint16_t>(m_store16.size(), queue, memoryPool::Where::onHost);
+  memoryPool::copy(ret, m_store16, queue);
   return ret;
 }
 
-memoryPool::Buffer<uint32_t> TrackingRecHit2DGPU::hitsModuleStartToHostAsync(cudaStream_t stream) const {
-  auto ret = makeBuffer<uint32_t>(nMaxModules() + 1, stream, memoryPool::onHost);
+memoryPool::Buffer<uint32_t> TrackingRecHit2DGPU::hitsModuleStartToHostAsync(Queue queue) const {
+  auto ret = memoryPool::makeBuffer<uint32_t>(nMaxModules() + 1, queue, memoryPool::Where::onHost);
   if (m_hitsModuleStart)
-    cudaCheck(cudaMemcpyAsync(
-        ret.get(), m_hitsModuleStart, sizeof(uint32_t) * (nMaxModules() + 1), cudaMemcpyDeviceToHost, stream));
+    memoryPool::copyToHost(ret.get(), m_hitsModuleStart, sizeof(uint32_t)*ret.size() ,queue); 
   return ret;
 }
 
-void TrackingRecHit2DHost::copyFromGPU(TrackingRecHit2DGPU const* input, cudaStream_t stream) {
+void TrackingRecHit2DHost::copyFromGPU(TrackingRecHit2DGPU const* input, Queue queue) {
   assert(input);
-  m_store32 = input->localCoordToHostAsync(stream);
+  m_store32 = input->localCoordToHostAsync(queue);
 }
