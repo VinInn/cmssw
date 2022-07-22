@@ -9,27 +9,33 @@ using namespace sim;
 
 Field::Field(const MagneticField *f, double d) : G4MagneticField(), theCMSMagneticField(f), theDelta(d) {
   for (int i = 0; i < 3; ++i) {
-    oldx[i] = 1.0e12;
+    oldp[i] = 1.0e12;
     oldb[i] = 0.0;
   }
+  oldp[3] = 1.0e12;
 }
 
 Field::~Field() {}
 
 void Field::GetFieldValue(const G4double xyz[4], G4double bfield[3]) const {
-  if (std::abs(oldx[0] - xyz[0]) > theDelta || std::abs(oldx[1] - xyz[1]) > theDelta ||
-      std::abs(oldx[2] - xyz[2]) > theDelta) {
-    static const float lunit = (1.0 / CLHEP::cm);
-    GlobalPoint ggg((float)(xyz[0]) * lunit, (float)(xyz[1]) * lunit, (float)(xyz[2]) * lunit);
+  using GPD = Basic3DVector<double>;
+  GPD pi(xyz[0],xyz[1],xyz[2],xyz[3]);
+  auto delta = oldp-pi;
+  for (int i=0; i<4; ++i) delta[i]=std::abs(delta[i]);
+
+  if ( (delta[0] > theDelta) | (delta[1] > theDelta) |
+       (delta[2] > theDelta) ) {
+    constexpr float lunit = (1.0 / CLHEP::cm);
+    GlobalPoint ggg(pi);
+    ggg.mathVector() =  ggg.mathVector()*lunit;
     GlobalVector v = theCMSMagneticField->inTesla(ggg);
 
-    static const float btesla = CLHEP::tesla;
-    oldb[0] = (v.x() * btesla);
-    oldb[1] = (v.y() * btesla);
-    oldb[2] = (v.z() * btesla);
-    oldx[0] = xyz[0];
-    oldx[1] = xyz[1];
-    oldx[2] = xyz[2];
+    constexpr float btesla = CLHEP::tesla;
+    v*=btesla;
+    oldb[0] = v.x();
+    oldb[1] = v.y();
+    oldb[2] = v.z();
+    oldp = pi;
   }
 
   bfield[0] = oldb[0];
