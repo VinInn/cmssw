@@ -23,6 +23,8 @@ HcalSiPM::~HcalSiPM() {
     delete nonlin;
 }
 
+
+#include<iostream>
 //================================================================================
 //implementation of Borel-Tanner distribution
 double HcalSiPM::Borel(unsigned int n, double lambda, unsigned int k) {
@@ -31,6 +33,9 @@ double HcalSiPM::Borel(unsigned int n, double lambda, unsigned int k) {
   double dn = double(n);
   double dk = double(k);
   double dnk = dn - dk;
+
+  // std::cout << "Borel " << n << ' ' << k << ' ' << TMath::LnGamma(dnk + 1) << ' ' << TMath::Factorial(n - k) << ' ' << log(TMath::Factorial(n - k)) << std::endl;
+
   double ldn = lambda * dn;
   double logb = -ldn + dnk * log(ldn) - TMath::LnGamma(dnk + 1);
   double b = 0;

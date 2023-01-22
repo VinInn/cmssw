@@ -244,13 +244,14 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
       pulse = pulses.begin();
       while (pulse != pulses.end()) {
         timeDiff = elapsedTime - pulse->first;
-        pulseBit = sipmPulseShape(timeDiff) * pulse->second;
+        auto shape = sipmPulseShape(timeDiff);
+        pulseBit = shape * pulse->second;
         LogDebug("HcalSiPMHitResponse") << " pulse t: " << pulse->first << " pulse A: " << pulse->second
                                         << " timeDiff: " << timeDiff << " pulseBit: " << pulseBit;
         signal[sampleBin] += pulseBit;
         signal.preciseAtMod(preciseBin) += pulseBit;
 
-        if (timeDiff > 1 && sipmPulseShape(timeDiff) < 1e-7)
+        if (timeDiff > 1 && shape < 1e-7)
           pulse = pulses.erase(pulse);
         else
           ++pulse;
