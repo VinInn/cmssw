@@ -52,7 +52,6 @@ protected:
   unsigned int addCrossTalkCells(CLHEP::HepRandomEngine* engine, unsigned int in_pes);
 
   //numerical random generation from Borel-Tanner distribution
-  double Borel(unsigned int n, double lambda, unsigned int k);
   const cdfpair& BorelCDF(unsigned int k);
 
   unsigned int theCellCount;

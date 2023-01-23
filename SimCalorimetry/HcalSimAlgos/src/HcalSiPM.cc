@@ -23,47 +23,75 @@ HcalSiPM::~HcalSiPM() {
     delete nonlin;
 }
 
+namespace {
 
-#include<iostream>
-//================================================================================
-//implementation of Borel-Tanner distribution
-double HcalSiPM::Borel(unsigned int n, double lambda, unsigned int k) {
-  if (n < k)
-    return 0;
-  double dn = double(n);
-  double dk = double(k);
-  double dnk = dn - dk;
+#include <iostream>
+  //================================================================================
+  //original implementation of Borel-Tanner distribution
+  constexpr double oldBorel(unsigned int n, double lambda, unsigned int k) {
+    if (n < k)
+      return 0;
+    double dn = double(n);
+    double dk = double(k);
+    double dnk = dn - dk;
 
-  // std::cout << "Borel " << n << ' ' << k << ' ' << TMath::LnGamma(dnk + 1) << ' ' << TMath::Factorial(n - k) << ' ' << log(TMath::Factorial(n - k)) << std::endl;
+    // std::cout << "Borel " << n << ' ' << k << ' ' << TMath::LnGamma(dnk + 1) << ' ' << TMath::Factorial(n - k) << ' ' << log(TMath::Factorial(n - k)) << std::endl;
 
-  double ldn = lambda * dn;
-  double logb = -ldn + dnk * log(ldn) - TMath::LnGamma(dnk + 1);
-  double b = 0;
-  if (logb >= -20) {  // protect against underflow
-    b = (dk / dn);
-    if ((n - k) < 100)
-      b *= (exp(-ldn) * pow(ldn, dnk)) / TMath::Factorial(n - k);
-    else
-      b *= exp(logb);
+    double ldn = lambda * dn;
+    double logb = -ldn + dnk * log(ldn) - TMath::LnGamma(dnk + 1);
+    double b = 0;
+    if (logb >= -20) {  // protect against underflow
+      b = (dk / dn);
+      if ((n - k) < 100)
+        b *= (exp(-ldn) * pow(ldn, dnk)) / TMath::Factorial(n - k);
+      else
+        b *= exp(logb);
+    }
+    return b;
   }
-  return b;
-}
+
+  using FLOAT = double;
+  //================================================================================
+  //modified implementation of Borel-Tanner distribution
+  constexpr double Borel(unsigned int i, FLOAT lambda, unsigned int k, double iFact) {
+    auto n = k + i;
+    FLOAT dn = FLOAT(n);
+    FLOAT dk = FLOAT(k);
+    FLOAT dnk = FLOAT(i);
+
+    FLOAT ldn = lambda * dn;
+    FLOAT b0 = (dk / dn);
+    FLOAT b = 0;
+    if (i < 100) {
+      b = b0 * (std::exp(-ldn) * std::pow(ldn, dnk)) / iFact;
+    } else {
+      FLOAT logb = -ldn + dnk * std::log(ldn) - std::log(iFact);
+      // protect against underflow
+      b = (logb >= -20.) ? b0 * std::exp(logb) : 0;
+    }
+    return b;
+  }
+
+}  // namespace
 
 const HcalSiPM::cdfpair& HcalSiPM::BorelCDF(unsigned int k) {
   // EPSILON determines the min and max # of xtalk cells that can be
   // simulated.
-  static const double EPSILON = 1e-6;
-  typename cdfmap::const_iterator it;
-  it = borelcdfs.find(k);
+  constexpr double EPSILON = 1e-6;
+  auto it = borelcdfs.find(k);
   if (it == borelcdfs.end()) {
     vector<double> cdf;
+    cdf.reserve(64);
 
     // Find the first n=k+i value for which cdf[i] > EPSILON
     unsigned int i;
-    double b = 0., sumb = 0.;
+    double sumb = 0.;
+    double iFact = 1.;
     for (i = 0;; i++) {
-      b = Borel(k + i, theCrossTalk, k);
-      sumb += b;
+      if (i > 0)
+        iFact *= double(i);
+      // assert(std::abs(Borel(i, theCrossTalk, k, iFact) - oldBorel(k + i, theCrossTalk, k)) < 1.e-8);
+      sumb += Borel(i, theCrossTalk, k, iFact);
       if (sumb >= EPSILON)
         break;
     }
@@ -73,13 +101,14 @@ const HcalSiPM::cdfpair& HcalSiPM::BorelCDF(unsigned int k) {
 
     // calculate cdf[i]
     for (++i;; ++i) {
-      b = Borel(k + i, theCrossTalk, k);
-      sumb += b;
+      iFact *= double(i);
+      // assert(std::abs(Borel(i, theCrossTalk, k, iFact) - oldBorel(k + i, theCrossTalk, k)) < 1.e-8);
+      sumb += Borel(i, theCrossTalk, k, iFact);
       cdf.push_back(sumb);
-      if (1 - sumb < EPSILON)
+      if (1. - sumb < EPSILON)
         break;
     }
-
+    // std::cout << "borel cdf size " << cdf.size() << std::endl;
     it = (borelcdfs.emplace(k, make_pair(borelstartn, cdf))).first;
   }
 

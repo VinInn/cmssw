@@ -15,9 +15,8 @@ public:
 
   double operator()(double time) const override {
     int jtime(time * HcalPulseShapes::invDeltaTSiPM_ + 0.5);
-    return  (jtime >= 0 && jtime < nBins_) ? nt_[jtime] : 0;
+    return (jtime >= 0 && jtime < nBins_) ? nt_[jtime] : 0;
   }
-
 
   double timeToRise() const override { return 0.0; }
 
