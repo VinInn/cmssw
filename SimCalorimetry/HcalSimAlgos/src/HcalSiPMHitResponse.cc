@@ -209,7 +209,6 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
 
   std::list<std::pair<double, double> > pulses;
   std::list<std::pair<double, double> >::iterator pulse;
-  double timeDiff, pulseBit;
   LogDebug("HcalSiPMHitResponse") << "makeSiPMSignal for " << HcalDetId(id);
 
   for (unsigned int tbin(0); tbin < photonTimeBins.size(); ++tbin) {
@@ -242,20 +241,23 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
 
     if (pars.doSiPMSmearing()) {
       pulse = pulses.begin();
+      double sum = 0.;
       while (pulse != pulses.end()) {
-        timeDiff = elapsedTime - pulse->first;
+        auto timeDiff = elapsedTime - pulse->first;
         auto shape = sipmPulseShape(timeDiff);
-        pulseBit = shape * pulse->second;
+        auto pulseBit = shape * pulse->second;
         LogDebug("HcalSiPMHitResponse") << " pulse t: " << pulse->first << " pulse A: " << pulse->second
                                         << " timeDiff: " << timeDiff << " pulseBit: " << pulseBit;
-        signal[sampleBin] += pulseBit;
-        signal.preciseAtMod(preciseBin) += pulseBit;
+        sum += pulseBit;
 
         if (timeDiff > 1 && shape < 1e-7)
           pulse = pulses.erase(pulse);
         else
           ++pulse;
       }
+      signal[sampleBin] += sum;
+      signal.preciseAtMod(preciseBin) += sum;
+
     }
     elapsedTime += dt;
   }
