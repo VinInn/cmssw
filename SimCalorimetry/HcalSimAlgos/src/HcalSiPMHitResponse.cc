@@ -16,7 +16,6 @@
 #include <cmath>
 #include <list>
 
-
 HcalSiPMHitResponse::HcalSiPMHitResponse(const CaloVSimParameterMap* parameterMap,
                                          const CaloShapes* shapes,
                                          bool PreMix1,
@@ -212,7 +211,6 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
     std::vector<double> first;
     std::vector<double> second;
     std::vector<bool> notValid;
-    int begin=0;
     void reserve(int size) {
       first.reserve(size);
       second.reserve(size);
@@ -225,7 +223,8 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
     }
   };
   PulseSoA pulses;
-  if (pars.doSiPMSmearing()) pulses.reserve(photonTimeBins.size());
+  if (pars.doSiPMSmearing())
+    pulses.reserve(photonTimeBins.size());
   LogDebug("HcalSiPMHitResponse") << "makeSiPMSignal for " << HcalDetId(id);
 
   for (unsigned int tbin(0); tbin < photonTimeBins.size(); ++tbin) {
@@ -258,17 +257,17 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
 
     if (pars.doSiPMSmearing()) {
       double sum = 0;
-      for (int i=pulses.begin; i<int(pulses.first.size()); ++i) {
-        if ( pulses.notValid[i] ) continue;
+      for (int i = 0; i < int(pulses.first.size()); ++i) {
+        if (pulses.notValid[i])
+          continue;
         auto timeDiff = elapsedTime - pulses.first[i];
         auto shape = sipmPulseShape(timeDiff);
         auto pulseBit = shape * pulses.second[i];
         LogDebug("HcalSiPMHitResponse") << " pulse t: " << pulses.first[i] << " pulse A: " << pulses.second[i]
                                         << " timeDiff: " << timeDiff << " pulseBit: " << pulseBit;
         sum += pulseBit;
-     
-        pulses.notValid[i] = (timeDiff > 1. && shape <  1.e-7);
-        if (pulses.notValid[i] && i==pulses.begin) ++pulses.begin;
+
+        pulses.notValid[i] = (timeDiff > 1. && shape < 1.e-7);
       }
       signal[sampleBin] += sum;
       signal.preciseAtMod(preciseBin) += sum;
