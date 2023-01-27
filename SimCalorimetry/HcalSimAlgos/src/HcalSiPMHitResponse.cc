@@ -207,9 +207,24 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
 
   auto& sipmPulseShape(shapeMap[pars.signalShape(id)]);
 
-  std::list<std::pair<double, double> > pulses;
-  std::list<std::pair<double, double> >::iterator pulse;
-  double timeDiff, pulseBit;
+  struct PulseSoA {
+    std::vector<double> first;
+    std::vector<double> second;
+    std::vector<bool> notValid;
+    void reserve(int size) {
+      first.reserve(size);
+      second.reserve(size);
+      notValid.reserve(size);
+    }
+    void push_back(double f, double s) {
+      first.push_back(f);
+      second.push_back(s);
+      notValid.push_back(false);
+    }
+  };
+  PulseSoA pulses;
+  if (pars.doSiPMSmearing())
+    pulses.reserve(photonTimeBins.size());
   LogDebug("HcalSiPMHitResponse") << "makeSiPMSignal for " << HcalDetId(id);
 
   for (unsigned int tbin(0); tbin < photonTimeBins.size(); ++tbin) {
@@ -229,7 +244,7 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
       LogDebug("HcalSiPMHitResponse") << " elapsedTime: " << elapsedTime << " sampleBin: " << sampleBin
                                       << " preciseBin: " << preciseBin << " pe: " << pe << " hitPixels: " << hitPixels;
       if (pars.doSiPMSmearing()) {
-        pulses.push_back(std::pair<double, double>(elapsedTime, hitPixels));
+        pulses.push_back(elapsedTime, hitPixels);
       } else {
         signal[sampleBin] += hitPixels;
         signal.preciseAtMod(preciseBin) += 0.6 * hitPixels;
@@ -241,20 +256,21 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
     }
 
     if (pars.doSiPMSmearing()) {
-      pulse = pulses.begin();
-      while (pulse != pulses.end()) {
-        timeDiff = elapsedTime - pulse->first;
-        pulseBit = sipmPulseShape(timeDiff) * pulse->second;
-        LogDebug("HcalSiPMHitResponse") << " pulse t: " << pulse->first << " pulse A: " << pulse->second
+      double sum = 0;
+      for (int i = 0; i < int(pulses.first.size()); ++i) {
+        if (pulses.notValid[i])
+          continue;
+        auto timeDiff = elapsedTime - pulses.first[i];
+        auto shape = sipmPulseShape(timeDiff);
+        auto pulseBit = shape * pulses.second[i];
+        LogDebug("HcalSiPMHitResponse") << " pulse t: " << pulses.first[i] << " pulse A: " << pulses.second[i]
                                         << " timeDiff: " << timeDiff << " pulseBit: " << pulseBit;
-        signal[sampleBin] += pulseBit;
-        signal.preciseAtMod(preciseBin) += pulseBit;
+        sum += pulseBit;
 
-        if (timeDiff > 1 && sipmPulseShape(timeDiff) < 1e-7)
-          pulse = pulses.erase(pulse);
-        else
-          ++pulse;
+        pulses.notValid[i] = (timeDiff > 1. && shape < 1.e-7);
       }
+      signal[sampleBin] += sum;
+      signal.preciseAtMod(preciseBin) += sum;
     }
     elapsedTime += dt;
   }
