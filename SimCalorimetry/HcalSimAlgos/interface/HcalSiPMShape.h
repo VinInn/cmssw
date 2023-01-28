@@ -13,6 +13,9 @@ public:
 
   ~HcalSiPMShape() override {}
 
+  int nBins() const { return nBins_; }
+  double operator[](int i) const { return nt_[i]; }
+
   double operator()(double time) const override {
     int jtime(time * HcalPulseShapes::invDeltaTSiPM_ + 0.5);
     return (jtime >= 0 && jtime < nBins_) ? nt_[jtime] : 0;

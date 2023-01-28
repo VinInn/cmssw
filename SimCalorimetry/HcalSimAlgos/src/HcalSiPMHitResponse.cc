@@ -205,74 +205,65 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
   unsigned int pe(0);
   double hitPixels(0.), elapsedTime(0.);
 
-  auto& sipmPulseShape(shapeMap[pars.signalShape(id)]);
+  auto const& sipmPulseShape(shapeMap[pars.signalShape(id)]);
 
-  struct PulseSoA {
-    std::vector<double> first;
-    std::vector<double> second;
-    std::vector<bool> notValid;
-    void reserve(int size) {
-      first.reserve(size);
-      second.reserve(size);
-      notValid.reserve(size);
-    }
-    void push_back(double f, double s) {
-      first.push_back(f);
-      second.push_back(s);
-      notValid.push_back(false);
-    }
-  };
-  PulseSoA pulses;
-  if (pars.doSiPMSmearing())
-    pulses.reserve(photonTimeBins.size());
   LogDebug("HcalSiPMHitResponse") << "makeSiPMSignal for " << HcalDetId(id);
 
-  for (unsigned int tbin(0); tbin < photonTimeBins.size(); ++tbin) {
+  int nptb = photonTimeBins.size();
+  double sum[nptb];
+  for (auto i = 0; i < nptb; ++i)
+    sum[i] = 0;
+  for (int tbin(0); tbin < nptb; ++tbin) {
     pe = photonTimeBins[tbin];
+    if (pe <= 0)
+      continue;
     preciseBin = tbin;
     sampleBin = preciseBin / nbins;
-    if (pe > 0) {
-      //skip saturation/recovery and pulse smearing for premix stage 1
-      if (PreMixDigis and HighFidelityPreMix) {
-        signal[sampleBin] += pe;
-        signal.preciseAtMod(preciseBin) += pe;
-        elapsedTime += dt;
-        continue;
-      }
-
-      hitPixels = theSiPM.hitCells(engine, pe, 0., elapsedTime);
-      LogDebug("HcalSiPMHitResponse") << " elapsedTime: " << elapsedTime << " sampleBin: " << sampleBin
-                                      << " preciseBin: " << preciseBin << " pe: " << pe << " hitPixels: " << hitPixels;
-      if (pars.doSiPMSmearing()) {
-        pulses.push_back(elapsedTime, hitPixels);
-      } else {
-        signal[sampleBin] += hitPixels;
-        signal.preciseAtMod(preciseBin) += 0.6 * hitPixels;
-        if (preciseBin > 0)
-          signal.preciseAtMod(preciseBin - 1) += 0.2 * hitPixels;
-        if (preciseBin < signal.preciseSize() - 1)
-          signal.preciseAtMod(preciseBin + 1) += 0.2 * hitPixels;
-      }
+    //skip saturation/recovery and pulse smearing for premix stage 1
+    if (PreMixDigis and HighFidelityPreMix) {
+      signal[sampleBin] += pe;
+      signal.preciseAtMod(preciseBin) += pe;
+      elapsedTime += dt;
+      continue;
     }
 
-    if (pars.doSiPMSmearing()) {
-      double sum = 0;
-      for (int i = 0; i < int(pulses.first.size()); ++i) {
-        if (pulses.notValid[i])
-          continue;
-        auto timeDiff = elapsedTime - pulses.first[i];
-        auto shape = sipmPulseShape(timeDiff);
-        auto pulseBit = shape * pulses.second[i];
-        LogDebug("HcalSiPMHitResponse") << " pulse t: " << pulses.first[i] << " pulse A: " << pulses.second[i]
-                                        << " timeDiff: " << timeDiff << " pulseBit: " << pulseBit;
-        sum += pulseBit;
-
-        pulses.notValid[i] = (timeDiff > 1. && shape < 1.e-7);
+    hitPixels = theSiPM.hitCells(engine, pe, 0., elapsedTime);
+    LogDebug("HcalSiPMHitResponse") << " elapsedTime: " << elapsedTime << " sampleBin: " << sampleBin
+                                    << " preciseBin: " << preciseBin << " pe: " << pe << " hitPixels: " << hitPixels;
+    if (!pars.doSiPMSmearing()) {
+      signal[sampleBin] += hitPixels;
+      signal.preciseAtMod(preciseBin) += 0.6 * hitPixels;
+      if (preciseBin > 0)
+        signal.preciseAtMod(preciseBin - 1) += 0.2 * hitPixels;
+      if (preciseBin < signal.preciseSize() - 1)
+        signal.preciseAtMod(preciseBin + 1) += 0.2 * hitPixels;
+    } else {
+      // add "my" smearing to future bins...
+      // this loop can vectorize....
+      for (auto i = tbin; i < nptb; ++i) {
+        auto itdiff = i - tbin;
+        if (itdiff == sipmPulseShape.nBins())
+          break;
+        auto shape = sipmPulseShape[itdiff];
+        auto pulseBit = shape * hitPixels;
+        sum[i] += pulseBit;
+        if (shape < 1.e-7 && itdiff > int(HcalPulseShapes::invDeltaTSiPM_))
+          break;
       }
-      signal[sampleBin] += sum;
-      signal.preciseAtMod(preciseBin) += sum;
     }
     elapsedTime += dt;
+  }
+  if (pars.doSiPMSmearing())
+    for (auto i = 0; i < nptb; ++i) {
+      auto iSampleBin = (nbins > 1) ? i / nbins : i;
+      signal[iSampleBin] += sum[i];
+      signal.preciseAtMod(i) += sum[i];
+    }
+
+  std::cout << nbins << ' ' << nptb << ' ' << HcalDetId(id) << " | ";
+  for (auto i = 0; i < nptb; ++i) {
+    auto iSampleBin = (nbins > 1) ? i / nbins : i;
+    std::cout << i << ' ' << iSampleBin << ' ' << signal[iSampleBin] << ' ' << signal.preciseAtMod(i) << std::endl;
   }
 
   return signal;

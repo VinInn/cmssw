@@ -12,10 +12,14 @@
 using std::vector;
 //345678911234567892123456789312345678941234567895123456789612345678971234567898
 HcalSiPM::HcalSiPM(int nCells, double tau)
-    : theCellCount(nCells), theSiPM(nCells, 1.), theCrossTalk(0.), theTempDep(0.), theLastHitTime(-1.), nonlin(nullptr) {
+    : theCellCount(nCells),
+      theSiPM(nCells, -999.),
+      theCrossTalk(0.),
+      theTempDep(0.),
+      theLastHitTime(-1.),
+      nonlin(nullptr) {
   setTau(tau);
   assert(theCellCount > 0);
-  resetSiPM();
 }
 
 HcalSiPM::~HcalSiPM() {
@@ -175,7 +179,7 @@ double HcalSiPM::totalCharge(double time) const {
 }
 
 void HcalSiPM::setNCells(int nCells) {
-  assert(nCells > 0);
+  // assert(nCells > 0);
   theCellCount = nCells;
   theSiPM.resize(nCells);
   resetSiPM();
