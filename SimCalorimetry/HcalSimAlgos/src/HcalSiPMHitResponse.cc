@@ -255,16 +255,18 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
   }
   if (pars.doSiPMSmearing())
     for (auto i = 0; i < nptb; ++i) {
-      auto iSampleBin = (nbins > 1) ? i / nbins : i;
+      auto iSampleBin = i / nbins;
       signal[iSampleBin] += sum[i];
       signal.preciseAtMod(i) += sum[i];
     }
 
-  std::cout << nbins << ' ' << nptb << ' ' << HcalDetId(id) << " | ";
+#ifdef EDM_ML_DEBUG
+  LogDebug("HcalSiPMHitResponse") << nbins << ' ' << nptb << ' ' << HcalDetId(id);
   for (auto i = 0; i < nptb; ++i) {
     auto iSampleBin = (nbins > 1) ? i / nbins : i;
-    std::cout << i << ' ' << iSampleBin << ' ' << signal[iSampleBin] << ' ' << signal.preciseAtMod(i) << std::endl;
+    LogDebug("HcalSiPMHitResponse") << i << ' ' << iSampleBin << ' ' << signal[iSampleBin] << ' ' << signal.preciseAtMod(i);
   }
+#endif
 
   return signal;
 }
