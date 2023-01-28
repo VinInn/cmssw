@@ -13,7 +13,7 @@ using std::vector;
 //345678911234567892123456789312345678941234567895123456789612345678971234567898
 HcalSiPM::HcalSiPM(int nCells, double tau)
     : theCellCount(nCells),
-      theSiPM(nCells, -999.),
+      theSiPM(nCells, -999.f),
       theCrossTalk(0.),
       theTempDep(0.),
       theLastHitTime(-1.),
@@ -29,18 +29,16 @@ HcalSiPM::~HcalSiPM() {
 
 namespace {
 
-#include <iostream>
+  /*
   //================================================================================
   //original implementation of Borel-Tanner distribution
-  constexpr double oldBorel(unsigned int n, double lambda, unsigned int k) {
+  // here for reference
+  constexpr double originalBorel(unsigned int n, double lambda, unsigned int k) {
     if (n < k)
       return 0;
     double dn = double(n);
     double dk = double(k);
     double dnk = dn - dk;
-
-    // std::cout << "Borel " << n << ' ' << k << ' ' << TMath::LnGamma(dnk + 1) << ' ' << TMath::Factorial(n - k) << ' ' << log(TMath::Factorial(n - k)) << std::endl;
-
     double ldn = lambda * dn;
     double logb = -ldn + dnk * log(ldn) - TMath::LnGamma(dnk + 1);
     double b = 0;
@@ -53,6 +51,7 @@ namespace {
     }
     return b;
   }
+  */
 
   using FLOAT = double;
   //================================================================================
@@ -94,7 +93,6 @@ const HcalSiPM::cdfpair& HcalSiPM::BorelCDF(unsigned int k) {
     for (i = 0;; i++) {
       if (i > 0)
         iFact *= double(i);
-      // assert(std::abs(Borel(i, theCrossTalk, k, iFact) - oldBorel(k + i, theCrossTalk, k)) < 1.e-8);
       sumb += Borel(i, theCrossTalk, k, iFact);
       if (sumb >= EPSILON)
         break;
@@ -106,13 +104,11 @@ const HcalSiPM::cdfpair& HcalSiPM::BorelCDF(unsigned int k) {
     // calculate cdf[i]
     for (++i;; ++i) {
       iFact *= double(i);
-      // assert(std::abs(Borel(i, theCrossTalk, k, iFact) - oldBorel(k + i, theCrossTalk, k)) < 1.e-8);
       sumb += Borel(i, theCrossTalk, k, iFact);
       cdf.push_back(sumb);
       if (1. - sumb < EPSILON)
         break;
     }
-    // std::cout << "borel cdf size " << cdf.size() << std::endl;
     it = (borelcdfs.emplace(k, make_pair(borelstartn, cdf))).first;
   }
 
@@ -179,7 +175,6 @@ double HcalSiPM::totalCharge(double time) const {
 }
 
 void HcalSiPM::setNCells(int nCells) {
-  // assert(nCells > 0);
   theCellCount = nCells;
   theSiPM.resize(nCells);
   resetSiPM();
