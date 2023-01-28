@@ -264,7 +264,8 @@ CaloSamples HcalSiPMHitResponse::makeSiPMSignal(DetId const& id,
   LogDebug("HcalSiPMHitResponse") << nbins << ' ' << nptb << ' ' << HcalDetId(id);
   for (auto i = 0; i < nptb; ++i) {
     auto iSampleBin = (nbins > 1) ? i / nbins : i;
-    LogDebug("HcalSiPMHitResponse") << i << ' ' << iSampleBin << ' ' << signal[iSampleBin] << ' ' << signal.preciseAtMod(i);
+    LogDebug("HcalSiPMHitResponse") << i << ' ' << iSampleBin << ' ' << signal[iSampleBin] << ' '
+                                    << signal.preciseAtMod(i);
   }
 #endif
 
