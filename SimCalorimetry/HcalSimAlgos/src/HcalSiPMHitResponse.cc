@@ -11,7 +11,30 @@
 #include "FWCore/Utilities/interface/isFinite.h"
 #include "CalibCalorimetry/HcalAlgos/interface/HcalPulseShapes.h"
 
-#include "CLHEP/Random/RandPoissonQ.h"
+#include "CLHEP/Random/RandPoisson.h"
+
+namespace {
+
+  class TrivialPoisson {
+  public:
+    TrivialPoisson(CLHEP::HepRandomEngine* engine, double av) : m_engine(engine), m_expAvm(std::exp(-av)) {}
+
+    int operator()() {
+      int em = -1;
+      double t = 1.0;
+      do {
+        em += 1;
+        t *= m_engine->flat();
+      } while (t > m_expAvm);
+      return em;
+    }
+
+  private:
+    CLHEP::HepRandomEngine* m_engine;
+    const double m_expAvm;
+  };
+
+}  // namespace
 
 #include <cmath>
 #include <list>
@@ -155,9 +178,11 @@ void HcalSiPMHitResponse::addPEnoise(CLHEP::HepRandomEngine* engine) {
 
     int nPreciseBins = nbins * getReadoutFrameSize(id);
 
+    TrivialPoisson poisson(engine, dc_pe_avg);
     unsigned int sumnoisePE(0);
     for (int tprecise(0); tprecise < nPreciseBins; ++tprecise) {
-      int noisepe = CLHEP::RandPoissonQ::shoot(engine, dc_pe_avg);  // add dark current noise
+      //int noisepe = CLHEP::RandPoissonQ::shoot(engine, dc_pe_avg);  // add dark current noise
+      int noisepe = poisson();  // add dark current noise
 
       if (noisepe > 0) {
         if (precisionTimedPhotons.find(id) == precisionTimedPhotons.end()) {

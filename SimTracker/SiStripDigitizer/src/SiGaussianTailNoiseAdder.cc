@@ -31,14 +31,60 @@ void SiGaussianTailNoiseAdder::addNoise(std::vector<float> &in,
   }
 }
 
+#include <vdt/sincos.h>
+#include "DataFormats/Math/interface/approx_log.h"
+
+namespace {
+  inline void normalR(float x, float y, float &r1, float &r2) {
+    constexpr float pi2f = 2.0 * M_PI;
+    float u = std::sqrt(-2.f * unsafe_logf<8>(x));
+    float c, s;
+    vdt::fast_sincosf(pi2f * y, c, s);
+    r1 = u * c;
+    r2 = u * s;
+  };
+}  // namespace
+
 void SiGaussianTailNoiseAdder::addNoiseVR(std::vector<float> &in,
                                           std::vector<float> &noiseRMS,
                                           CLHEP::HepRandomEngine *engine) const {
   // Add noise
   // Full Gaussian noise is added everywhere
+  int evenSize = 2 * ((in.size() + 1) / 2);
+  assert(0 == evenSize % 2);
+  float rand[evenSize];
+  float x[evenSize];
+  union DInt {
+    double d;
+    uint64_t l;
+  };
+  union FInt {
+    float f;
+    uint32_t i;
+  };
+  for (int i = 0; i < evenSize; i += 2) {
+    do {
+      DInt di;
+      FInt fi;
+      di.d = double(*engine) + 1;
+      //    get 2 float from one double
+      // assert(di.d<2. && di.d>1.);
+      fi.i = (di.l & 0x007FFFFF) | 0x3F800000;  // extract mantissa as an FP number
+      x[i] = fi.f - 1.f;
+      // assert(x[i]>=0.f && x[i]<=1.f);
+      di.l = (di.l >> 23ul);  // remove those used
+      //    repeat
+      fi.i = (di.l & 0x007FFFFF) | 0x3F800000;  // extract mantissa as an FP number
+      x[i + 1] = fi.f - 1.f;
+      // assert(x[i+1]>=0.f && x[i+1]<=1.f);
+    } while (x[i] <= std::numeric_limits<float>::epsilon());  // avoid log(0)
+  }
+  for (int i = 0; i < evenSize; i += 2) {
+    normalR(x[i], x[i + 1], rand[i], rand[i + 1]);
+  }
   for (size_t iChannel = 0; iChannel != in.size(); iChannel++) {
     if (noiseRMS[iChannel] > 0.)
-      in[iChannel] += CLHEP::RandGaussQ::shoot(engine, 0., noiseRMS[iChannel]);
+      in[iChannel] += noiseRMS[iChannel] * rand[iChannel];
   }
 }
 
