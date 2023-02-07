@@ -75,6 +75,12 @@
   <flags REM_CXXFLAGS="-ansi"/>
 </bin>
 
+
+<bin file="fastRandom_t.cpp" name="DataFormatsFastRandom_t">
+  <use name="ofast-flag"/>
+  <use name="CLHEP"/>
+</bin>
+
 <bin file="Similarity_t.cpp" name="DataFormatsSimilarity_t">
 </bin>
 
