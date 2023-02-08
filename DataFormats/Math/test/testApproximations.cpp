@@ -50,15 +50,22 @@ void testIt() {
   float x = 0.5f;
   float ymin = unsafe_logf<8>(0.);
   std::cout << "log(zero) " << ymin << std::endl;
-  for (int i = 0; i<100; i++) {
-    if (unsafe_logf<2>(x)!=ymin) y[2] = x;
-    if (unsafe_logf<3>(x)!=ymin) y[3] = x;
-    if (unsafe_logf<4>(x)!=ymin) y[4] = x;
-    if (unsafe_logf<5>(x)!=ymin) y[5] = x;
-    if (unsafe_logf<6>(x)!=ymin) y[6] = x;
-    if (unsafe_logf<7>(x)!=ymin) y[7] = x;
-    if (unsafe_logf<8>(x)!=ymin) y[8] = x;
-    x *=0.5f;
+  for (int i = 0; i < 100; i++) {
+    if (unsafe_logf<2>(x) != ymin)
+      y[2] = x;
+    if (unsafe_logf<3>(x) != ymin)
+      y[3] = x;
+    if (unsafe_logf<4>(x) != ymin)
+      y[4] = x;
+    if (unsafe_logf<5>(x) != ymin)
+      y[5] = x;
+    if (unsafe_logf<6>(x) != ymin)
+      y[6] = x;
+    if (unsafe_logf<7>(x) != ymin)
+      y[7] = x;
+    if (unsafe_logf<8>(x) != ymin)
+      y[8] = x;
+    x *= 0.5f;
   }
   for (int k = 2; k != 9; k++) {
     std::cout << k << ": min not 0" << y[k] << std::endl;
@@ -68,9 +75,6 @@ void testIt() {
   for (int k = 2; k != 9; k++) {
     std::cout << k << ": ave/min/max " << double(a[k]) / double(N) << " " << l[k] << " " << h[k] << std::endl;
   }
-
-
-
 }
 
 inline float ms(float radLen, float m2, float p2) {
