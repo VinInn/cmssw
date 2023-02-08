@@ -55,7 +55,7 @@ int main() {
     double n = 0;
     double ave = 0;
     double sigma = 0;
-    double q3 = 0, q5 = 0, q6 = 0;
+    double q3 = 0, q4 = 0, q5 = 0, q6 = 0;
     for (int i = 0; i < 10 * N; ++i) {
       for (auto& d : dv)
         d = engine;
@@ -70,15 +70,18 @@ int main() {
         sigma += r * r;
         if (std::abs(r) > 3.f)
           q3 += 1;
+        if (std::abs(r) > 4.f)
+          q4 += 1;
         if (std::abs(r) > 5.f)
           q5 += 1;
         if (std::abs(r) > 6.f)
           q6 += 1;
       }
     }
-    std::cout << n << ' ' << q3 << ' ' << q5 << ' ' << q6 << std::endl;
+    std::cout << n << ' ' << q3 << ' ' << q4 << ' ' << q5 << ' ' << q6 << std::endl;
     std::cout << n << ' ' << ave / n << ' ' << (n * sigma - ave * ave) / (n * n) << ' ' << (q3 / n) / 0.002699796063
-              << ' ' << (q5 / n) / 0.000000573303 << ' ' << (q6 / n) / 0.000000001973 << std::endl;
+              << ' ' << (q4 / n) / 0.000063342484 << ' ' << (q5 / n) / 0.000000573303 << ' '
+              << (q6 / n) / 0.000000001973 << std::endl;
   }
 
   return 0;
