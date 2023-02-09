@@ -1,7 +1,11 @@
 #include "DataFormats/Math/interface/fastRandomTwoSingle.h"
 #include "DataFormats/Math/interface/fastRandomNormal.h"
 
+#include "DataFormats/Math/interface/CLHEP2STDRandom.h"
 #include "CLHEP/Random/MixMaxRng.h"
+#include <random>
+// when C++20    will be    used
+// #include <bits>
 
 #include <iostream>
 #include <cassert>
@@ -24,6 +28,16 @@ void fillBits(int* v, float x) {
 
 int main() {
   CLHEP::MixMaxRng engine;
+
+  {
+    // test wrapper
+    CLHEP2STDRandom wrapper(engine);
+    std::poisson_distribution<> poisson(0.5);
+    std::cout << "test wrapper " << poisson(wrapper) << " bits " << __builtin_popcountll(CLHEP2STDRandom::max()) << ' '
+              << std::log2(CLHEP2STDRandom::max() + 1) << std::endl;
+    // when C++20 will be used
+    //          << std::popcount(CLHEP2STDRandom::max()) << ' ' << countl_zero(CLHEP2STDRandom::max()) <<    ' ' <<    ' ' << countr_one(CLHEP2STDRandom::max()) << std::endl;
+  }
 
   using namespace fastRandom;
 

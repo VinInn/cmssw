@@ -86,7 +86,7 @@
 <bin file="fastRandom_t.cpp" name="DataFormatsFastRandom_t">
   <use name="ofast-flag"/>
   <use name="CLHEP"/>
-    <use name="vdt"/>
+  <use name="vdt"/>
 </bin>
 
 <bin file="Similarity_t.cpp" name="DataFormatsSimilarity_t">
