@@ -31,47 +31,42 @@ namespace benchmark {
     asm volatile("" : "+m"(x) : :);
   }
 
-
 #else
   // for other architecture one has to find the proper asm...
-  template <typename T> keep(T&& x) noexcept {}
-  template <typename T> touch(T& x) noexcept {}
+  template <typename T>
+  keep(T&& x) noexcept {}
+  template <typename T>
+  touch(T& x) noexcept {}
 #endif
 
   class TimeIt {
   public:
-    using Clock    = std::chrono::high_resolution_clock;
-    using Delta    = Clock::duration;
+    using Clock = std::chrono::high_resolution_clock;
+    using Delta = Clock::duration;
     using Time = Clock::time_point;
 
-    TimeIt() {
-       reset();
-    }    
+    TimeIt() { reset(); }
 
     void reset() {
       start = std::chrono::high_resolution_clock::now();
-      delta = start - start; 
-    }  
+      delta = start - start;
+    }
 
-   template<typename T, typename F>
-   void operator()(F f, T const * x, T * y, int n) {
-      delta -= (std::chrono::high_resolution_clock::now()-start);
+    template <typename T, typename F>
+    void operator()(F f, T const* x, T* y, int n) {
+      delta -= (std::chrono::high_resolution_clock::now() - start);
       touch(x);
-      f(x,y,n);
+      f(x, y, n);
       keep(y);
-      delta += (std::chrono::high_resolution_clock::now()-start);
-   }
-  
+      delta += (std::chrono::high_resolution_clock::now() - start);
+    }
 
-    auto lap() const { return std::chrono::duration_cast<std::chrono::milliseconds>(delta).count();}
-
+    auto lap() const { return std::chrono::duration_cast<std::chrono::milliseconds>(delta).count(); }
 
   private:
     Time start;
     Delta delta;
-    
   };
-
 
 }  // namespace benchmark
 

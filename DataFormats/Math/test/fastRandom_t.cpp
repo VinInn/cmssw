@@ -67,24 +67,22 @@ int main() {
   }
 
   double dv[128];
-  float dummy[1]; 
-  auto clhep = [&](float const *, float * r, int) {
-      for (int k = 0; k < 256; ++k) {
-          r[k] = CLHEP::RandGaussQ::shoot(&engine);
-      }
+  float dummy[1];
+  auto clhep = [&](float const*, float* r, int) {
+    for (int k = 0; k < 256; ++k) {
+      r[k] = CLHEP::RandGaussQ::shoot(&engine);
+    }
   };
 
-
-  auto gen = [&](float const *, float * r, int) {
-      for (auto& d : dv)
-           d = engine;
-      for (int k = 0, l = 0; k < 128; ++k, l += 2) {
-         auto [x, y] = normal(dv[k]);
-          r[l] = x;
-          r[l + 1] = y;
-      }
+  auto gen = [&](float const*, float* r, int) {
+    for (auto& d : dv)
+      d = engine;
+    for (int k = 0; k < 128; ++k) {
+      auto [x, y] = normal(dv[k]);
+      r[k] = x;
+      r[k + 128] = y;
+    }
   };
-
 
   for (int m = 0; m < 3; ++m) {
     benchmark::TimeIt bench;
@@ -118,7 +116,6 @@ int main() {
     std::cout << "duration " << bench.lap() << std::endl;
   }
 
-
   for (int m = 0; m < 3; ++m) {
     benchmark::TimeIt bench;
     // fill in batch of 256
@@ -133,13 +130,13 @@ int main() {
         n++;
         ave += r;
         sigma += r * r;
-           if (std::abs(r) > 3.f)
+        if (std::abs(r) > 3.f)
           q3 += 1;
-           if (std::abs(r) > 4.f)
+        if (std::abs(r) > 4.f)
           q4 += 1;
-           if (std::abs(r) > 5.f)
+        if (std::abs(r) > 5.f)
           q5 += 1;
-           if (std::abs(r) > 6.f)
+        if (std::abs(r) > 6.f)
           q6 += 1;
       }
     }
@@ -150,8 +147,6 @@ int main() {
               << (q6 / n) / 0.000000001973 << std::endl;
     std::cout << "duration " << bench.lap() << std::endl;
   }
-
-
 
   return 0;
 }
