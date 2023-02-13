@@ -41,11 +41,37 @@ void testIt() {
     y[7] = unsafe_logf<7>(x);
     y[8] = unsafe_logf<8>(x);
     for (int k = 2; k != 9; k++) {
-      a[k] += diff(y[0], y[k]);
+      a[k] += std::abs(diff(y[0], y[k]));
       h[k] = std::max(h[k], diff(y[0], y[k]));
       l[k] = std::min(l[k], diff(y[0], y[k]));
     }
   }
+  std::cout << "test of unsafe_logf" << std::endl;
+  float x = 0.5f;
+  float ymin = unsafe_logf<8>(0.);
+  std::cout << "log(zero) " << ymin << std::endl;
+  for (int i = 0; i < 100; i++) {
+    if (unsafe_logf<2>(x) != ymin)
+      y[2] = x;
+    if (unsafe_logf<3>(x) != ymin)
+      y[3] = x;
+    if (unsafe_logf<4>(x) != ymin)
+      y[4] = x;
+    if (unsafe_logf<5>(x) != ymin)
+      y[5] = x;
+    if (unsafe_logf<6>(x) != ymin)
+      y[6] = x;
+    if (unsafe_logf<7>(x) != ymin)
+      y[7] = x;
+    if (unsafe_logf<8>(x) != ymin)
+      y[8] = x;
+    x *= 0.5f;
+  }
+  for (int k = 2; k != 9; k++) {
+    std::cout << k << ": min not 0" << y[k] << std::endl;
+  }
+  std::cout << 2 << ": min not 0" << y[2] << ' ' << unsafe_logf<2>(y[2]) << std::endl;
+  std::cout << 8 << ": min not 0" << y[8] << ' ' << unsafe_logf<8>(y[8]) << std::endl;
   for (int k = 2; k != 9; k++) {
     std::cout << k << ": ave/min/max " << double(a[k]) / double(N) << " " << l[k] << " " << h[k] << std::endl;
   }

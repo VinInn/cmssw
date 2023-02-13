@@ -68,11 +68,25 @@
   <flags CXXFLAGS="-fwrapv"/>
 </bin>
 
+<bin file="testSinCos.cpp" name="testSinCos">
+  <use name="ofast-flag"/>
+    <use name="vdt"/>
+</bin>
+
+
+
 <bin file="deltaR_t.cpp" name="DataFormatsDeltaR_t">
   <flags CXXFLAGS="-Wno-error=format -Wno-format -Wno-format-contains-nul"/>
   <flags REM_CXXFLAGS="-Wformat"/>
   <flags REM_CXXFLAGS="-Wformat-contains-nul"/>
   <flags REM_CXXFLAGS="-ansi"/>
+</bin>
+
+
+<bin file="fastRandom_t.cpp" name="DataFormatsFastRandom_t">
+  <use name="ofast-flag"/>
+  <use name="CLHEP"/>
+  <use name="vdt"/>
 </bin>
 
 <bin file="Similarity_t.cpp" name="DataFormatsSimilarity_t">
