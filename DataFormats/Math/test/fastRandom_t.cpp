@@ -94,6 +94,7 @@ int main() {
     }
   };
 
+  using Poisson = PoissonHist<float>;  // Knuth;
   Poisson poisson(engine, aveP);
   auto genP = [&](float const*, float* r, int) {
     for (int k = 0; k < 256; ++k) {

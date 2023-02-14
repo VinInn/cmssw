@@ -3,6 +3,7 @@
 
 #include <tuple>
 #include <cstdint>
+#include "CLHEP/Random/RandomEngine.h"
 
 namespace fastRandom {
 
@@ -28,6 +29,41 @@ namespace fastRandom {
     auto s2 = fi.f - 1.f;
     return {s1, s2};
   }
+
+  class OneFloat {
+  public:
+    OneFloat() = default;
+    explicit OneFloat(CLHEP::HepRandomEngine& engine) : m_engine(&engine) {}
+
+    void reset(CLHEP::HepRandomEngine& engine) {
+      m_ready = false;
+      m_engine = &engine;
+    }
+
+    float operator()() { return nextRN(); }
+
+    float operator()(CLHEP::HepRandomEngine& engine) {
+      // for safety we assume it is a new engine
+      reset(engine);
+      return (*this)();
+    }
+
+  private:
+    float nextRN() {
+      if (m_ready) {
+        m_ready = false;
+        return m_rn.second;
+      }
+      m_rn = twoSingle(*m_engine);
+      m_ready = true;
+      return m_rn.first;
+    }
+
+    CLHEP::HepRandomEngine* m_engine = nullptr;
+    ;
+    std::pair<float, float> m_rn;
+    bool m_ready = false;
+  };
 
 }  // namespace fastRandom
 #endif
