@@ -25,7 +25,7 @@ namespace fastRandom {
     details::FInt fi;
     di.d = d + 1.;
     //    get 2 float from one double
-    fi.i = di.l & 0x007FFFFF; 
+    fi.i = di.l & 0x007FFFFF;
     fi.i |= 0x3F800000;  // extract mantissa as an FP number
     auto s1 = fi.f - 1.f;
     di.l = (di.l >> 23ul);  // remove those used
