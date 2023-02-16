@@ -166,7 +166,7 @@ int main() {
     std::cout << "duration " << bench.lap() << std::endl;
   }
 
-  float avs[4] = {0.1, 1.5, 4.5, 7.};
+  float avs[5] = {0.1, 1.5, 4.5, 7.,15.};
   for (auto av : avs) {
     double pTrue[30];
     double poiss = std::exp(-av);
