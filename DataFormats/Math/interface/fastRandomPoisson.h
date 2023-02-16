@@ -17,7 +17,7 @@ namespace fastRandom {
     explicit PoissonHist(T mu) { reset(mu); }
     PoissonHist(CLHEP::HepRandomEngine& engine, T mu) : m_gen(engine) { reset(mu); }
 
-    int operator()() { return find(m_gen()); }
+    int operator()() { return findSlow(m_gen()); }
 
     void reset(T mu) {
       m_cumulative.clear();

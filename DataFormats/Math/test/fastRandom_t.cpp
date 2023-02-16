@@ -168,6 +168,14 @@ int main() {
 
   float avs[4] = {0.1, 1.5, 4.5, 7.};
   for (auto av : avs) {
+    double pTrue[30];
+    double poiss = std::exp(-av);
+    pTrue[0] = poiss;
+    for (int i = 1; i < 30; ++i) {
+        poiss *= av / double(i);
+      pTrue[i] = poiss;
+    }
+    {
     benchmark::TimeIt bench;
     // fill in batch of 256
     float rv[256];
@@ -176,20 +184,25 @@ int main() {
     double sigma = 0;
     aveP = av;
     poisson.reset(av);
+    long long pVal[30];
+    for (int i = 0; i < 30; ++i) pVal[i]=0;
     for (int i = 0; i < N; ++i) {
       bench(genP, dummy, rv, 256);
       for (auto r : rv) {
+        if (r<30) ++pVal[int(r+0.5f)];
         n++;
         ave += r;
         sigma += r * r;
       }
     }
-    std::cout << "Knuth poisson" << std::endl;
-    std::cout << n << ' ' << ave / n << ' ' << (n * sigma - ave * ave) / (n * n) << std::endl;
-    std::cout << "duration " << bench.lap() << std::endl;
-  }
 
-  for (auto av : avs) {
+    std::cout << "Histo poisson" << std::endl;
+    std::cout << n << ' ' << ave / n << ' ' << (n * sigma - ave * ave) / (n * n) << std::endl;
+    for (int i = 0; i < 30; ++i) std::cout << pVal[i]/(pTrue[i]*n) << ' '; 
+    std::cout << std::endl;
+    std::cout << "duration " << bench.lap() << std::endl;
+   }
+   {
     benchmark::TimeIt bench;
     // fill in batch of 256
     float rv[256];
@@ -197,9 +210,12 @@ int main() {
     double ave = 0;
     double sigma = 0;
     aveP = av;
+    long long pVal[30];
+    for (int i = 0; i < 30; ++i) pVal[i]=0;
     for (int i = 0; i < N; ++i) {
       bench(clhepP, dummy, rv, 256);
       for (auto r : rv) {
+        if (r<30) ++pVal[int(r+0.5f)];
         n++;
         ave += r;
         sigma += r * r;
@@ -207,7 +223,10 @@ int main() {
     }
     std::cout << "clhep poisson" << std::endl;
     std::cout << n << ' ' << ave / n << ' ' << (n * sigma - ave * ave) / (n * n) << std::endl;
+    for (int i = 0; i < 30; ++i) std::cout << pVal[i]/(pTrue[i]*n) << ' ';
+    std::cout << std::endl;
     std::cout << "duration " << bench.lap() << std::endl;
+   }
   }
 
   return 0;
