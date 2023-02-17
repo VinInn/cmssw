@@ -84,16 +84,17 @@ namespace fastRandom {
     float nextRN() {
       if (m_ready) {
         m_ready = false;
-        return m_rn.second;
+        return m_rn;
       }
-      m_rn = twoSingle(*m_engine);
+      auto [x, y] = twoSingle(*m_engine);
+      m_rn = y;
       m_ready = true;
-      return m_rn.first;
+      return x;
+      ;
     }
 
     CLHEP::HepRandomEngine* m_engine = nullptr;
-    ;
-    std::pair<float, float> m_rn;
+    float m_rn;
     bool m_ready = false;
   };
 
