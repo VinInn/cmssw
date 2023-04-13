@@ -220,10 +220,10 @@ void TestRandomNumberServiceGlobal::analyze(edm::StreamID streamID,
   double mean = 10.0;  // Mean of the exponential
   double randomNumberEvent3_ = expDist.fire(mean);
 
-  if (dump_) {
-    std::cout << "     " << engine.name() << " " << randomNumberEvent0_ << " " << randomNumberEvent1_ << " "
+//  if (dump_) {
+    std::cout << "TRNG streamID= " << streamID  << ' ' << engine.name() << " " << randomNumberEvent0_ << " " << randomNumberEvent1_ << " "
               << randomNumberEvent2_ << " " << randomNumberEvent3_ << std::endl;
-  }
+//  }
 
   // Write them to a text file
   cache->outFile_ << rng->mySeed() << "\n";

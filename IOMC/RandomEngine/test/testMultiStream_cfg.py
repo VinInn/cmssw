@@ -4,7 +4,8 @@ import FWCore.ParameterSet.Config as cms
 process = cms.Process("PROD")
 
 process.options = cms.untracked.PSet(
-    numberOfStreams = cms.untracked.uint32(3),
+    numberOfStreams = cms.untracked.uint32(6),
+    numberOfThreads = cms.untracked.uint32(6),
     numberOfConcurrentLuminosityBlocks = cms.untracked.uint32(1)
 )
 
@@ -36,7 +37,7 @@ process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService
 )
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(5)
+    input = cms.untracked.int32(1)
 )
 
 process.source = cms.Source("EmptySource",
@@ -89,5 +90,10 @@ process.out = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string('testMultiStream.root')
 )
 
+process.p1 = cms.Path(process.t1)
+process.p2 = cms.Path(process.t2)
+process.p3 = cms.Path(process.t3)
+process.p4 = cms.Path(process.t4)
+process.p6 = cms.Path(process.t6)
 process.p = cms.Path(process.t1+process.t2+process.t3+process.t4+process.t6+process.randomEngineStateProducer)
 process.o = cms.EndPath(process.out)
