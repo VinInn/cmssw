@@ -83,7 +83,8 @@ the text file containing the states.
 #include <unistd.h>
 
 namespace {
-  std::mutex write_mutex;
+ std::mutex coutLock;
+ std::mutex write_mutex;
 }
 
 class TestRandomNumberServiceStreamCache {
@@ -221,8 +222,11 @@ void TestRandomNumberServiceGlobal::analyze(edm::StreamID streamID,
   double randomNumberEvent3_ = expDist.fire(mean);
 
 //  if (dump_) {
+    {
+    std::lock_guard<std::mutex> guard(coutLock);
     std::cout << "TRNG streamID= " << streamID  << ' ' << engine.name() << " " << randomNumberEvent0_ << " " << randomNumberEvent1_ << " "
               << randomNumberEvent2_ << " " << randomNumberEvent3_ << std::endl;
+    }
 //  }
 
   // Write them to a text file
@@ -371,7 +375,7 @@ std::shared_ptr<TestRandomNumberServiceLumiCache> TestRandomNumberServiceGlobal:
           new edm::TRandomAdaptor(seedL));  // propagate_const<T> has no reset() function
     }
   }
-
+  /*
   double y1 = lumiCache->referenceEngine_->flat();
   double y2 = lumiCache->referenceEngine_->flat();
 
@@ -397,6 +401,7 @@ std::shared_ptr<TestRandomNumberServiceLumiCache> TestRandomNumberServiceGlobal:
         << " x1= " << x1 << " z1= " << z1 << " x2= " << x2 << " z2= " << z2 << " " << engine.name() << " "
         << engineClone->name() << " seed0= " << seed0 << " nStream= " << nStreams_;
   }
+  */
   return lumiCache;
 }
 

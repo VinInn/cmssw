@@ -4,8 +4,8 @@ import FWCore.ParameterSet.Config as cms
 process = cms.Process("PROD")
 
 process.options = cms.untracked.PSet(
-    numberOfStreams = cms.untracked.uint32(6),
-    numberOfThreads = cms.untracked.uint32(6),
+    numberOfStreams = cms.untracked.uint32(8),
+    numberOfThreads = cms.untracked.uint32(8),
     numberOfConcurrentLuminosityBlocks = cms.untracked.uint32(1)
 )
 
@@ -37,7 +37,7 @@ process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService
 )
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(1)
+    input = cms.untracked.int32(2)
 )
 
 process.source = cms.Source("EmptySource",
