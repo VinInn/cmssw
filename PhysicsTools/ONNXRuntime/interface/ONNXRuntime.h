@@ -27,15 +27,14 @@ namespace cms::Ort {
     cuda,
   };
 
+  class ONNXRuntimeImpl;
+
   class ONNXRuntime {
   public:
     ONNXRuntime(const std::string& model_path, const ::Ort::SessionOptions* session_options = nullptr);
     ONNXRuntime(const ONNXRuntime&) = delete;
     ONNXRuntime& operator=(const ONNXRuntime&) = delete;
     ~ONNXRuntime();
-
-    static ::Ort::SessionOptions defaultSessionOptions(Backend backend = Backend::cpu);
-
     // Run inference and get outputs
     // input_names: list of the names of the input nodes.
     // input_values: list of input arrays for each input node. The order of `input_values` must match `input_names`.
@@ -50,6 +49,8 @@ namespace cms::Ort {
                     const std::vector<std::string>& output_names = {},
                     int64_t batch_size = 1) const;
 
+    static ::Ort::SessionOptions defaultSessionOptions(Backend backend = Backend::cpu);
+
     // Get a list of names of all the output nodes
     const std::vector<std::string>& getOutputNames() const;
 
@@ -58,16 +59,7 @@ namespace cms::Ort {
     const std::vector<int64_t>& getOutputShape(const std::string& output_name) const;
 
   private:
-    static const ::Ort::Env env_;
-    std::unique_ptr<::Ort::Session> session_;
-
-    std::vector<std::string> input_node_strings_;
-    std::vector<const char*> input_node_names_;
-    std::map<std::string, std::vector<int64_t>> input_node_dims_;
-
-    std::vector<std::string> output_node_strings_;
-    std::vector<const char*> output_node_names_;
-    std::map<std::string, std::vector<int64_t>> output_node_dims_;
+    ONNXRuntimeImpl const * m_impl;
   };
 
 }  // namespace cms::Ort

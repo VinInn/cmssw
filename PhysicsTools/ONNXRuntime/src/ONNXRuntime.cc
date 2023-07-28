@@ -15,14 +15,68 @@
 #include <iostream>
 #include <memory>
 #include <numeric>
+#include <map>
 
 namespace cms::Ort {
 
+ class ONNXRuntimeImpl {
+  public:
+    ONNXRuntimeImpl(const std::string& model_path, const ::Ort::SessionOptions* session_options = nullptr);
+    ONNXRuntimeImpl(const ONNXRuntimeImpl&) = delete;
+    ONNXRuntimeImpl& operator=(const ONNXRuntimeImpl&) = delete;
+    ~ONNXRuntimeImpl();
+
+    static ::Ort::SessionOptions defaultSessionOptions(Backend backend = Backend::cpu);
+
+    // Run inference and get outputs
+    // input_names: list of the names of the input nodes.
+    // input_values: list of input arrays for each input node. The order of `input_values` must match `input_names`.
+    // input_shapes: list of `int64_t` arrays specifying the shape of each input node. Can leave empty if the model does not have dynamic axes.
+    // output_names: names of the output nodes to get outputs from. Empty list means all output nodes.
+    // batch_size: number of samples in the batch. Each array in `input_values` must have a shape layout of (batch_size, ...).
+    // Returns: a std::vector<std::vector<float>>, with the order matched to `output_names`.
+    // When `output_names` is empty, will return all outputs ordered as in `getOutputNames()`.
+    FloatArrays run(const std::vector<std::string>& input_names,
+                    FloatArrays& input_values,
+                    const std::vector<std::vector<int64_t>>& input_shapes = {},
+                    const std::vector<std::string>& output_names = {},
+                    int64_t batch_size = 1) const;
+
+    // Get a list of names of all the output nodes
+    const std::vector<std::string>& getOutputNames() const;
+
+    // Get the shape of a output node
+    // The 0th dim depends on the batch size, therefore is set to -1
+    const std::vector<int64_t>& getOutputShape(const std::string& output_name) const;
+
+  private:
+    static const ::Ort::Env env_;
+    std::unique_ptr<::Ort::Session> session_;
+
+    std::vector<std::string> input_node_strings_;
+    std::vector<const char*> input_node_names_;
+    std::map<std::string, std::vector<int64_t>> input_node_dims_;
+
+    std::vector<std::string> output_node_strings_;
+    std::vector<const char*> output_node_names_;
+    std::map<std::string, std::vector<int64_t>> output_node_dims_;
+  };
+
   using namespace ::Ort;
 
-  const Env ONNXRuntime::env_(ORT_LOGGING_LEVEL_ERROR, "");
+  const Env ONNXRuntimeImpl::env_(ORT_LOGGING_LEVEL_ERROR, "");
+
+  namespace {
+    std::unordered_map<std::string, std::unique_ptr<ONNXRuntimeImpl>> models; 
+  }
 
   ONNXRuntime::ONNXRuntime(const std::string& model_path, const SessionOptions* session_options) {
+    auto p = models.find(model_path);
+    if (p == models.end()) p = models.insert({model_path,std::make_unique<ONNXRuntimeImpl>(model_path,session_options)}).first;
+    m_impl = (*p).second.get();
+  }
+
+  ONNXRuntimeImpl::ONNXRuntimeImpl(const std::string& model_path, const SessionOptions* session_options) {
     // create session
     if (session_options) {
       session_ = std::make_unique<Session>(env_, model_path.c_str(), *session_options);
@@ -37,7 +91,7 @@ namespace cms::Ort {
     input_node_names_.resize(num_input_nodes);
     input_node_dims_.clear();
 
-    for (size_t i = 0; i < num_input_nodes; i++) {
+   for (size_t i = 0; i < num_input_nodes; i++) {
       // get input node names
       std::string input_name(session_->GetInputNameAllocated(i, allocator).get());
       input_node_strings_[i] = input_name;
@@ -72,19 +126,32 @@ namespace cms::Ort {
   }
 
   ONNXRuntime::~ONNXRuntime() {}
+  ONNXRuntimeImpl::~ONNXRuntimeImpl() {}
 
   SessionOptions ONNXRuntime::defaultSessionOptions(Backend backend) {
+    return ONNXRuntimeImpl::defaultSessionOptions(backend);
+  }
+
+  SessionOptions ONNXRuntimeImpl::defaultSessionOptions(Backend backend) {
     SessionOptions sess_opts;
     sess_opts.SetIntraOpNumThreads(1);
     if (backend == Backend::cuda) {
-      // https://www.onnxruntime.ai/docs/reference/execution-providers/CUDA-ExecutionProvider.html
+      // https://www.ONNXRuntimeImpl.ai/docs/reference/execution-providers/CUDA-ExecutionProvider.html
       OrtCUDAProviderOptions options;
       sess_opts.AppendExecutionProvider_CUDA(options);
     }
     return sess_opts;
   }
 
+
   FloatArrays ONNXRuntime::run(const std::vector<std::string>& input_names,
+                               FloatArrays& input_values,
+                               const std::vector<std::vector<int64_t>>& input_shapes,
+                               const std::vector<std::string>& output_names,
+                               int64_t batch_size) const {
+    return m_impl->run(input_names,input_values,input_shapes,output_names, batch_size);
+  }
+  FloatArrays ONNXRuntimeImpl::run(const std::vector<std::string>& input_names,
                                FloatArrays& input_values,
                                const std::vector<std::vector<int64_t>>& input_shapes,
                                const std::vector<std::string>& output_names,
@@ -162,6 +229,9 @@ namespace cms::Ort {
   }
 
   const std::vector<std::string>& ONNXRuntime::getOutputNames() const {
+    return m_impl->getOutputNames();
+  }
+  const std::vector<std::string>& ONNXRuntimeImpl::getOutputNames() const {
     if (session_) {
       return output_node_strings_;
     } else {
@@ -170,6 +240,10 @@ namespace cms::Ort {
   }
 
   const std::vector<int64_t>& ONNXRuntime::getOutputShape(const std::string& output_name) const {
+    return m_impl->getOutputShape(output_name);
+  }
+
+  const std::vector<int64_t>& ONNXRuntimeImpl::getOutputShape(const std::string& output_name) const {
     auto iter = output_node_dims_.find(output_name);
     if (iter == output_node_dims_.end()) {
       throw cms::Exception("RuntimeError") << "Output name " << output_name << " is invalid!";
