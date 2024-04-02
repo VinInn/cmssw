@@ -23,8 +23,8 @@ typename MultiGaussianStateCombiner<N>::SingleStatePtr MultiGaussianStateCombine
 
   //   int size = firstState.mean().num_row();
   typename SingleState::Vector meanMean;
-  double weightSum = 0.;
-  double weight;
+  typename SingleState::Scalar weightSum = 0.;
+  typename SingleState::Scalar weight;
   typename SingleState::Matrix measCovar1, measCovar2;
   for (auto mixtureIter1 = theComponents.begin(); mixtureIter1 != theComponents.end(); mixtureIter1++) {
     weight = (*mixtureIter1)->weight();
@@ -38,7 +38,7 @@ typename MultiGaussianStateCombiner<N>::SingleStatePtr MultiGaussianStateCombine
       typename SingleState::Vector posDiff = mean1 - (**mixtureIter2).mean();
       //
       // TensorProd yields a general matrix - need to convert to a symm. matrix
-      ROOT::Math::SMatrix<double, N, N> covGen = ROOT::Math::TensorProd(posDiff, posDiff);
+      ROOT::Math::SMatrix<typename SingleState::Scalar, N, N> covGen = ROOT::Math::TensorProd(posDiff, posDiff);
       typename SingleState::Matrix covSym(covGen.LowerBlock());
       measCovar2 += weight * (**mixtureIter2).weight() * covSym;
     }

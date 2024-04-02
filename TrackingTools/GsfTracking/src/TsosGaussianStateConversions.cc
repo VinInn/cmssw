@@ -41,10 +41,10 @@ namespace GaussianStateConversions {
     components.reserve(singleStates.size());
     for (auto const& ic : singleStates) {
       //require states to be positive-definite
-      if (double det = 0; (*ic).covariance().Det2(det) && det > 0) {
+      if (SingleGaussianState<5>::Scalar det = 0; (*ic).covariance().Det2(det) && det > 0) {
         components.emplace_back((*ic).weight(),
                                 LocalTrajectoryParameters((*ic).mean(), pzSign, charged),
-                                LocalTrajectoryError((*ic).covariance()),
+                                LocalTrajectoryError(AlgebraicSymMatrix55((*ic).covariance())),
                                 surface,
                                 field,
                                 side);

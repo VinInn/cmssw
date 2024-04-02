@@ -6,6 +6,7 @@
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
 #include "FWCore/Utilities/interface/Exception.h"
 
+/*
 MultiGaussianState<MultiGaussianStateTransform::N> MultiGaussianStateTransform::outerMultiState(
     const reco::GsfTrack& tk) {
   const reco::GsfTrackExtraRef& extra(tk.gsfExtra());
@@ -50,6 +51,7 @@ MultiGaussianState<MultiGaussianStateTransform::N> MultiGaussianStateTransform::
   }
   return MultiGaussianState<N>(components);
 }
+*/
 
 MultiGaussianState1D MultiGaussianStateTransform::multiState1D(
     const std::vector<MultiGaussianState<N>::Vector>& parameters,
@@ -65,6 +67,7 @@ MultiGaussianState1D MultiGaussianStateTransform::multiState1D(
   return MultiGaussianState1D(components);
 }
 
+/*
 MultiGaussianState<5> MultiGaussianStateTransform::multiState(const TrajectoryStateOnSurface tsos) {
   GetComponents comps(tsos);
   auto const& tsosComponents = comps();
@@ -77,6 +80,7 @@ MultiGaussianState<5> MultiGaussianStateTransform::multiState(const TrajectorySt
   }
   return MultiGaussianState<5>(components);
 }
+*/
 
 MultiGaussianState1D MultiGaussianStateTransform::multiState1D(const TrajectoryStateOnSurface tsos,
                                                                unsigned int index) {
@@ -92,6 +96,7 @@ MultiGaussianState1D MultiGaussianStateTransform::multiState1D(const TrajectoryS
   }
   return MultiGaussianState1D(components);
 }
+
 
 TrajectoryStateOnSurface MultiGaussianStateTransform::tsosFromSingleState(const SingleGaussianState<5>& singleState,
                                                                           const TrajectoryStateOnSurface refTsos) {

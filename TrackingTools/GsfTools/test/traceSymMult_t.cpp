@@ -21,6 +21,7 @@ void en() {}
 typedef DistanceBetweenComponents<5> Distance;
 typedef KullbackLeiblerDistance<5> KDistance;
 typedef SingleGaussianState<5> __attribute__((aligned(16))) GS;
+typedef GS::Scalar Scalar;
 typedef GS::Vector __attribute__((aligned(16))) Vector;
 typedef GS::Matrix __attribute__((aligned(16))) Matrix;
 typedef ROOT::Math::SMatrix<double, 6, 6, ROOT::Math::MatRepSym<double, 6> > __attribute__((aligned(16))) Matrix6;
@@ -60,7 +61,7 @@ int main(int args, char** argv) {
 
   double one = GsfMatrixTools::trace(cov1, cov2);
 
-  double two = GsfMatrixTools::trace<double, 5>(cov1 * cov2);
+  double two = GsfMatrixTools::trace<Scalar, 5>(cov1 * cov2);
 
   if (fabs(one - two) > 1.e-12)
     std::cout << "vincenzo was wrong!" << std::endl;
@@ -72,7 +73,7 @@ int main(int args, char** argv) {
     en();
   } else {
     st();
-    two = GsfMatrixTools::trace<double, 5>(cov2 * cov1);
+    two = GsfMatrixTools::trace<Scalar, 5>(cov2 * cov1);
     en();
   }
 

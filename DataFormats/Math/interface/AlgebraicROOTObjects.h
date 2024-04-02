@@ -2,6 +2,15 @@
 #define DataFormats_Math_AlgebraicROOTObjects_h_
 
 #define SMATRIX_USE_CONSTEXPR
+
+#include<cmath>
+namespace std {
+
+constexpr __float128 abs(__float128 const & x) { return ::fabsl((long double)(x));}
+constexpr __float128 sqrt(__float128 const & x) { return ::sqrtl((long double)(x));}
+
+}
+
 #include <Math/SVector.h>
 #include <Math/SMatrix.h>
 

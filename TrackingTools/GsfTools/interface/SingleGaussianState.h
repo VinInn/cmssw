@@ -1,10 +1,7 @@
 #ifndef SingleGaussianState_H
 #define SingleGaussianState_H
 
-#define SMATRIX_USE_CONSTEXPR
-
-#include "Math/SVector.h"
-#include "Math/SMatrix.h"
+#include "DataFormats/Math/interface/AlgebraicROOTObjects.h"
 
 /** Multi-dimensional (single) Gaussian state. Used for the description 
  * of Gaussian mixtures.
@@ -13,8 +10,9 @@
 template <unsigned int N>
 class SingleGaussianState {
 public:
-  using Vector = ROOT::Math::SVector<double, N>;
-  using Matrix = ROOT::Math::SMatrix<double, N, N, ROOT::Math::MatRepSym<double, N>>;
+  using Scalar = __float128; // double
+  using Vector = ROOT::Math::SVector<Scalar, N>;
+  using Matrix = ROOT::Math::SMatrix<Scalar, N, N, ROOT::Math::MatRepSym<Scalar, N>>;
 
 public:
   SingleGaussianState() {}

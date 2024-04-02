@@ -4,8 +4,8 @@ namespace KullbackLeiblerDistanceDetails {
 
   template <unsigned int N>
   double compute(SingleGaussianState<N> const& sgs1, SingleGaussianState<N> const& sgs2) {
-    using Vector = ROOT::Math::SVector<double, N>;
-    using Matrix = ROOT::Math::SMatrix<double, N, N, ROOT::Math::MatRepSym<double, N>>;
+    using Vector = typename SingleGaussianState<N>::Vector;
+    using Matrix = typename SingleGaussianState<N>::Matrix;
 
     const Vector& mu1 = sgs1.mean();
     const Matrix& V1 = sgs1.covariance();
