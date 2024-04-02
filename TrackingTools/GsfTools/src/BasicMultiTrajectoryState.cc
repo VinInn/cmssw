@@ -3,6 +3,8 @@
 #include "DataFormats/GeometrySurface/interface/BoundPlane.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
+#include "TrackingTools/GsfTools/interface/SingleGaussianState.h"
+
 using namespace SurfaceSideDefinition;
 
 BasicMultiTrajectoryState::BasicMultiTrajectoryState(const std::vector<TSOS>& tsvec)
@@ -73,16 +75,16 @@ void BasicMultiTrajectoryState::combine() {
 
   double sumw = 0.;
   //int dim = tsos.front().localParameters().vector().num_row();
-  AlgebraicVector5 mean;
-  AlgebraicSymMatrix55 covarPart1, covarPart2, covtmp;
+  SingleGaussianState<5>::Vector mean;
+  SingleGaussianState<5>::Matrix covarPart1, covarPart2, covtmp;
   for (auto it1 = tsos.begin(); it1 != tsos.end(); it1++) {
     auto weight = it1->weight();
-    auto const& param = it1->localParameters().vector();
+    SingleGaussianState<5>::Vector param(it1->localParameters().vector());
     sumw += weight;
     mean += weight * param;
-    covarPart1 += weight * it1->localError().matrix();
+    covarPart1 += weight * SingleGaussianState<5>::Matrix( it1->localError().matrix());
     for (auto it2 = it1 + 1; it2 != tsos.end(); it2++) {
-      AlgebraicVector5 diff = param - it2->localParameters().vector();
+      SingleGaussianState<5>::Vector diff = param - SingleGaussianState<5>::Vector(it2->localParameters().vector());
       ROOT::Math::AssignSym::Evaluate(covtmp, ROOT::Math::TensorProd(diff, diff));
       covarPart2 += (weight * it2->weight()) * covtmp;
     }
@@ -91,7 +93,7 @@ void BasicMultiTrajectoryState::combine() {
   mean *= sumwI;
   covarPart1 *= sumwI;
   covarPart2 *= (sumwI * sumwI);
-  AlgebraicSymMatrix55 covar = covarPart1 + covarPart2;
+  AlgebraicSymMatrix55 covar(SingleGaussianState<5>::Matrix(covarPart1 + covarPart2));
 
   BasicTrajectoryState::update(sumw,
                                LocalTrajectoryParameters(mean, pzSign),
