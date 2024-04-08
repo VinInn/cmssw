@@ -2,6 +2,9 @@
 #include "TrackingTools/TrajectoryParametrization/interface/GlobalTrajectoryParameters.h"
 #include <vdt/vdtMath.h>
 
+#define TRPRFN_SCALAR
+
+
 AnalyticalCurvilinearJacobian::AnalyticalCurvilinearJacobian(const GlobalTrajectoryParameters& globalParameters,
                                                              const GlobalPoint& x,
                                                              const GlobalVector& p,
@@ -57,6 +60,7 @@ void AnalyticalCurvilinearJacobian::computeFullJacobian(const GlobalTrajectoryPa
                                                         const GlobalVector& p,
                                                         const GlobalVector& h,
                                                         const double& s) {
+  using Scalar = __float128;
   //GlobalVector p1 = fts.momentum().unit();
   GlobalVector p1 = globalParameters.momentum().unit();
   GlobalVector p2 = p.unit();
@@ -66,70 +70,70 @@ void AnalyticalCurvilinearJacobian::computeFullJacobian(const GlobalTrajectoryPa
   //GlobalVector h  = MagneticField::inInverseGeV(xStart);
   // Martijn: field is now given as parameter.. GlobalVector h  = globalParameters.magneticFieldInInverseGeV(xStart);
 
-  //double qbp = fts.signedInverseMomentum();
-  double qbp = globalParameters.signedInverseMomentum();
-  double absS = s;
+  //Scalar qbp = fts.signedInverseMomentum();
+  Scalar qbp = globalParameters.signedInverseMomentum();
+  Scalar absS = s;
 
   // calculate transport matrix
   // Origin: TRPRFN
-  double t11 = p1.x();
-  double t12 = p1.y();
-  double t13 = p1.z();
-  double t21 = p2.x();
-  double t22 = p2.y();
-  double t23 = p2.z();
-  double cosl0 = p1.perp();
-  double cosl1 = 1. / p2.perp();
+  Scalar t11 = p1.x();
+  Scalar t12 = p1.y();
+  Scalar t13 = p1.z();
+  Scalar t21 = p2.x();
+  Scalar t22 = p2.y();
+  Scalar t23 = p2.z();
+  Scalar cosl0 = p1.perp();
+  Scalar cosl1 = 1. / p2.perp();
   //AlgebraicMatrix a(5,5,1);
   // define average magnetic field and gradient
   // at initial point - inlike TRPRFN
   GlobalVector hn = h.unit();
-  double qp = -h.mag();
-  //   double q = -h.mag()*qbp;
-  double q = qp * qbp;
+  Scalar qp = -h.mag();
+  //   Scalar q = -h.mag()*qbp;
+  Scalar q = qp * qbp;
   double theta = q * absS;
   double sint, cost;
   vdt::fast_sincos(theta, sint, cost);
-  double hn1 = hn.x();
-  double hn2 = hn.y();
-  double hn3 = hn.z();
-  double dx1 = dx.x();
-  double dx2 = dx.y();
-  double dx3 = dx.z();
-  double gamma = hn1 * t21 + hn2 * t22 + hn3 * t23;
-  double an1 = hn2 * t23 - hn3 * t22;
-  double an2 = hn3 * t21 - hn1 * t23;
-  double an3 = hn1 * t22 - hn2 * t21;
-  double au = 1. / sqrt(t11 * t11 + t12 * t12);
-  double u11 = -au * t12;
-  double u12 = au * t11;
-  double v11 = -t13 * u12;
-  double v12 = t13 * u11;
-  double v13 = t11 * u12 - t12 * u11;
-  au = 1. / sqrt(t21 * t21 + t22 * t22);
-  double u21 = -au * t22;
-  double u22 = au * t21;
-  double v21 = -t23 * u22;
-  double v22 = t23 * u21;
-  double v23 = t21 * u22 - t22 * u21;
+  Scalar hn1 = hn.x();
+  Scalar hn2 = hn.y();
+  Scalar hn3 = hn.z();
+  Scalar dx1 = dx.x();
+  Scalar dx2 = dx.y();
+  Scalar dx3 = dx.z();
+  Scalar gamma = hn1 * t21 + hn2 * t22 + hn3 * t23;
+  Scalar an1 = hn2 * t23 - hn3 * t22;
+  Scalar an2 = hn3 * t21 - hn1 * t23;
+  Scalar an3 = hn1 * t22 - hn2 * t21;
+  Scalar au = 1. / sqrt(t11 * t11 + t12 * t12);
+  Scalar u11 = -au * t12;
+  Scalar u12 = au * t11;
+  Scalar v11 = -t13 * u12;
+  Scalar v12 = t13 * u11;
+  Scalar v13 = t11 * u12 - t12 * u11;
+  au = 1. / sqrt(double(t21 * t21 + t22 * t22));
+  Scalar u21 = -au * t22;
+  Scalar u22 = au * t21;
+  Scalar v21 = -t23 * u22;
+  Scalar v22 = t23 * u21;
+  Scalar v23 = t21 * u22 - t22 * u21;
   // now prepare the transport matrix
   // pp only needed in high-p case (WA)
-  //   double pp = 1./qbp;
-  ////    double pp = fts.momentum().mag();
+  //   Scalar pp = 1./qbp;
+  ////    Scalar pp = fts.momentum().mag();
   // moved up (where -h.mag() is needed()
-  //   double qp = q*pp;
-  double anv = -(hn1 * u21 + hn2 * u22);
-  double anu = (hn1 * v21 + hn2 * v22 + hn3 * v23);
-  double omcost = 1. - cost;
-  double tmsint = theta - sint;
+  //   Scalar qp = q*pp;
+  Scalar anv = -(hn1 * u21 + hn2 * u22);
+  Scalar anu = (hn1 * v21 + hn2 * v22 + hn3 * v23);
+  Scalar omcost = 1. - cost;
+  Scalar tmsint = theta - sint;
 
-  double hu1 = -hn3 * u12;
-  double hu2 = hn3 * u11;
-  double hu3 = hn1 * u12 - hn2 * u11;
+  Scalar hu1 = -hn3 * u12;
+  Scalar hu2 = hn3 * u11;
+  Scalar hu3 = hn1 * u12 - hn2 * u11;
 
-  double hv1 = hn2 * v13 - hn3 * v12;
-  double hv2 = hn3 * v11 - hn1 * v13;
-  double hv3 = hn1 * v12 - hn2 * v11;
+  Scalar hv1 = hn2 * v13 - hn3 * v12;
+  Scalar hv2 = hn3 * v11 - hn1 * v13;
+  Scalar hv3 = hn1 * v12 - hn2 * v11;
 
   //   1/p - doesn't change since |p1| = |p2|
   theJacobian(0, 0) = 1.;
@@ -178,42 +182,42 @@ void AnalyticalCurvilinearJacobian::computeFullJacobian(const GlobalTrajectoryPa
 
   //   yt
 
-  //double cutCriterion = abs(s/fts.momentum().mag());
-  double cutCriterion = fabs(s / globalParameters.momentum().mag());
-  const double limit = 5.;  // valid for propagations with effectively float precision
+  //Scalar cutCriterion = abs(s/fts.momentum().mag());
+  Scalar cutCriterion = fabs(s / globalParameters.momentum().mag());
+  const Scalar limit = 500000000.;  // valid for propagations with effectively float precision
 
   if (cutCriterion > limit) {
-    double pp = 1. / qbp;
+    Scalar pp = 1. / qbp;
     theJacobian(3, 0) = pp * (u21 * dx1 + u22 * dx2);
     theJacobian(4, 0) = pp * (v21 * dx1 + v22 * dx2 + v23 * dx3);
   } else {
-    double hp11 = hn2 * t13 - hn3 * t12;
-    double hp12 = hn3 * t11 - hn1 * t13;
-    double hp13 = hn1 * t12 - hn2 * t11;
-    double temp1 = hp11 * u21 + hp12 * u22;
-    double s2 = s * s;
-    double secondOrder41 = 0.5 * qp * temp1 * s2;
-    double ghnmp1 = gamma * hn1 - t11;
-    double ghnmp2 = gamma * hn2 - t12;
-    double ghnmp3 = gamma * hn3 - t13;
-    double temp2 = ghnmp1 * u21 + ghnmp2 * u22;
-    double s3 = s2 * s;
-    double s4 = s3 * s;
-    double h1 = h.mag();
-    double h2 = h1 * h1;
-    double h3 = h2 * h1;
-    double qbp2 = qbp * qbp;
+    Scalar hp11 = hn2 * t13 - hn3 * t12;
+    Scalar hp12 = hn3 * t11 - hn1 * t13;
+    Scalar hp13 = hn1 * t12 - hn2 * t11;
+    Scalar temp1 = hp11 * u21 + hp12 * u22;
+    Scalar s2 = s * s;
+    Scalar secondOrder41 = 0.5 * qp * temp1 * s2;
+    Scalar ghnmp1 = gamma * hn1 - t11;
+    Scalar ghnmp2 = gamma * hn2 - t12;
+    Scalar ghnmp3 = gamma * hn3 - t13;
+    Scalar temp2 = ghnmp1 * u21 + ghnmp2 * u22;
+    Scalar s3 = s2 * s;
+    Scalar s4 = s3 * s;
+    Scalar h1 = h.mag();
+    Scalar h2 = h1 * h1;
+    Scalar h3 = h2 * h1;
+    Scalar qbp2 = qbp * qbp;
     //                           s*qp*s* (qp*s *qbp)
-    double thirdOrder41 = 1. / 3 * h2 * s3 * qbp * temp2;
+    Scalar thirdOrder41 = 1. / 3 * h2 * s3 * qbp * temp2;
     //                           -qp * s * qbp  * above
-    double fourthOrder41 = 1. / 8 * h3 * s4 * qbp2 * temp1;
+    Scalar fourthOrder41 = 1. / 8 * h3 * s4 * qbp2 * temp1;
     theJacobian(3, 0) = secondOrder41 + (thirdOrder41 + fourthOrder41);
 
-    double temp3 = hp11 * v21 + hp12 * v22 + hp13 * v23;
-    double secondOrder51 = 0.5 * qp * temp3 * s2;
-    double temp4 = ghnmp1 * v21 + ghnmp2 * v22 + ghnmp3 * v23;
-    double thirdOrder51 = 1. / 3 * h2 * s3 * qbp * temp4;
-    double fourthOrder51 = 1. / 8 * h3 * s4 * qbp2 * temp3;
+    Scalar temp3 = hp11 * v21 + hp12 * v22 + hp13 * v23;
+    Scalar secondOrder51 = 0.5 * qp * temp3 * s2;
+    Scalar temp4 = ghnmp1 * v21 + ghnmp2 * v22 + ghnmp3 * v23;
+    Scalar thirdOrder51 = 1. / 3 * h2 * s3 * qbp * temp4;
+    Scalar fourthOrder51 = 1. / 8 * h3 * s4 * qbp2 * temp3;
     theJacobian(4, 0) = secondOrder51 + (thirdOrder51 + fourthOrder51);
   }
 

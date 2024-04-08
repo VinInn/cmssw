@@ -145,7 +145,7 @@ void AnalyticalCurvilinearJacobian::computeFullJacobian(const GlobalTrajectoryPa
   //double cutCriterion = abs(s/fts.momentum().mag());
   //  double cutCriterion = fabs(s/globalParameters.momentum().mag());
   double cutCriterion = std::abs(s * qbp);
-  const double limit = 5.;  // valid for propagations with effectively float precision
+  const double limit = 50000000000.;  // valid for propagations with effectively float precision
 
   if (cutCriterion > limit) {
     double pp = 1. / qbp;

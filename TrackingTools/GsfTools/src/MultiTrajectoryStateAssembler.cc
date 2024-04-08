@@ -10,7 +10,7 @@ MultiTrajectoryStateAssembler::MultiTrajectoryStateAssembler()
   //
   // parameters (could be configurable)
   //
-  sortStates = false;
+  sortStates = true;
   minValidFraction = 0.01;
   minFractionalWeight = 1.e-6;  // 4;
 }
