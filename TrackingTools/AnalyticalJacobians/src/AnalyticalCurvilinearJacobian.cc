@@ -2,6 +2,8 @@
 #include "TrackingTools/TrajectoryParametrization/interface/GlobalTrajectoryParameters.h"
 #include <vdt/vdtMath.h>
 
+// #define TRPRFN_SCALAR
+
 AnalyticalCurvilinearJacobian::AnalyticalCurvilinearJacobian(const GlobalTrajectoryParameters& globalParameters,
                                                              const GlobalPoint& x,
                                                              const GlobalVector& p,

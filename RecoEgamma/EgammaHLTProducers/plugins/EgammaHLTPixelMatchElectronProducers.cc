@@ -75,6 +75,11 @@ void EgammaHLTPixelMatchElectronProducers::produce(edm::Event& e, const edm::Eve
   // invoke algorithm
   algo_.run(e, outEle);
 
+  std::cout << ">>> found  " << outEle.size() << " pixM electrons" << std::endl;
+  int n=0;
+  for (auto const & tr : outEle) 
+    std::cout << ">>> " << n++ << ' ' << tr.pt() << ' ' << tr.eta() << ' ' << tr.phi() << std::endl;
+
   // put result into the Event
   e.emplace(token_, std::move(outEle));
 }

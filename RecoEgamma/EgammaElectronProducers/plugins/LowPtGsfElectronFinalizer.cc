@@ -49,6 +49,7 @@ void LowPtGsfElectronFinalizer::produce(edm::Event& event, const edm::EventSetup
   }
 
   // Emplace modified electrons to event
+  std::cout << ">>> found " << outputElectrons.size() << " low pt electrons" << std::endl;
   event.emplace(putToken_, std::move(outputElectrons));
 }
 

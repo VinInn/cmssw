@@ -787,6 +787,7 @@ void GsfElectronProducer::produce(edm::Event& event, const edm::EventSetup& setu
       ele.hcalToRun2EffDepth();
   }
   // final filling
+  std::cout << ">>> found " << electrons.size() << " gsf electrons" << std::endl;
   event.emplace(electronPutToken_, std::move(electrons));
 }
 

@@ -47,7 +47,7 @@ JacobianLocalToCartesian::JacobianLocalToCartesian(const Surface& surface,
   GlobalVector g2 = surface.toGlobal(LocalVector(0., 1., 0.));
   GlobalVector g3 = surface.toGlobal(LocalVector(0., 0., 1.));
   */
-  AlgebraicMatrix33 Rsub;
+  AlgebraicMatrix33 Rsub{ROOT::Math::SMatrixNoInit()};
   /*
   Rsub(0,0) = g1.x(); Rsub(0,1) = g2.x(); Rsub(0,2) = g3.x();
   Rsub(1,0) = g1.y(); Rsub(1,1) = g2.y(); Rsub(1,2) = g3.y();

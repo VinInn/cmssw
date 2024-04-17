@@ -1,3 +1,4 @@
+#warning("using SSEVECT")
 void AnalyticalCurvilinearJacobian::computeFullJacobian(  //NOLINT(misc-definitions-in-headers)
     const GlobalTrajectoryParameters& globalParameters,
     const GlobalPoint& x,
@@ -51,11 +52,15 @@ void AnalyticalCurvilinearJacobian::computeFullJacobian(  //NOLINT(misc-definiti
   tt = mathSSE::sqrt(hadd(tt, tt));
 
 #ifdef CMS_USE_AVX2
-  const __m256d neg = _mm256_setr_pd(-0.0, 0.0, -0.0, 0.0);
-  Vec4D res(_mm256_xor_pd(neg, _mm256_div_pd(_mm256_shuffle_pd(t.vec, t.vec, 5), tt.vec)));
+#warning("using AVX2")
+  // const __m256d neg = _mm256_setr_pd(-0.0, 0.0, -0.0, 0.0);
+  const __m256i neg = _mm256_setr_epi64x(0x8000000000000000, 0, 0x8000000000000000, 0);
+
+  Vec4D res(__m256d(_mm256_xor_si256(neg, __m256i(_mm256_div_pd(_mm256_shuffle_pd(t.vec, t.vec, 5), tt.vec)) ) ));
   Vec2D u1(res.xy());
   Vec2D u2(res.zw());
 #else
+#warning("using SSE")
   // __m128d t = _mm_mul_pd(t1.xy().vec,t1.xy().vec);
   //  t = _mm_sqrt_pd(_mm_add_pd(t,_mm_shuffle_pd(t,t,1)));
   // t = _mm_sqrt_pd(_mm_hadd_pd(t,t));

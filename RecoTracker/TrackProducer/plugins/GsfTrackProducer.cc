@@ -48,6 +48,7 @@ GsfTrackProducer::GsfTrackProducer(const edm::ParameterSet& iConfig)
 }
 
 void GsfTrackProducer::produce(edm::Event& theEvent, const edm::EventSetup& setup) {
+  // std::cout << "GsfTrackProducer  for " << theEvent.id() << std::endl;
   edm::LogInfo("GsfTrackProducer") << "Analyzing event number: " << theEvent.id() << "\n";
   //
   // create empty output collections
@@ -99,6 +100,7 @@ void GsfTrackProducer::produce(edm::Event& theEvent, const edm::EventSetup& setu
                                      << e << "\n";
     throw;
   }
+
   //
   //put everything in the event
   putInEvt(theEvent,

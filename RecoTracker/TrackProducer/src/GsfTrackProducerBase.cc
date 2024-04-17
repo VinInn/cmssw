@@ -204,6 +204,14 @@ void GsfTrackProducerBase::putInEvt(edm::Event& evt,
     delete theTraj;
   }
 
+  std::cout << ">>> found " << selTracks->size() << " gsf tracks" << std::endl;
+  int n = 0;
+  for ( auto const & tr : *selTracks )  {
+    auto const & extra = (*selTrackExtras)[n];
+    std::cout << ">>> " <<  n++ << ' ' << tr.pt() << ' ' << tr.eta() << ' ' << tr.phi() << ' ' << tr.chi2() << ' ' << tr.ndof()
+              << " out " << extra.outerPt() << ' ' << extra.outerEta() << ' ' << extra.outerPhi() << ' ' << extra.outerRadius() << ' ' << extra.outerZ() << std::endl;
+  }
+
   LogTrace("TrackingRegressionTest") << "========== TrackProducer Info ===================";
   LogTrace("TrackingRegressionTest") << "number of finalGsfTracks: " << selTracks->size();
   for (reco::GsfTrackCollection::const_iterator it = selTracks->begin(); it != selTracks->end(); it++) {

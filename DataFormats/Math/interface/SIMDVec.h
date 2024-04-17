@@ -4,7 +4,8 @@
 #if (defined(__CLING__) || defined(__MIC__) || defined(__NVCC__)) || (__BIGGEST_ALIGNMENT__ < 16)
 #elif defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
 #if defined(__x86_64__) && defined(__SSE__)
-#define USE_SSEVECT
+// #define USE_EXTVECT
+ #define USE_SSEVECT
 #else
 #define USE_EXTVECT
 #endif

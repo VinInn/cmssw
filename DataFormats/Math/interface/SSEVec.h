@@ -6,6 +6,9 @@
 #if defined(__GNUC__)
 #include <x86intrin.h>
 #define CMS_USE_SSE
+#ifdef __SSE4_1__
+// #define CMS_USE_SSE4
+#endif
 #ifdef __AVX2__
 #define CMS_USE_AVX2
 #endif /* __AVX2__ */
@@ -25,9 +28,11 @@ namespace mathSSE {
 #ifdef CMS_USE_SSE
   //dot
   inline __m128 __attribute__((always_inline)) __attribute__((pure)) _mm_dot_ps(__m128 v1, __m128 v2) {
-#ifdef __SSE4_1__
+
+#ifdef CMS_USE_SSE4
     return _mm_dp_ps(v1, v2, 0xff);
 #else
+
     __m128 mul = _mm_mul_ps(v1, v2);
 #ifdef __SSE3__
     mul = _mm_hadd_ps(mul, mul);

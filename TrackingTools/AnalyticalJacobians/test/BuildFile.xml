@@ -5,6 +5,7 @@
 <use name="boost"/>
 <use name="clhep"/>
 <bin file="Jacobian_t.cpp">
+<flags CXXFLAGS="-ffast-math -march=native"/>
 </bin>
 
 <bin file="ErrorProp_t.cpp">

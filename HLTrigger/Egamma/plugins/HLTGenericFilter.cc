@@ -257,6 +257,8 @@ bool HLTGenericFilter<T1>::hltFilter(edm::Event& iEvent,
   // filter decision
   bool accept(n >= ncandcut_);
 
+  std::cout << ">>> " << varTag_  << (accept ? " ok " : " no ") << n << " out of " << recoCands.size() << std::endl;
+
   return accept;
 }
 
