@@ -1,3 +1,8 @@
+#define VI_DEBUG
+#define CROSSING_TYPE double;
+// TwoFloat<float>;
+#undef USE_EXTVECT
+
 #include "MagneticField/Engine/interface/MagneticField.h"
 #include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "TrackingTools/GeomPropagators/interface/HelixBarrelPlaneCrossing2OrderLocal.h"

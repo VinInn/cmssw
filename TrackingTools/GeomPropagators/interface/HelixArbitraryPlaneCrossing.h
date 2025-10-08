@@ -7,16 +7,17 @@
 
 /** Calculates intersections of a helix with planes of any orientation. */
 
-class HelixArbitraryPlaneCrossing final : public HelixPlaneCrossing {
+template<typename T>
+class HelixArbitraryPlaneCrossingT final : public HelixPlaneCrossing {
 public:
   /** Constructor using point, direction and (transverse!) curvature.
    */
-  HelixArbitraryPlaneCrossing(const PositionType& point,
+  HelixArbitraryPlaneCrossingT(const PositionType& point,
                               const DirectionType& direction,
                               const float curvature,
                               const PropagationDirection propDir = alongMomentum);
   // destructor
-  ~HelixArbitraryPlaneCrossing() override {}
+  ~HelixArbitraryPlaneCrossingT() override {}
 
   /** Propagation status (true if valid) and (signed) path length 
    *  along the helix from the starting point to the plane. The 
@@ -32,41 +33,43 @@ public:
    */
   DirectionType direction(double s) const override;
   //
-  // double precision vectors for internal use
+  // T precision vectors for internal use
   //
-  typedef Basic3DVector<double> PositionTypeDouble;
-  typedef Basic3DVector<double> DirectionTypeDouble;
+  typedef Basic3DVector<T> PositionTypeT;
+  typedef Basic3DVector<T> DirectionTypeT;
 
   /** Position at pathlength s from the starting point.
    */
-  PositionTypeDouble positionInDouble(double s) const;
+  PositionTypeT positionInT(T s) const;
 
   /** Direction at pathlength s from the starting point.
    */
-  DirectionTypeDouble directionInDouble(double s) const;
+  DirectionTypeT directionInT(T s) const;
 
 private:
   /** Iteration control: check for significant distance to plane.
    */
-  inline bool notAtSurface(const Plane&, const PositionTypeDouble&, const float) const dso_internal;
+  inline bool notAtSurface(const Plane&, const PositionTypeT&, const float) const dso_internal;
 
 private:
-  HelixArbitraryPlaneCrossing2Order theQuadraticCrossingFromStart;
+  HelixArbitraryPlaneCrossingT2Order<T> theQuadraticCrossingFromStart;
 
-  const double theX0, theY0, theZ0;
-  double theCosPhi0, theSinPhi0;
-  double theCosTheta, theSinTheta;
-  const double theRho;
+  const T theX0, theY0, theZ0;
+  T theCosPhi0, theSinPhi0;
+  T theCosTheta, theSinTheta;
+  const T theRho;
 
   const PropagationDirection thePropDir;
 
-  mutable double theCachedS;
-  mutable double theCachedDPhi;
-  mutable double theCachedSDPhi;
-  mutable double theCachedCDPhi;
+  mutable T theCachedS;
+  mutable T theCachedDPhi;
+  mutable T theCachedSDPhi;
+  mutable T theCachedCDPhi;
 
-  static const float theNumericalPrecision;
-  static const float theMaxDistToPlane;
 };
+
+#include  "HelixArbitraryPlaneCrossingTsrc.h"
+
+using HelixArbitraryPlaneCrossing = HelixArbitraryPlaneCrossingT<double>;
 
 #endif

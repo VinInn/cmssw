@@ -5,6 +5,7 @@
 //  supported by gcc and clang on all architectures
 //
 //
+/*
 #if (defined(__CLING__) || defined(__MIC__) || defined(__NVCC__)) || (__BIGGEST_ALIGNMENT__ < 16)
 #elif defined(__INTEL_COMPILER)
 // intel compiler does not support the extended vector syntax
@@ -16,6 +17,7 @@
 #define USE_EXTVECT
 #endif
 #endif
+*/
 
 // to be moved elsewhere
 namespace mathSSE {

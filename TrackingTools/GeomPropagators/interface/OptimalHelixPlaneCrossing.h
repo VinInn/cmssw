@@ -7,9 +7,24 @@
 
 #include <memory>
 
+#ifndef CROSSING_TYPE
+#define CROSSING_TYPE double;
+#endif
+
+#ifdef VI_DEBUG
+#include<iostream>
+#endif
+
 class OptimalHelixPlaneCrossing {
 public:
+#ifdef VI_DEBUG
+  constexpr static bool videbug=true;
+#else
+  constexpr static bool videbug=false;
+#endif
+
   using Base = HelixPlaneCrossing;
+  using F = CROSSING_TYPE;
 
   template <typename... Args>
   OptimalHelixPlaneCrossing(Plane const &plane, Args &&...args) {
@@ -19,15 +34,18 @@ public:
     if (std::abs(u.z()) < small) {
       // barrel plane:
       // instantiate HelixBarrelPlaneCrossing,
+      if constexpr (videbug) std::cout  <<"OptCross using Barrel" << std::endl; 
       new (get()) HelixBarrelPlaneCrossingByCircle(args...);
     } else if ((std::abs(u.x()) < small) && (std::abs(u.y()) < small)) {
       // forward plane:
       // instantiate HelixForwardPlaneCrossing
+      if constexpr (videbug) std::cout  <<"OptCross using Forward" << std::endl;
       new (get()) HelixForwardPlaneCrossing(args...);
     } else {
       // arbitrary plane:
       // instantiate HelixArbitraryPlaneCrossing
-      new (get()) HelixArbitraryPlaneCrossing(args...);
+      if constexpr (videbug) std::cout  <<"OptCross using Arbitrary " << typeid(F).name()  << std::endl;
+      new (get()) HelixArbitraryPlaneCrossingT<F>(args...);
     }
   }
 
@@ -43,7 +61,7 @@ private:
   union Tmp {
     HelixBarrelPlaneCrossingByCircle a;
     HelixForwardPlaneCrossing b;
-    HelixArbitraryPlaneCrossing c;
+    HelixArbitraryPlaneCrossingT<F> c;
   };
   using aligned_union_t = typename std::aligned_storage<sizeof(Tmp), alignof(Tmp)>::type;
   aligned_union_t mem;
