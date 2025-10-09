@@ -96,7 +96,7 @@ std::pair<bool, double> HelixArbitraryPlaneCrossingT<T>::pathLength(const Plane&
   //
   // Constants used for control of convergence
   //
-  constexpr int maxIterations = 20;
+  constexpr int maxIterations = 100;
   //
   // maximum distance to plane (taking into account numerical precision)
   //
@@ -170,7 +170,9 @@ std::pair<bool, double> HelixArbitraryPlaneCrossingT<T>::pathLength(const Plane&
   // Return result
   //
   maxiter(iteration);
-
+#ifdef VI_DEBUG
+  std::cout << "iters " << maxIterations-iteration << std::endl;
+#endif
   return std::make_pair(true, dSTotal);
 }
 //

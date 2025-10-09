@@ -1,6 +1,5 @@
 #define VI_DEBUG
-#define CROSSING_TYPE double;
-// TwoFloat<float>;
+#define CROSSING_TYPE TwoFloat<float>;
 #undef USE_EXTVECT
 
 #include "MagneticField/Engine/interface/MagneticField.h"
@@ -102,7 +101,10 @@ void crossing2() {
   GlobalVector u = plane.normalVector();
   std::cout << "norm " << u << std::endl;
 
-  double rho = 0.00223254;
+  double rho = 0.000223254;
+
+for (int i=0; i<5; ++i) {
+  std::cout << "rho " << rho <<std::endl;
 
   HelixBarrelPlaneCrossingByCircle precise(startingPos, startingDir, rho, alongMomentum);
   bool cross;
@@ -141,13 +143,17 @@ void crossing2() {
   std::tie(thePos, theDir) = secondOrderAccurate(startingPos, startingDir, rho, plane);
 
   std::cout << thePos << ' ' << theDir << std::endl;
-}
 
+   rho *=10;
+  }
+}
+ 
 void crossing3() {
   GlobalPoint startingPos(-8.12604, -50.829, 9.82116);
   GlobalVector startingDir(-0.517536, -5.09581, 1.02212);
 
-  double rho = 0.00223254;
+  
+  double rho = 0.000223254;
 
   GlobalPoint pos(26.2991, 36.199, 100.263);
   Surface::RotationType rot(
@@ -159,6 +165,8 @@ void crossing3() {
   GlobalVector u = plane.normalVector();
   std::cout << "norm " << u << std::endl;
 
+for (int i=0; i<2; ++i) {
+  std::cout << "rho " << rho <<std::endl;
   OptimalHelixPlaneCrossing ocrossing(plane,
                                       HelixPlaneCrossing::PositionType(startingPos),
                                       HelixPlaneCrossing::DirectionType(startingDir),
@@ -171,6 +179,7 @@ void crossing3() {
   if (!cross)
     std::cout << "missed!" << std::endl;
   else {
+    std::cout << "pl " << s << std::endl;
     std::cout << crossing.position(s) << ' ' << crossing.direction(s) << std::endl;
     std::cout << plane.toLocal(GlobalPoint(crossing.position(s))) << " "
               << plane.toLocal(GlobalVector(crossing.direction(s))) << std::endl;
@@ -181,6 +190,11 @@ void crossing3() {
   std::tie(thePos, theDir) = secondOrderAccurate(startingPos, startingDir, rho, plane);
 
   std::cout << thePos << ' ' << theDir << std::endl;
+
+   rho *=10;
+   std::cout << std::endl;
+  }
+
 }
 
 void testHelixBarrelPlaneCrossing2OrderLocal() {
